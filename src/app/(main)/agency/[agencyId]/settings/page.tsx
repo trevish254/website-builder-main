@@ -1,0 +1,107 @@
+import AgencyDetails from '@/components/forms/agency-details'
+import UserDetails from '@/components/forms/user-details'
+import { getAuthUserDetails } from '@/lib/queries'
+import { supabase } from '@/lib/supabase'
+import { currentUser } from '@clerk/nextjs/server'
+import React from 'react'
+
+type Props = {
+  params: { agencyId: string }
+}
+
+const SettingsPage = async ({ params }: Props) => {
+  console.log('Loading agency settings page for', params.agencyId)
+  
+  try {
+    // Fetch current user details
+    const authUser = await currentUser()
+    if (!authUser) {
+      return null
+    }
+
+    // Ensure the signed-in user is authorized for this agency
+    const userDetails = await getAuthUserDetails()
+    if (!userDetails) return null
+    if ((userDetails as any).agencyId !== params.agencyId) {
+      return <Unauthorized />
+    }
+
+    // Fetch agency details from database
+    const { data: agencyData, error: agencyError } = await supabase
+      .from('Agency')
+      .select('*')
+      .eq('id', params.agencyId)
+      .single()
+
+    if (agencyError) {
+      return <Unauthorized />
+    }
+
+    // Fetch subaccounts for this agency
+    const { data: subAccountsData, error: subAccountsError } = await supabase
+      .from('SubAccount')
+      .select('id, name')
+      .eq('agencyId', params.agencyId)
+
+    const subAccounts = subAccountsData || []
+    
+    if (subAccountsError) {
+      console.error('Error fetching subaccounts:', subAccountsError)
+    }
+
+    const userData = userDetails ? {
+      id: userDetails.id,
+      name: userDetails.name || `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim(),
+      email: userDetails.email || authUser.emailAddresses[0]?.emailAddress || '',
+      avatarUrl: userDetails.avatarUrl || authUser.imageUrl || '',
+      role: userDetails.role || 'AGENCY_OWNER'
+    } : {
+      id: authUser.id,
+      name: `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim() || 'User',
+      email: authUser.emailAddresses[0]?.emailAddress || '',
+      avatarUrl: authUser.imageUrl || '',
+      role: 'AGENCY_OWNER'
+    }
+
+    console.log('✅ Fetched agency data:', agencyData?.name)
+    console.log('✅ Fetched user data:', userData.name)
+    console.log('✅ Fetched subaccounts:', subAccounts.length)
+
+    return (
+      <div className="flex lg:!flex-row flex-col gap-4">
+        <AgencyDetails data={agencyData} />
+        <UserDetails
+          type="agency"
+          id={params.agencyId}
+          subAccounts={subAccounts}
+          userData={userData}
+        />
+      </div>
+    )
+  } catch (error) {
+    console.error('Error loading settings page:', error)
+    
+    // Fallback UI in case of errors
+    const authUser = await currentUser()
+    
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="p-4 border rounded-lg">
+          <h2 className="text-lg font-semibold mb-2">Settings</h2>
+          <p className="text-muted-foreground">
+            Unable to load agency settings. Please check your database connection.
+          </p>
+        </div>
+        {authUser && (
+          <div className="p-4 border rounded-lg">
+            <h3 className="text-md font-semibold mb-2">Current User</h3>
+            <p>Email: {authUser.emailAddresses[0]?.emailAddress || 'N/A'}</p>
+            <p>Name: {`${authUser.firstName || ''} ${authUser.lastName || ''}`.trim() || 'N/A'}</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+}
+
+export default SettingsPage

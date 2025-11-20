@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plura SaaS Platform - Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 60px;
+            background: white;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .slide-header {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2.5em;
+            color: #2d3748;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.8em;
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 1.5em;
+            color: #718096;
+            margin-bottom: 40px;
+        }
+
+        .content {
+            max-width: 1000px;
+            font-size: 1.3em;
+            line-height: 1.8;
+            color: #4a5568;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+            text-align: left;
+        }
+
+        .feature-item {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-item h4 {
+            font-size: 1.3em;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .feature-item p {
+            font-size: 1em;
+            color: #718096;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .pricing-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .pricing-card h3 {
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .price {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .pricing-features li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .nav-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            z-index: 1000;
+        }
+
+        .tagline {
+            font-size: 1.2em;
+            color: #667eea;
+            font-style: italic;
+            margin-top: 20px;
+        }
+
+        .title-slide {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .title-slide h1,
+        .title-slide .subtitle,
+        .title-slide .tagline {
+            color: white;
+        }
+
+        ul {
+            list-style: none;
+            text-align: left;
+            max-width: 800px;
+        }
+
+        ul li {
+            padding: 15px 0;
+            font-size: 1.2em;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        ul li:before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.3em;
+            margin-right: 15px;
+        }
+
+        .cta-button {
+            background: #667eea;
+            color: white;
+            padding: 20px 50px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.5em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 40px;
+            transition: all 0.3s;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .cta-button:hover {
+            background: #5568d3;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .icon {
+            font-size: 2em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">17</span>
+    </div>
+
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active title-slide">
+            <div class="slide-header">
+                <h1>Plura</h1>
+                <div class="subtitle">The All-in-One SaaS Platform</div>
+                <div class="content">Website Builder • Project Management • Agency Dashboard</div>
+                <div class="tagline">"Empower Your Agency, Build Your Success"</div>
+            </div>
+        </div>
+
+        <!-- Slide 2: The Problem -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>The Challenge Agencies Face Today</h2>
+                <div class="content">
+                    <ul>
+                        <li>Managing multiple clients across different platforms is complex</li>
+                        <li>Building websites and funnels requires multiple tools</li>
+                        <li>Payment processing is fragmented</li>
+                        <li>Government compliance requires specialized workflows</li>
+                        <li>Team collaboration lacks proper structure</li>
+                        <li><strong>Market Opportunity:</strong> Multi-vendor B2B2B SaaS is rapidly growing</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: The Solution -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>One Platform, Infinite Possibilities</h2>
+                <div class="content">
+                    <ul>
+                        <li><strong>Unified Platform</strong> for agencies and sub-accounts</li>
+                        <li><strong>Full Website & Funnel Builder</strong> - No coding required</li>
+                        <li><strong>Complete Project Management</strong> with Kanban boards</li>
+                        <li><strong>Integrated Payment Processing</strong> - Stripe Connect + M-Pesa</li>
+                        <li><strong>Government Services Ready</strong> - Compliance workflows built-in</li>
+                        <li><strong>Scalable Architecture</strong> - From startup to enterprise</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Core Features Part 1 -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Powerful Features for Modern Agencies</h2>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4>🌐 Unlimited Funnel Hosting</h4>
+                        <p>Host as many funnels as you need</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🚀 Drag-and-Drop Website Builder</h4>
+                        <p>Create stunning sites in minutes</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>💻 Role-Based Access Control</h4>
+                        <p>Manage team permissions easily</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>📊 Custom Dashboards</h4>
+                        <p>Track metrics that matter to you</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>📂 Media Storage</h4>
+                        <p>Centralized asset management</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🔄 Real-time Collaboration</h4>
+                        <p>Work together seamlessly</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Core Features Part 2 -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Business & Project Management Tools</h2>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4>🎨 Kanban Board System</h4>
+                        <p>Visual project management</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>📂 Advanced Project Management</h4>
+                        <p>Track everything</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🔗 Smart Notifications</h4>
+                        <p>Stay informed</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>📈 Performance Metrics</h4>
+                        <p>Funnel and agency analytics</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🌙 Light & Dark Mode</h4>
+                        <p>Work the way you prefer</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>📄 Custom Landing Pages</h4>
+                        <p>Pre-built templates</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Multivendor Architecture -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Built for Scale - Agency & Sub-Account Management</h2>
+                <div class="content">
+                    <ul>
+                        <li>🏢 <strong>Agency Management</strong> - Manage your entire organization</li>
+                        <li>👥 <strong>Sub-Account System</strong> - Unlimited client accounts</li>
+                        <li>💼 <strong>Team Collaboration</strong> - Invite unlimited team members</li>
+                        <li>🔐 <strong>Secure Isolation</strong> - Each account is protected</li>
+                        <li>📊 <strong>Hierarchical Dashboards</strong> - Agency and sub-account metrics</li>
+                        <li>💰 <strong>Unified Billing</strong> - Single platform, multiple revenue streams</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Payment Integration -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Complete Payment Solutions</h2>
+                <div class="content">
+                    <ul>
+                        <li>💳 <strong>Stripe Connect Integration</strong> - Direct payment processing for all users</li>
+                        <li>💰 <strong>Application Fee Management</strong> - Charge fees per sale and recurring</li>
+                        <li>🛒 <strong>Subscription Plans</strong> - Full Stripe subscription support</li>
+                        <li>📦 <strong>Add-on Products</strong> - Upsell seamlessly</li>
+                        <li>💵 <strong>M-Pesa Integration</strong> - Native support for STK Push and QR flows</li>
+                        <li>🔄 <strong>Automated Reconciliation</strong> - Real-time payment tracking</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Government Services -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Built for Public Sector & Regulatory Compliance</h2>
+                <div class="content">
+                    <ul>
+                        <li>🏛️ <strong>Standardized Templates</strong> - Ministries, agencies, municipal departments</li>
+                        <li>📋 <strong>Publishing Workflows</strong> - Public notices, service directories, permits</li>
+                        <li>✅ <strong>Role-Based Approvals</strong> - Meet regulatory requirements</li>
+                        <li>📜 <strong>Audit Logs</strong> - Complete transparency and compliance</li>
+                        <li>🌍 <strong>Multi-Language Support</strong> - Citizen-facing microsites</li>
+                        <li>📊 <strong>KRA Service Catalogues</strong> - Tax registration, filing, compliance</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Technology Stack -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Built on Modern, Scalable Technology</h2>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4>⚡ Next.js 14</h4>
+                        <p>Latest React framework</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🚀 Bun Runtime</h4>
+                        <p>Ultra-fast JavaScript runtime</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🗄️ Supabase</h4>
+                        <p>Enterprise-grade database</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>💳 Stripe Connect</h4>
+                        <p>Payment infrastructure</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🎨 Tailwind CSS</h4>
+                        <p>Beautiful, responsive design</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>📦 TypeScript</h4>
+                        <p>Type-safe development</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Target Market -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Who Can Benefit from Plura?</h2>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4>🏢 Digital Agencies</h4>
+                        <p>Manage multiple clients efficiently</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🏛️ Government Agencies</h4>
+                        <p>Compliance-ready platforms</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>📊 Marketing Agencies</h4>
+                        <p>Build funnels and track performance</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>💼 Freelancers</h4>
+                        <p>Professional client management</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🚀 SaaS Companies</h4>
+                        <p>White-label solutions</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🌍 International Organizations</h4>
+                        <p>Multi-currency, multi-language support</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Use Cases -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Real-World Applications</h2>
+                <div class="content">
+                    <ul>
+                        <li><strong>E-commerce Funnels</strong> - High-converting sales pages</li>
+                        <li><strong>Government Portals</strong> - Citizen services and compliance</li>
+                        <li><strong>Agency Dashboards</strong> - Client management and reporting</li>
+                        <li><strong>Project Management</strong> - Team collaboration and tracking</li>
+                        <li><strong>Payment Processing</strong> - Integrated Stripe and M-Pesa</li>
+                        <li><strong>Lead Generation</strong> - Capture and manage leads from funnels</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Pricing -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Flexible Pricing for Every Stage</h2>
+                <div class="pricing-grid">
+                    <div class="pricing-card">
+                        <h3>Starter</h3>
+                        <div class="price">FREE</div>
+                        <ul class="pricing-features">
+                            <li>3 Sub accounts</li>
+                            <li>2 Team members</li>
+                            <li>Unlimited pipelines</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-card">
+                        <h3>Basic</h3>
+                        <div class="price">$49<span style="font-size: 0.5em;">/mo</span></div>
+                        <ul class="pricing-features">
+                            <li>Everything in Starter</li>
+                            <li>Unlimited Sub accounts</li>
+                            <li>Unlimited Team members</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-card">
+                        <h3>Unlimited SaaS</h3>
+                        <div class="price">$199<span style="font-size: 0.5em;">/mo</span></div>
+                        <ul class="pricing-features">
+                            <li>Everything in Basic</li>
+                            <li>Rebilling support</li>
+                            <li>24/7 Support team</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Competitive Advantages -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Why Choose Plura?</h2>
+                <div class="content">
+                    <ul>
+                        <li>✅ <strong>All-in-One Solution</strong> - No need for multiple tools</li>
+                        <li>✅ <strong>Government-Ready</strong> - Built-in compliance workflows</li>
+                        <li>✅ <strong>Multi-Payment Support</strong> - Stripe + M-Pesa integration</li>
+                        <li>✅ <strong>Scalable Architecture</strong> - Grows with your business</li>
+                        <li>✅ <strong>Modern Technology</strong> - Built on latest frameworks</li>
+                        <li>✅ <strong>Comprehensive Features</strong> - More than just a website builder</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Implementation -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Getting Started is Easy</h2>
+                <div class="content">
+                    <ul>
+                        <li>🚀 <strong>Quick Setup</strong> - Get started in minutes</li>
+                        <li>📚 <strong>Comprehensive Documentation</strong> - Full guides and tutorials</li>
+                        <li>💬 <strong>Active Community</strong> - Discord support and collaboration</li>
+                        <li>🎥 <strong>Video Tutorials</strong> - Step-by-step guidance</li>
+                        <li>🔧 <strong>Regular Updates</strong> - Continuous improvements</li>
+                        <li>🆘 <strong>24/7 Support</strong> - Available on premium plans</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: ROI -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Measurable Results</h2>
+                <div class="content">
+                    <ul>
+                        <li>📈 <strong>Increased Efficiency</strong> - All tools in one place</li>
+                        <li>💰 <strong>Cost Savings</strong> - No need for multiple subscriptions</li>
+                        <li>⏱️ <strong>Time Savings</strong> - Streamlined workflows</li>
+                        <li>📊 <strong>Better Analytics</strong> - Complete visibility</li>
+                        <li>🎯 <strong>Higher Conversions</strong> - Optimized funnels</li>
+                        <li>📈 <strong>Scalable Growth</strong> - Unlimited clients and projects</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: CTA -->
+        <div class="slide title-slide">
+            <div class="slide-header">
+                <h2>Ready to Transform Your Agency?</h2>
+                <div class="content" style="color: white;">
+                    <ul style="color: white;">
+                        <li>🎯 <strong>Start Free</strong> - No credit card required</li>
+                        <li>🎬 <strong>Watch Demo</strong> - See it in action</li>
+                        <li>📞 <strong>Schedule a Demo</strong> - Personalized walkthrough</li>
+                        <li>💬 <strong>Join Our Community</strong> - Connect with other agencies</li>
+                    </ul>
+                    <button class="cta-button" onclick="alert('Start your free trial!')">Start Your Free Trial Today!</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Contact -->
+        <div class="slide">
+            <div class="slide-header">
+                <h2>Get in Touch</h2>
+                <div class="content">
+                    <ul>
+                        <li>🌐 <strong>Website:</strong> webprodigies.com</li>
+                        <li>📧 <strong>Email:</strong> [Your Email]</li>
+                        <li>💬 <strong>Discord Community:</strong> discord.gg/GG4wJkxh</li>
+                        <li>🎥 <strong>YouTube Channel:</strong> [Your Channel]</li>
+                        <li>📱 <strong>Social Media:</strong> [Your Links]</li>
+                        <li>📄 <strong>Documentation:</strong> [Docs URL]</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" id="prev-btn" onclick="changeSlide(-1)">← Previous</button>
+        <button class="nav-btn" id="next-btn" onclick="changeSlide(1)">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(n) {
+            if (n >= totalSlides) n = 0;
+            if (n < 0) n = totalSlides - 1;
+            
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[n].classList.add('active');
+            currentSlide = n;
+            
+            document.getElementById('current-slide').textContent = n + 1;
+            document.getElementById('prev-btn').disabled = n === 0;
+            document.getElementById('next-btn').disabled = n === totalSlides - 1;
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changeSlide(1);
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') changeSlide(-1);
+        });
+
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+</html>
+

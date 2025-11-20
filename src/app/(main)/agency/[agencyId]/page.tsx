@@ -1,0 +1,530 @@
+import CircleProgress from '@/components/global/circle-progress'
+import AgencyNetworkChart from '@/components/global/agency-network-chart'
+import AgencySubaccountStreamChart from '@/components/global/agency-subaccount-stream-chart'
+import AgencyTeamTreeChart from '@/components/global/agency-team-tree-chart'
+import VisaAccountCard from '@/components/global/dashboard-cards/visa-account-card'
+import TotalIncomeCard from '@/components/global/dashboard-cards/total-income-card'
+import TotalPaidCard from '@/components/global/dashboard-cards/total-paid-card'
+import SystemLockCard from '@/components/global/dashboard-cards/system-lock-card'
+import TimeRemainingCard from '@/components/global/dashboard-cards/time-remaining-card'
+import YearlyActivityCard from '@/components/global/dashboard-cards/yearly-activity-card'
+import ActivityManagerCard from '@/components/global/dashboard-cards/activity-manager-card'
+import StocksCard from '@/components/global/dashboard-cards/stocks-card'
+import ActivityValueCard from '@/components/global/dashboard-cards/activity-value-card'
+import BusinessPlansListCard from '@/components/global/dashboard-cards/business-plans-list-card'
+import BusinessPlansActionCard from '@/components/global/dashboard-cards/business-plans-action-card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
+import { supabase } from '@/lib/supabase'
+import { AreaChart } from '@tremor/react'
+import {
+  ClipboardIcon,
+  Contact2,
+  DollarSign,
+  Goal,
+  ShoppingCart,
+} from 'lucide-react'
+import Link from 'next/link'
+import React from 'react'
+
+const Page = async ({
+  params,
+}: {
+  params: { agencyId: string }
+  searchParams: { code: string }
+}) => {
+  let currency = 'USD'
+  let sessions = []
+  let totalClosedSessions = []
+  let totalPendingSessions = []
+  let net = 0
+  let potentialIncome = 0
+  let closingRate = 0
+  const currentYear = new Date().getFullYear()
+
+  let agencyDetails: any = null
+  let subaccounts: any[] = []
+
+  try {
+    const { data: agencyData } = await supabase
+      .from('Agency')
+      .select('*')
+      .eq('id', params.agencyId)
+      .single()
+
+    const { data: subaccountsData } = await supabase
+      .from('SubAccount')
+      .select('*')
+      .eq('agencyId', params.agencyId)
+
+    agencyDetails = agencyData
+    subaccounts = subaccountsData || []
+
+    // Fetch funnels and their pages for each subaccount
+    if (subaccounts.length > 0) {
+      const subaccountIds = subaccounts.map((sub) => sub.id)
+      
+      const { data: funnelsData } = await supabase
+        .from('Funnel')
+        .select(`
+          *,
+          FunnelPage (*)
+        `)
+        .in('subAccountId', subaccountIds)
+
+      // Fetch employees for each subaccount
+      const { data: employeesData } = await supabase
+        .from('SubAccountEmployee')
+        .select('*')
+        .in('subAccountId', subaccountIds)
+        .eq('isActive', true)
+
+      // Fetch user details for employees
+      let employeesWithUsers: any[] = []
+      if (employeesData && employeesData.length > 0) {
+        const userIds = employeesData.map((emp) => emp.userId)
+        const { data: usersData } = await supabase
+          .from('User')
+          .select('id, name, email')
+          .in('id', userIds)
+
+        employeesWithUsers = employeesData.map((emp) => {
+          const user = usersData?.find((u) => u.id === emp.userId)
+          return {
+            ...emp,
+            userName: user?.name || `User ${emp.userId.slice(0, 8)}`,
+            userEmail: user?.email || '',
+          }
+        })
+      }
+
+      // Attach funnels and employees to their respective subaccounts
+      subaccounts = subaccounts.map((subaccount) => ({
+        ...subaccount,
+        funnels: funnelsData?.filter((funnel) => funnel.subAccountId === subaccount.id) || [],
+        employees: employeesWithUsers.filter((emp) => emp.subAccountId === subaccount.id) || [],
+      }))
+    }
+  } catch (error) {
+    console.error('Database connection failed, using mock data:', error)
+    // Use mock data when database is not set up
+    agencyDetails = {
+      id: params.agencyId,
+      name: 'Your Agency',
+      goal: 5,
+      connectAccountId: null,
+    }
+    subaccounts = []
+  }
+
+  if (!agencyDetails) return
+
+  // M-Pesa integration (Stripe disabled)
+  currency = 'KES' // Kenyan Shilling
+  sessions = []
+  totalClosedSessions = []
+  totalPendingSessions = []
+  net = 0
+  potentialIncome = 0
+  closingRate = 0
+
+  // Mock transaction data for Recent Transactions
+  const recentTransactions = [
+    { id: 'SPD-0051', amount: '137.000', status: 'Paid' },
+    { id: 'SPD-0046', amount: '432.100', status: 'Pending' },
+    { id: 'SPD-0165', amount: '200.000', status: 'Paid' },
+    { id: 'SPD-6390', amount: '365.000', status: 'Paid' },
+  ]
+
+  // Mock tax data
+  const taxLiabilities = [
+    { type: 'Tax on Service', date: 'Oct 18, 2024', amount: '250.000', status: 'Success' },
+    { type: 'Value Added Tax', date: 'Oct 15, 2024', amount: '150.000', status: 'Success' },
+    { type: 'Employee Income Tax', date: 'Oct 10, 2024', amount: '180.000', status: 'Pending' },
+  ]
+
+  // Mock cash flow data
+  const cashFlowData = [
+    { month: 'May', income: 520, expense: 380 },
+    { month: 'Jun', income: 580, expense: 420 },
+    { month: 'Jul', income: 640, expense: 450 },
+    { month: 'Aug', income: 692, expense: 374 },
+    { month: 'Sep', income: 750, expense: 520 },
+    { month: 'Oct', income: 820, expense: 580 },
+    { month: 'Nov', income: 890, expense: 620 },
+  ]
+
+  return (
+    <div className="relative h-full">
+      <h1 className="text-4xl">Dashboard</h1>
+      <Separator className="my-6" />
+      <div className="flex flex-col gap-4 pb-6">
+        {/* Summary Cards Row */}
+        <div className="flex gap-4 flex-col xl:!flex-row">
+          <Card className="flex-1 relative">
+            <CardHeader>
+              <CardDescription>Income</CardDescription>
+              <CardTitle className="text-4xl">
+                {net ? `${currency} ${net.toFixed(2)}` : `$0.00`}
+              </CardTitle>
+              <small className="text-xs text-muted-foreground">
+                For the year {currentYear}
+              </small>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              Total revenue generated through transactions.
+            </CardContent>
+            <DollarSign className="absolute right-4 top-4 text-muted-foreground" />
+          </Card>
+          <Card className="flex-1 relative">
+            <CardHeader>
+              <CardDescription>Potential Income</CardDescription>
+              <CardTitle className="text-4xl">
+                {potentialIncome
+                  ? `${currency} ${potentialIncome.toFixed(2)}`
+                  : `$0.00`}
+              </CardTitle>
+              <small className="text-xs text-muted-foreground">
+                For the year {currentYear}
+              </small>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              This is how much you can close.
+            </CardContent>
+            <DollarSign className="absolute right-4 top-4 text-muted-foreground" />
+          </Card>
+          <Card className="flex-1 relative">
+            <CardHeader>
+              <CardDescription>Active Clients</CardDescription>
+              <CardTitle className="text-4xl">{subaccounts.length}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              Reflects the number of sub accounts you own and manage.
+            </CardContent>
+            <Contact2 className="absolute right-4 top-4 text-muted-foreground" />
+          </Card>
+          <Card className="flex-1 relative">
+            <CardTitle>Agency Goal</CardTitle>
+            <CardDescription>
+              <p className="mt-2">
+                Reflects the number of sub accounts you want to own and
+                manage.
+              </p>
+            </CardDescription>
+            <CardFooter>
+              <div className="flex flex-col w-full">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">
+                    Current: {subaccounts.length}
+                  </span>
+                  <span className="text-muted-foreground text-sm">
+                    Goal: {agencyDetails.goal}
+                  </span>
+                </div>
+                <Progress
+                  value={(subaccounts.length / agencyDetails.goal) * 100}
+                />
+              </div>
+            </CardFooter>
+            <Goal className="absolute right-4 top-4 text-muted-foreground" />
+          </Card>
+        </div>
+
+        {/* Dashboard Cards Row 1 */}
+        <div className="flex gap-4 flex-col xl:!flex-row">
+          <VisaAccountCard />
+          <TotalIncomeCard />
+          <TotalPaidCard />
+          <SystemLockCard />
+        </div>
+
+        {/* Dashboard Cards Row 2 */}
+        <div className="flex gap-4 flex-col xl:!flex-row">
+          <div className="flex gap-4 flex-col xl:!flex-row flex-[0.6]">
+            <TimeRemainingCard />
+            <YearlyActivityCard />
+          </div>
+          <div className="flex-[0.4]">
+            <ActivityManagerCard />
+          </div>
+        </div>
+
+        {/* Dashboard Cards Row 3 */}
+        <div className="flex gap-4 flex-col xl:!flex-row">
+          <div className="flex-[0.4]">
+            <StocksCard />
+          </div>
+          <div className="flex-[0.2]">
+            <ActivityValueCard />
+          </div>
+          <div className="flex-[0.2]">
+            <BusinessPlansListCard />
+          </div>
+          <div className="flex-[0.2]">
+            <BusinessPlansActionCard />
+          </div>
+        </div>
+
+        {/* Subaccount Activity and Network Charts Row */}
+        <div className="flex gap-4 flex-col xl:!flex-row">
+          {/* Stream Chart - 70% width */}
+          <Card className="flex-[0.7]">
+            <CardHeader>
+              <CardTitle>Subaccount Activity Performance</CardTitle>
+              <CardDescription>
+                Activity trends across all subaccounts over time
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AgencySubaccountStreamChart subaccounts={subaccounts} />
+            </CardContent>
+          </Card>
+
+          {/* Network Chart - 30% width */}
+          <Card className="flex-[0.3]">
+            <CardHeader>
+              <CardTitle>Network Overview</CardTitle>
+              <CardDescription>
+                Visual representation of your agency network showing subaccounts and funnel visitors
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AgencyNetworkChart
+                agencyName={agencyDetails?.name || 'Agency'}
+                subaccounts={subaccounts}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Team Hierarchy Tree Chart */}
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Team Hierarchy & Access Structure</CardTitle>
+            <CardDescription>
+              Organizational structure showing agency, subaccounts, team members, and their access permissions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AgencyTeamTreeChart
+              agencyName={agencyDetails?.name || 'Agency'}
+              subaccounts={subaccounts}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Middle Row - Charts */}
+        <div className="flex gap-4 flex-col xl:!flex-row">
+          {/* Cash Flow Analytics */}
+          <Card className="flex-1">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Cash Flow Analytics</CardTitle>
+                <select className="text-sm border rounded-md px-2 py-1">
+                  <option>Monthly</option>
+                  <option>Weekly</option>
+                  <option>Yearly</option>
+                </select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <AreaChart
+                className="h-72"
+                data={cashFlowData}
+                index="month"
+                categories={['income', 'expense']}
+                colors={['emerald', 'blue']}
+                showLegend
+                yAxisWidth={60}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Financial Balance */}
+          <Card className="xl:w-[400px] w-full">
+            <CardHeader>
+              <CardTitle>Financial Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center h-64">
+                <CircleProgress
+                  value={48}
+                  description={
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">48%</p>
+                      <p className="text-xs text-muted-foreground">
+                        from yesterday
+                      </p>
+                    </div>
+                  }
+                />
+              </div>
+              <div className="flex justify-between mt-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="text-muted-foreground">Total Profit</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-gray-300" />
+                  <span className="text-muted-foreground">Profit Today</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-gray-600" />
+                  <span className="text-muted-foreground">For Week</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Bottom Row - Recent Transactions and Tax Liabilities */}
+        <div className="flex gap-4 flex-col xl:!flex-row">
+          {/* Recent Transactions */}
+          <Card className="flex-1">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Recent Transactions</CardTitle>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="text-sm border rounded-md px-3 py-1 w-48"
+                  />
+                  <Button variant="outline" size="sm">
+                    Filter
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b text-left text-sm text-muted-foreground">
+                      <th className="pb-3 pr-4 font-medium">ORDER ID</th>
+                      <th className="pb-3 pr-4 font-medium">AMOUNT</th>
+                      <th className="pb-3 font-medium">STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentTransactions.map((transaction) => (
+                      <tr key={transaction.id} className="border-b">
+                        <td className="py-3 pr-4 text-sm">{transaction.id}</td>
+                        <td className="py-3 pr-4 text-sm">
+                          ${transaction.amount}
+                        </td>
+                        <td className="py-3">
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              transaction.status === 'Paid'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                            }`}
+                          >
+                            {transaction.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tax Liabilities */}
+          <Card className="xl:w-[400px] w-full">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Tax Liabilities</CardTitle>
+                <select className="text-sm border rounded-md px-2 py-1">
+                  <option>Yearly</option>
+                  <option>Monthly</option>
+                  <option>Quarterly</option>
+                </select>
+              </div>
+              <CardDescription className="text-lg font-semibold">
+                $32.872,00 Total Tax /2024
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Value Added Tax</span>
+                    <span className="font-medium">44%</span>
+                  </div>
+                  <Progress value={44} className="h-2" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Employee Income Tax</span>
+                    <span className="font-medium">36%</span>
+                  </div>
+                  <Progress value={36} className="h-2" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Tax on Services</span>
+                    <span className="font-medium">20%</span>
+                  </div>
+                  <Progress value={20} className="h-2" />
+                </div>
+              </div>
+
+              <Separator className="my-4" />
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b text-muted-foreground">
+                      <th className="pb-2 pr-2 font-medium text-left">
+                        TYPE
+                      </th>
+                      <th className="pb-2 pr-2 font-medium text-left">DATE</th>
+                      <th className="pb-2 pr-2 font-medium text-left">
+                        AMOUNT
+                      </th>
+                      <th className="pb-2 font-medium text-left">STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {taxLiabilities.map((tax, index) => (
+                      <tr key={index} className="border-b">
+                        <td className="py-2 pr-2 text-xs">{tax.type}</td>
+                        <td className="py-2 pr-2 text-xs">{tax.date}</td>
+                        <td className="py-2 pr-2 text-xs">${tax.amount}</td>
+                        <td className="py-2">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
+                              tax.status === 'Success'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                            }`}
+                          >
+                            {tax.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default Page
