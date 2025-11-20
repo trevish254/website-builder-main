@@ -3,7 +3,12 @@
   publish = ".next"
   functions = "netlify/functions"
 
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Optional: redirect all unmatched URLs to index (if needed for SPA fallback)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = true
