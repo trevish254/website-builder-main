@@ -16,7 +16,6 @@
     "@clerk/nextjs": "^6.33.3",
     "@clerk/themes": "^1.7.9",
     "@hookform/resolvers": "^3.3.3",
-    "@netlify/next": "^1.4.9",
     "@nivo/bullet": "^0.99.0",
     "@nivo/calendar": "^0.99.0",
     "@nivo/funnel": "^0.99.0",
