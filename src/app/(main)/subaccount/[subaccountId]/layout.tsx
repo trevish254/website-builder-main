@@ -16,6 +16,9 @@ type Props = {
   params: { subaccountId: string }
 }
 
+import { SidebarProvider } from '@/providers/sidebar-provider'
+import MainLayoutWrapper from '@/components/sidebar/main-layout-wrapper'
+
 const SubaccountLayout = async ({ children, params }: Props) => {
   const user = await currentUser()
   if (!user) return redirect('/agency/sign-in')
@@ -38,22 +41,24 @@ const SubaccountLayout = async ({ children, params }: Props) => {
   }
 
   return (
-    <div className="h-screen overflow-hidden">
-      <Sidebar
-        id={params.subaccountId}
-        type="subaccount"
-        defaultUser={userDetails}
-      />
-
-      <div className="md:pl-[300px]">
-        <InfoBar
-          notifications={notifications}
-          role={((userDetails as any).role || 'AGENCY_OWNER') as Role}
-          subAccountId={params.subaccountId as string}
+    <SidebarProvider>
+      <div className="h-screen overflow-hidden">
+        <Sidebar
+          id={params.subaccountId}
+          type="subaccount"
+          defaultUser={userDetails}
         />
-        <div className="relative">{children}</div>
+
+        <MainLayoutWrapper>
+          <InfoBar
+            notifications={notifications}
+            role={((userDetails as any).role || 'AGENCY_OWNER') as Role}
+            subAccountId={params.subaccountId as string}
+          />
+          <div className="relative">{children}</div>
+        </MainLayoutWrapper>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }
 

@@ -23,17 +23,17 @@ import Stripe from 'stripe'
 
 export type NotificationWithUser =
   | ({
-      User: {
-        id: string
-        name: string
-        avatarUrl: string
-        email: string
-        createdAt: string
-        updatedAt: string
-        role: Role
-        agencyId: string | null
-      }
-    } & Notification)[]
+    User: {
+      id: string
+      name: string
+      avatarUrl: string
+      email: string
+      createdAt: string
+      updatedAt: string
+      role: Role
+      agencyId: string | null
+    }
+  } & Notification)[]
   | undefined
 
 export type UserWithPermissionsAndSubAccounts = Awaited<
@@ -63,7 +63,7 @@ const __getUsersWithAgencySubAccountPermissionsSidebarOptions = async (
     `)
     .eq('Agency.id', agencyId)
     .single()
-    
+
   return data
 }
 
@@ -162,4 +162,47 @@ export type UpsertFunnelPage = {
   funnelId: string
   order: number
   visits?: number
+}
+
+export type Wallet = {
+  id: string
+  agencyId: string | null
+  subAccountId: string | null
+  balance: number
+  currency: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type TransactionType = 'DEPOSIT' | 'WITHDRAWAL' | 'PAYMENT' | 'TRANSFER' | 'C2B' | 'B2C' | 'B2B' | 'STK_PUSH'
+export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REVERSED' | 'CANCELLED'
+
+export type Transaction = {
+  id: string
+  walletId: string
+  amount: number
+  type: TransactionType
+  status: TransactionStatus
+  reference: string | null
+  phoneNumber: string | null
+  description: string | null
+  metadata: any
+  createdAt: string
+  updatedAt: string
+}
+
+export type MpesaEnvironment = 'SANDBOX' | 'PRODUCTION'
+
+export type MpesaSettings = {
+  id: string
+  agencyId: string | null
+  subAccountId: string | null
+  shortCode: string
+  consumerKey: string
+  consumerSecret: string
+  passkey: string | null
+  environment: MpesaEnvironment
+  callbackUrl: string | null
+  createdAt: string
+  updatedAt: string
 }

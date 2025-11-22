@@ -16,6 +16,9 @@ type Props = {
   params: { agencyId: string }
 }
 
+import { SidebarProvider } from '@/providers/sidebar-provider'
+import MainLayoutWrapper from '@/components/sidebar/main-layout-wrapper'
+
 const layout = async ({ children, params }: Props) => {
   const user = await currentUser()
   if (!user) return redirect('/agency/sign-in')
@@ -49,22 +52,24 @@ const layout = async ({ children, params }: Props) => {
   const userRole = (userDetails as any)?.role || undefined
 
   return (
-    <div className="h-screen overflow-hidden">
-      <Sidebar
-        id={params.agencyId}
-        type="agency"
-        defaultUser={userDetails}
-      />
-      <div className="md:pl-[300px]">
-        <InfoBar
-          notifications={allNoti}
-          role={userRole}
+    <SidebarProvider>
+      <div className="h-screen overflow-hidden">
+        <Sidebar
+          id={params.agencyId}
+          type="agency"
+          defaultUser={userDetails}
         />
-        <div className="relative">
-          <BlurPage>{children}</BlurPage>
-        </div>
+        <MainLayoutWrapper>
+          <InfoBar
+            notifications={allNoti}
+            role={userRole}
+          />
+          <div className="relative">
+            <BlurPage>{children}</BlurPage>
+          </div>
+        </MainLayoutWrapper>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }
 

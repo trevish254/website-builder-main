@@ -146,6 +146,17 @@ export const getAuthUserDetails = cache(async () => {
         if (!hasGovernmentServices) {
           console.log('🔧 Adding Government Services to existing agency sidebar options')
           await addGovernmentServicesToExistingAgency(agency.id)
+          await addGovernmentServicesToExistingAgency(agency.id)
+          shouldRefetch = true
+        }
+
+        const hasFinance = agency.AgencySidebarOption.some(
+          (option: any) => option.name === 'Finance'
+        )
+
+        if (!hasFinance) {
+          console.log('🔧 Adding Finance to existing agency sidebar options')
+          await addFinanceToExistingAgency(agency.id)
           shouldRefetch = true
         }
 
@@ -183,6 +194,14 @@ export const getAuthUserDetails = cache(async () => {
           if (!subAccount.SubAccountSidebarOption || subAccount.SubAccountSidebarOption.length === 0) {
             console.log('🔧 Creating missing sidebar options for subaccount:', subAccount.id)
             await createDefaultSubAccountSidebarOptions(subAccount.id)
+          } else {
+            const hasFinance = subAccount.SubAccountSidebarOption.some(
+              (option: any) => option.name === 'Finance'
+            )
+            if (!hasFinance) {
+              console.log('🔧 Adding Finance to existing subaccount sidebar options')
+              await addFinanceToExistingSubAccount(subAccount.id)
+            }
           }
         }
 
@@ -562,6 +581,15 @@ export const createDefaultSidebarOptions = async (agencyId: string) => {
         updatedAt: new Date().toISOString(),
       },
       {
+        id: `sidebar-${agencyId}-finance`,
+        name: 'Finance',
+        link: `/agency/${agencyId}/finance`,
+        icon: 'payment',
+        agencyId: agencyId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
         id: `sidebar-${agencyId}-5`,
         name: 'Billing',
         link: `/agency/${agencyId}/billing`,
@@ -701,6 +729,46 @@ export const addGovernmentServicesToExistingAgency = async (agencyId: string) =>
   }
 }
 
+export const addFinanceToExistingAgency = async (agencyId: string) => {
+  try {
+    const { data: existingOption, error: checkError } = await supabase
+      .from('AgencySidebarOption')
+      .select('id')
+      .eq('agencyId', agencyId)
+      .eq('name', 'Finance')
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking for existing Finance option:', checkError)
+      return
+    }
+
+    if (!existingOption) {
+      const financeOption = {
+        id: `sidebar-${agencyId}-finance`,
+        name: 'Finance',
+        link: `/agency/${agencyId}/finance`,
+        icon: 'payment',
+        agencyId: agencyId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      const { error: insertError } = await supabase
+        .from('AgencySidebarOption')
+        .insert(financeOption as AnyRecord)
+
+      if (insertError) {
+        console.error('Error adding Finance option:', insertError)
+      } else {
+        console.log('✅ Finance option added to agency:', agencyId)
+      }
+    }
+  } catch (error) {
+    console.error('Error adding Finance to existing agency:', error)
+  }
+}
+
 export const createDefaultSubAccountSidebarOptions = async (subAccountId: string) => {
   try {
     const defaultOptions = [
@@ -736,6 +804,15 @@ export const createDefaultSubAccountSidebarOptions = async (subAccountId: string
         name: 'Contacts',
         link: `/subaccount/${subAccountId}/contacts`,
         icon: 'person',
+        subAccountId: subAccountId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: `sub-sidebar-${subAccountId}-finance`,
+        name: 'Finance',
+        link: `/subaccount/${subAccountId}/finance`,
+        icon: 'payment',
         subAccountId: subAccountId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -780,6 +857,46 @@ export const createDefaultSubAccountSidebarOptions = async (subAccountId: string
     }
   } catch (error) {
     console.error('Error creating default subaccount sidebar options:', error)
+  }
+}
+
+export const addFinanceToExistingSubAccount = async (subAccountId: string) => {
+  try {
+    const { data: existingOption, error: checkError } = await supabase
+      .from('SubAccountSidebarOption')
+      .select('id')
+      .eq('subAccountId', subAccountId)
+      .eq('name', 'Finance')
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking for existing Finance option:', checkError)
+      return
+    }
+
+    if (!existingOption) {
+      const financeOption = {
+        id: `sub-sidebar-${subAccountId}-finance`,
+        name: 'Finance',
+        link: `/subaccount/${subAccountId}/finance`,
+        icon: 'payment',
+        subAccountId: subAccountId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      const { error: insertError } = await supabase
+        .from('SubAccountSidebarOption')
+        .insert(financeOption as AnyRecord)
+
+      if (insertError) {
+        console.error('Error adding Finance option to subaccount:', insertError)
+      } else {
+        console.log('✅ Finance option added to subaccount:', subAccountId)
+      }
+    }
+  } catch (error) {
+    console.error('Error adding Finance to existing subaccount:', error)
   }
 }
 
@@ -1817,6 +1934,7 @@ export const sendInvitation = async (
   const { data, error } = await supabase
     .from('Invitation')
     .insert({
+      id: v4(),
       email,
       agencyId,
       role,
@@ -2047,4 +2165,168 @@ export const searchContacts = async (subAccountId: string, searchTerm: string) =
   }
 
   return data || []
+}
+
+// ==========================================
+// FINANCE QUERIES
+// ==========================================
+
+export const createWallet = async (agencyId?: string, subAccountId?: string) => {
+  if (!agencyId && !subAccountId) return null
+
+  const { data, error } = await supabase
+    .from('Wallet')
+    .insert({
+      agencyId: agencyId || null,
+      subAccountId: subAccountId || null,
+      balance: 0,
+    } as AnyRecord)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating wallet:', error)
+    return null
+  }
+  return data
+}
+
+export const getWallet = async (agencyId?: string, subAccountId?: string) => {
+  if (!agencyId && !subAccountId) return null
+
+  let query = supabase.from('Wallet').select('*')
+
+  if (agencyId) {
+    query = query.eq('agencyId', agencyId)
+  } else if (subAccountId) {
+    query = query.eq('subAccountId', subAccountId)
+  }
+
+  const { data, error } = await query.single()
+
+  if (error && error.code !== 'PGRST116') { // Not found is okay
+    console.error('Error fetching wallet:', error)
+  }
+
+  return data
+}
+
+export const getWalletBalance = async (agencyId?: string, subAccountId?: string) => {
+  const wallet = await getWallet(agencyId, subAccountId)
+  return wallet ? wallet.balance : 0
+}
+
+export const createTransaction = async (
+  walletId: string,
+  amount: number,
+  type: string,
+  description?: string,
+  reference?: string,
+  phoneNumber?: string,
+  metadata?: any
+) => {
+  const { data, error } = await supabase
+    .from('Transaction')
+    .insert({
+      walletId,
+      amount,
+      type,
+      description,
+      reference,
+      phoneNumber,
+      metadata,
+      status: 'PENDING', // Default status
+    } as AnyRecord)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating transaction:', error)
+    return null
+  }
+  return data
+}
+
+export const updateTransactionStatus = async (
+  transactionId: string,
+  status: string,
+  reference?: string
+) => {
+  const updates: any = { status, updatedAt: new Date().toISOString() }
+  if (reference) updates.reference = reference
+
+  const { data, error } = await supabase
+    .from('Transaction')
+    .update(updates)
+    .eq('id', transactionId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating transaction status:', error)
+    return null
+  }
+  return data
+}
+
+export const getTransactions = async (walletId: string) => {
+  const { data, error } = await supabase
+    .from('Transaction')
+    .select('*')
+    .eq('walletId', walletId)
+    .order('createdAt', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching transactions:', error)
+    return []
+  }
+  return data
+}
+
+export const upsertMpesaSettings = async (settings: {
+  agencyId?: string
+  subAccountId?: string
+  shortCode: string
+  consumerKey: string
+  consumerSecret: string
+  passkey?: string
+  environment: 'SANDBOX' | 'PRODUCTION'
+}) => {
+  if (!settings.agencyId && !settings.subAccountId) return null
+
+  // Check if exists first to determine insert or update logic if needed, 
+  // but upsert should handle it if we have a unique constraint.
+  // Our schema has unique constraints on agencyId and subAccountId.
+
+  const { data, error } = await supabase
+    .from('MpesaSettings')
+    .upsert(settings as AnyRecord, { onConflict: settings.agencyId ? 'agencyId' : 'subAccountId' })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error upserting MPESA settings:', error)
+    return null
+  }
+  return data
+}
+
+export const getMpesaSettings = async (agencyId?: string, subAccountId?: string) => {
+  if (!agencyId && !subAccountId) return null
+
+  let query = supabase.from('MpesaSettings').select('*')
+
+  if (agencyId) {
+    query = query.eq('agencyId', agencyId)
+  } else if (subAccountId) {
+    query = query.eq('subAccountId', subAccountId)
+  }
+
+  const { data, error } = await query.single()
+
+  if (error) {
+    // console.error('Error fetching MPESA settings:', error) // Expected if not set
+    return null
+  }
+  return data
 }
