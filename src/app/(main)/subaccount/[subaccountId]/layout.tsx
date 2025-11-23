@@ -6,7 +6,7 @@ import {
   getNotificationAndUser,
   verifyAndAcceptInvitation,
 } from '@/lib/queries'
-import { currentUser } from '@clerk/nextjs/server'
+import { getUser } from '@/lib/supabase/server'
 import { Role } from '@prisma/client'
 import { redirect } from 'next/navigation'
 import React from 'react'
@@ -20,7 +20,7 @@ import { SidebarProvider } from '@/providers/sidebar-provider'
 import MainLayoutWrapper from '@/components/sidebar/main-layout-wrapper'
 
 const SubaccountLayout = async ({ children, params }: Props) => {
-  const user = await currentUser()
+  const user = await getUser()
   if (!user) return redirect('/agency/sign-in')
 
   const userDetails = await getAuthUserDetails()

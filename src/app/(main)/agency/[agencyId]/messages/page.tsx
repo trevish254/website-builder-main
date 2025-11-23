@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
-  MessageSquare, 
-  Search, 
-  Send, 
+import {
+  MessageSquare,
+  Search,
+  Send,
   Paperclip,
   MoreVertical,
   Archive,
@@ -31,7 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { supabase } from '@/lib/supabase'
-import { useUser } from '@clerk/nextjs'
+import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
 import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getAgencyUsers, ensureDirectConversation, getConversationWithParticipants } from '@/lib/supabase-queries'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Plus } from 'lucide-react'
@@ -68,7 +68,7 @@ interface ChatMessage {
 }
 
 const MessagesPage = ({ params }: Props) => {
-  const { user } = useUser()
+  const { user } = useSupabaseUser()
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'inbox' | 'archived'>('inbox')
   const [searchQuery, setSearchQuery] = useState('')
@@ -79,7 +79,7 @@ const MessagesPage = ({ params }: Props) => {
   const [showNewMessageDialog, setShowNewMessageDialog] = useState(false)
   const [agencyUsers, setAgencyUsers] = useState<any[]>([])
   const [searchUserQuery, setSearchUserQuery] = useState('')
-  
+
   // Fetch agency users for new message dialog
   useEffect(() => {
     const loadAgencyUsers = async () => {
@@ -97,18 +97,18 @@ const MessagesPage = ({ params }: Props) => {
       if (!user?.id) return
       setLoading(true)
       const conversations = await getUserConversations(user.id, { agencyId: params.agencyId })
-      
+
       // Load participant info for each conversation
       const items = await Promise.all(conversations.map(async (c) => {
         const convWithParticipants = await getConversationWithParticipants(c.id)
         const participants = (convWithParticipants as any)?.ConversationParticipant || []
         // Find the other participant (not current user)
         const otherParticipant = participants.find((p: any) => p.userId !== user.id && p.User)
-        
+
         // Get last message for preview
         const messages = await getConversationMessages(c.id, 1)
         const lastMessage = messages[0]
-        
+
         return {
           id: c.id,
           title: c.title || otherParticipant?.User?.name || 'Conversation',
@@ -127,7 +127,7 @@ const MessagesPage = ({ params }: Props) => {
           } : null
         }
       }))
-      
+
       setInboxItems(items)
       setLoading(false)
     }
@@ -182,7 +182,7 @@ const MessagesPage = ({ params }: Props) => {
   const filteredMessages = inboxItems.filter(msg => {
     if (searchQuery) {
       return msg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             msg.preview.toLowerCase().includes(searchQuery.toLowerCase())
+        msg.preview.toLowerCase().includes(searchQuery.toLowerCase())
     }
     return true
   })
@@ -191,7 +191,7 @@ const MessagesPage = ({ params }: Props) => {
   const starredCount = inboxItems.filter(m => m.starred).length
 
   const handleStarToggle = (id: string) => {
-    setInboxItems(inboxItems.map(msg => 
+    setInboxItems(inboxItems.map(msg =>
       msg.id === id ? { ...msg, starred: !msg.starred } : msg
     ))
   }
@@ -206,14 +206,14 @@ const MessagesPage = ({ params }: Props) => {
 
   const handleStartConversation = async (selectedUserId: string) => {
     if (!user?.id || !selectedUserId) return
-    
+
     // Create or get existing direct conversation
     const conversationId = await ensureDirectConversation({
       userAId: user.id,
       userBId: selectedUserId,
       agencyId: params.agencyId
     })
-    
+
     if (conversationId) {
       setSelectedConversationId(conversationId)
       setShowNewMessageDialog(false)
@@ -225,7 +225,7 @@ const MessagesPage = ({ params }: Props) => {
 
   const filteredUsers = useMemo(() => {
     if (!searchUserQuery) return agencyUsers
-    return agencyUsers.filter(u => 
+    return agencyUsers.filter(u =>
       u.name?.toLowerCase().includes(searchUserQuery.toLowerCase()) ||
       u.email?.toLowerCase().includes(searchUserQuery.toLowerCase())
     )
@@ -364,8 +364,8 @@ const MessagesPage = ({ params }: Props) => {
                       onClick={() => setSelectedConversationId(message.id)}
                       className={`
                         p-4 rounded-lg cursor-pointer transition-all
-                        ${selectedConversationId === message.id 
-                          ? 'bg-blue-50 dark:bg-blue-950 border-2 border-blue-500' 
+                        ${selectedConversationId === message.id
+                          ? 'bg-blue-50 dark:bg-blue-950 border-2 border-blue-500'
                           : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-2 border-transparent'
                         }
                         ${message.unread ? 'bg-gray-50 dark:bg-gray-900' : ''}
@@ -513,8 +513,8 @@ const MessagesPage = ({ params }: Props) => {
                       >
                         <div className={`
                           max-w-[70%] rounded-2xl px-4 py-3
-                          ${msg.sender === 'me' 
-                            ? 'bg-blue-600 text-white' 
+                          ${msg.sender === 'me'
+                            ? 'bg-blue-600 text-white'
                             : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                           }
                         `}>
@@ -578,7 +578,7 @@ const MessagesPage = ({ params }: Props) => {
                           <Smile className="h-4 w-4" />
                         </Button>
                       </div>
-                      <Button 
+                      <Button
                         onClick={handleSendMessage}
                         className="bg-blue-600 hover:bg-blue-700"
                         size="icon"

@@ -271,6 +271,59 @@ const MenuOptions = ({
                             </CommandItem>
                           </CommandGroup>
                         )}
+
+                      {/* Invited Agencies */}
+                      {user?.InvitedAgencies && user.InvitedAgencies.length > 0 && (
+                        <CommandGroup heading="Other Agencies">
+                          {user.InvitedAgencies.map((agency: any) => (
+                            <CommandItem key={agency.id} className="!bg-transparent my-2 text-primary broder-[1px] border-border p-2 rounded-md hover:!bg-muted cursor-pointer transition-all">
+                              {defaultOpen ? (
+                                <Link
+                                  href={`/agency/${agency.id}`}
+                                  className="flex gap-4 w-full h-full"
+                                >
+                                  <div className="relative w-16">
+                                    <Image
+                                      src={agency.agencyLogo || '/assets/plura-logo.svg'}
+                                      alt="Agency Logo"
+                                      fill
+                                      className="rounded-md object-contain"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col flex-1">
+                                    {agency.name}
+                                    <span className="text-muted-foreground">
+                                      {agency.address}
+                                    </span>
+                                  </div>
+                                </Link>
+                              ) : (
+                                <SheetClose asChild>
+                                  <Link
+                                    href={`/agency/${agency.id}`}
+                                    className="flex gap-4 w-full h-full"
+                                  >
+                                    <div className="relative w-16">
+                                      <Image
+                                        src={agency.agencyLogo || '/assets/plura-logo.svg'}
+                                        alt="Agency Logo"
+                                        fill
+                                        className="rounded-md object-contain"
+                                      />
+                                    </div>
+                                    <div className="flex flex-col flex-1">
+                                      {agency.name}
+                                      <span className="text-muted-foreground">
+                                        {agency.address}
+                                      </span>
+                                    </div>
+                                  </Link>
+                                </SheetClose>
+                              )}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
                       <CommandGroup heading="Accounts">
                         {!!subAccounts
                           ? subAccounts.map((subaccount) => (

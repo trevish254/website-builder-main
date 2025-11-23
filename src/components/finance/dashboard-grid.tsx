@@ -11,6 +11,7 @@ import SimulateTransactionsButton from './simulate-transactions-button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import MpesaSettingsForm from './mpesa-settings-form'
 import { Settings } from 'lucide-react'
+import IncomeChart from './income-polar-bar'
 
 type Props = {
     balance: number
@@ -140,15 +141,15 @@ const DashboardGrid = ({ balance, transactions, agencyId, subAccountId, mpesaSet
                     />
                 </div>
 
-                {/* Right Column: Charts (Placeholder) */}
+                {/* Right Column: Charts */}
                 <div className="col-span-1">
                     <Card className="h-full">
                         <CardHeader>
                             <CardTitle>Total Income</CardTitle>
                             <p className="text-xs text-muted-foreground">View your income in a certain period of time</p>
                         </CardHeader>
-                        <CardContent className="flex items-center justify-center h-[200px]">
-                            <div className="text-muted-foreground text-sm">Chart Visualization Placeholder</div>
+                        <CardContent className="h-[300px]">
+                            <IncomeChart />
                         </CardContent>
                     </Card>
                 </div>

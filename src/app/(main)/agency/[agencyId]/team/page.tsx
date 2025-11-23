@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Upload, Download, Search, Filter, MoreVertical, Eye, Trash2, Copy, Mail } from 'lucide-react'
+import { Plus, Upload, Download, Search, Filter, MoreVertical, Eye, Trash2, Copy, Mail, Edit } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +16,10 @@ import EmployeeForm from '@/components/forms/employee-form'
 import { format } from 'date-fns'
 import type { User } from '@/lib/database.types'
 import type { Invitation as InvitationType } from '@/lib/database.types'
-import { getAgencyTeamMembers, getAgencyInvitations, deleteInvitation, deleteUser } from '@/lib/queries'
+import { getAgencyTeamMembers, getAgencyInvitations, deleteInvitation, deleteUser, getUser } from '@/lib/queries'
+import { useModal } from '@/providers/modal-provider'
+import CustomModal from '@/components/global/custom-modal'
+import UserDetails from '@/components/forms/user-details'
 
 
 type Props = {
@@ -26,16 +29,17 @@ type Props = {
 const TeamPage = ({ params }: Props) => {
   const router = useRouter()
   const { toast } = useToast()
+  const { setOpen } = useModal()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'invited'>('all')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [activeTab, setActiveTab] = useState<'members' | 'invitations'>('members')
-  
+
   // Data states
   const [teamMembers, setTeamMembers] = useState<User[]>([])
   const [invitations, setInvitations] = useState<InvitationType[]>([])
   const [loading, setLoading] = useState(true)
-  
+
   // Modal states
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [showInviteEmployee, setShowInviteEmployee] = useState(false)
@@ -86,7 +90,7 @@ const TeamPage = ({ params }: Props) => {
       const matchesSearch =
         inv.email.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const matchesStatus = statusFilter === 'all' || 
+      const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'invited' && inv.status === 'PENDING') ||
         (statusFilter === 'active' && inv.status === 'ACCEPTED') ||
         (statusFilter === 'inactive' && inv.status === 'REVOKED')
@@ -124,13 +128,28 @@ const TeamPage = ({ params }: Props) => {
     return roleLabels[role] || role
   }
 
-  const handleViewDetails = (member: User) => {
-    router.push(`/agency/${params.agencyId}/team/${member.id}`)
+  const handleEditDetails = (member: any) => {
+    setOpen(
+      <CustomModal
+        subheading="You can change permissions only when the user has an owned subaccount"
+        title="Edit User Details"
+      >
+        <UserDetails
+          type="agency"
+          id={member.agencyId || null}
+          subAccounts={member.Agency?.SubAccount}
+          userData={member}
+        />
+      </CustomModal>,
+      async () => {
+        return { user: await getUser(member.id) }
+      }
+    )
   }
 
   const handleDeleteMember = async (memberId: string, memberName: string) => {
     if (!confirm(`Are you sure you want to remove ${memberName} from the team?`)) return
-    
+
     try {
       const success = await deleteUser(memberId, params.agencyId)
       if (success) {
@@ -151,7 +170,7 @@ const TeamPage = ({ params }: Props) => {
 
   const handleDeleteInvitation = async (invitationId: string, email: string | undefined) => {
     if (!confirm(`Are you sure you want to revoke the invitation for ${email}?`)) return
-    
+
     try {
       const success = await deleteInvitation(invitationId)
       if (success) {
@@ -173,7 +192,7 @@ const TeamPage = ({ params }: Props) => {
   const handleCopyInvitationLink = async (invitation: InvitationType) => {
     const baseUrl = window.location.origin
     const invitationLink = `${baseUrl}/agency/sign-up?email=${encodeURIComponent(invitation.email)}&invitation=${invitation.id}`
-    
+
     try {
       await navigator.clipboard.writeText(invitationLink)
       toast({
@@ -234,14 +253,14 @@ const TeamPage = ({ params }: Props) => {
         const text = await file.text()
         const lines = text.split('\n')
         const headers = lines[0].split(',')
-        
+
         // Parse CSV and import
         // This is a basic implementation - you can enhance it
         toast({
           title: 'Import Started',
           description: `Processing ${lines.length - 1} records...`,
         })
-        
+
         // TODO: Implement actual import logic based on your needs
         toast({
           title: 'Import Complete',
@@ -284,8 +303,8 @@ const TeamPage = ({ params }: Props) => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             onClick={() => {
               setEmployeeFormMode('invite')
               setShowInviteEmployee(true)
@@ -294,8 +313,8 @@ const TeamPage = ({ params }: Props) => {
             <Mail className="h-4 w-4 mr-2" />
             Quick Invite
           </Button>
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             onClick={() => {
               setEmployeeFormMode('full')
               setShowAddEmployee(true)
@@ -330,32 +349,32 @@ const TeamPage = ({ params }: Props) => {
 
         {/* Team Members Tab */}
         <TabsContent value="members" className="space-y-4">
-      {/* Search and Filters */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+          {/* Search and Filters */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
                 placeholder="Search by name or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[150px]">
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="All Roles" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="AGENCY_OWNER">Owner</SelectItem>
                 <SelectItem value="AGENCY_ADMIN">Admin</SelectItem>
                 <SelectItem value="SUBACCOUNT_USER">User</SelectItem>
                 <SelectItem value="SUBACCOUNT_GUEST">Guest</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Team Member Grid */}
+          {/* Team Member Grid */}
           {loading ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">Loading team members...</p>
@@ -365,80 +384,80 @@ const TeamPage = ({ params }: Props) => {
               <p className="text-muted-foreground">No team members found</p>
             </div>
           ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredMembers.map((member: User) => (
                 <Card key={member.id} className="relative hover:shadow-lg transition-shadow">
                   {/* Role Badge */}
-            <div className="absolute top-3 left-3 z-10">
+                  <div className="absolute top-3 left-3 z-10">
                     <Badge variant="default">
                       {getRoleBadge(member.role)}
-              </Badge>
-            </div>
+                    </Badge>
+                  </div>
 
-            {/* More Options */}
-            <div className="absolute top-3 right-3 z-10">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleViewDetails(member)}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Details
-                  </DropdownMenuItem>
-                        <DropdownMenuItem 
+                  {/* More Options */}
+                  <div className="absolute top-3 right-3 z-10">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditDetails(member)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => handleDeleteMember(member.id, member.name)}
                           className="text-red-600"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                    Remove
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                          Remove
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
 
                   <CardContent className="pt-8 pb-4">
-              {/* Avatar */}
-              <div className="flex justify-center mb-4">
-                <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary">
-                  <Image
+                    {/* Avatar */}
+                    <div className="flex justify-center mb-4">
+                      <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary">
+                        <Image
                           src={member.avatarUrl || '/placeholder-logo.png'}
-                    alt={member.name}
-                    width={80}
-                    height={80}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              </div>
+                          alt={member.name}
+                          width={80}
+                          height={80}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    </div>
 
                     {/* Name and Email */}
-              <div className="text-center mb-4">
-                <h3 className="font-semibold text-lg">{member.name}</h3>
+                    <div className="text-center mb-4">
+                      <h3 className="font-semibold text-lg">{member.name}</h3>
                       <p className="text-sm text-muted-foreground truncate" title={member.email}>
                         {member.email}
                       </p>
-              </div>
+                    </div>
 
-              {/* Joined Date */}
+                    {/* Joined Date */}
                     <div className="text-center text-sm text-muted-foreground">
                       {member.createdAt && `Joined ${format(new Date(member.createdAt), 'MMM d, yyyy')}`}
-                </div>
+                    </div>
 
-              {/* View Details Link */}
+                    {/* View Details Link */}
                     <div className="mt-4 text-center">
-                      <Button 
-                        variant="link" 
-                        size="sm" 
-                        onClick={() => handleViewDetails(member)}
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => handleEditDetails(member)}
                       >
-                  View details →
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                        Edit details →
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </TabsContent>
@@ -467,7 +486,7 @@ const TeamPage = ({ params }: Props) => {
                 <SelectItem value="inactive">Revoked</SelectItem>
               </SelectContent>
             </Select>
-      </div>
+          </div>
 
           {/* Invitations List */}
           {loading ? (
@@ -475,7 +494,7 @@ const TeamPage = ({ params }: Props) => {
               <p className="text-muted-foreground">Loading invitations...</p>
             </div>
           ) : filteredInvitations.length === 0 ? (
-        <div className="text-center py-12">
+            <div className="text-center py-12">
               <p className="text-muted-foreground">No invitations found</p>
             </div>
           ) : (
@@ -527,8 +546,8 @@ const TeamPage = ({ params }: Props) => {
                   </CardContent>
                 </Card>
               ))}
-        </div>
-      )}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

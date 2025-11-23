@@ -2,7 +2,7 @@ import AgencyDetails from '@/components/forms/agency-details'
 import UserDetails from '@/components/forms/user-details'
 import { getAuthUserDetails } from '@/lib/queries'
 import { supabase } from '@/lib/supabase'
-import { currentUser } from '@clerk/nextjs/server'
+import { getUser } from '@/lib/supabase/server'
 import React from 'react'
 
 type Props = {
@@ -11,10 +11,10 @@ type Props = {
 
 const SettingsPage = async ({ params }: Props) => {
   console.log('Loading agency settings page for', params.agencyId)
-  
+
   try {
     // Fetch current user details
-    const authUser = await currentUser()
+    const authUser = await getUser()
     if (!authUser) {
       return null
     }
@@ -44,7 +44,7 @@ const SettingsPage = async ({ params }: Props) => {
       .eq('agencyId', params.agencyId)
 
     const subAccounts = subAccountsData || []
-    
+
     if (subAccountsError) {
       console.error('Error fetching subaccounts:', subAccountsError)
     }
@@ -80,10 +80,10 @@ const SettingsPage = async ({ params }: Props) => {
     )
   } catch (error) {
     console.error('Error loading settings page:', error)
-    
+
     // Fallback UI in case of errors
-    const authUser = await currentUser()
-    
+    const authUser = await getUser()
+
     return (
       <div className="flex flex-col gap-4">
         <div className="p-4 border rounded-lg">

@@ -1,6 +1,6 @@
 'use server'
 
-import { clerkClient, currentUser } from '@clerk/nextjs/server'
+import { getUser as getAuthUser, createClient } from './supabase/server'
 import { supabase, supabaseAdmin } from './supabase'
 import { redirect } from 'next/navigation'
 import { v4 } from 'uuid'
@@ -18,7 +18,7 @@ type AnyRecord = Record<string, any>
 
 export const getAuthUserDetails = cache(async () => {
   try {
-    const user = await currentUser()
+    const user = await getAuthUser()
     if (!user) {
       console.log('ℹ️ No user found in getAuthUserDetails')
       return
@@ -84,7 +84,7 @@ export const getAuthUserDetails = cache(async () => {
           access
         )
       `)
-        .eq('email', user.emailAddresses[0].emailAddress)
+        .eq('email', user.email || '')
         .single()
 
       if (error) {
@@ -118,7 +118,7 @@ export const getAuthUserDetails = cache(async () => {
             ),
             Permissions (*)
           `)
-          .eq('email', user.emailAddresses[0].emailAddress)
+          .eq('email', user.email || '')
           .single()
 
         if (!refetchError && updatedData) {
@@ -176,7 +176,7 @@ export const getAuthUserDetails = cache(async () => {
               ),
               Permissions (*)
             `)
-            .eq('email', user.emailAddresses[0].emailAddress)
+            .eq('email', user.email || '')
             .single()
 
           if (!refetchError && updatedData) {
@@ -188,7 +188,7 @@ export const getAuthUserDetails = cache(async () => {
       // Check for missing subaccount sidebar options and create them
       if (agency && agency.SubAccount) {
         const subAccounts = agency.SubAccount as AnyRecord[]
-        console.log('🔍 Checking subaccount sidebar options for', subAccounts.length, 'subaccounts')
+        // console.log('🔍 Checking subaccount sidebar options for', subAccounts.length, 'subaccounts')
         for (const subAccount of subAccounts) {
           // console.log('🔍 Subaccount:', subAccount.name, 'has', subAccount.SubAccountSidebarOption?.length || 0, 'sidebar options')
           if (!subAccount.SubAccountSidebarOption || subAccount.SubAccountSidebarOption.length === 0) {
@@ -198,37 +198,52 @@ export const getAuthUserDetails = cache(async () => {
             const hasFinance = subAccount.SubAccountSidebarOption.some(
               (option: any) => option.name === 'Finance'
             )
+
             if (!hasFinance) {
               console.log('🔧 Adding Finance to existing subaccount sidebar options')
               await addFinanceToExistingSubAccount(subAccount.id)
             }
           }
         }
-
-        // Refetch user details to get the new subaccount sidebar options
-        const { data: updatedData, error: refetchError } = await supabase
-          .from('User')
-          .select(`
-            *,
-            Agency (
-              *,
-              AgencySidebarOption (*),
-              SubAccount (
-                *,
-                SubAccountSidebarOption (*)
-              )
-            ),
-            Permissions (*)
-          `)
-          .eq('email', user.emailAddresses[0].emailAddress)
-          .single()
-
-        if (!refetchError && updatedData) {
-          return updatedData
-        }
       }
 
-      return data
+      // Fetch agencies where the user is an invited member
+      const { data: invitations } = await supabase
+        .from('Invitation')
+        .select('agencyId')
+        .eq('email', user.email || '')
+        .eq('status', 'ACCEPTED')
+
+      const invitedAgencyIds = invitations?.map((i) => i.agencyId) || []
+      let invitedAgencies: any[] = []
+
+      if (invitedAgencyIds.length > 0) {
+        const { data: agencies } = await supabase
+          .from('Agency')
+          .select(`
+            id,
+            name,
+            agencyLogo,
+            address,
+            AgencySidebarOption (
+              id,
+              name,
+              link,
+              icon,
+              agencyId
+            )
+          `)
+          .in('id', invitedAgencyIds)
+
+        invitedAgencies = agencies || []
+      }
+
+      return {
+        ...data,
+        InvitedAgencies: invitedAgencies
+      }
+
+
     } catch (dbError) {
       console.error('Database connection failed for user details:', dbError)
       // Return null to trigger agency creation flow
@@ -249,7 +264,7 @@ export const saveActivityLogsNotification = async ({
   description: string
   subaccountId?: string
 }) => {
-  const user = await currentUser()
+  const user = await getAuthUser()
   if (!user) return
 
   // Skip notification creation if no valid agencyId
@@ -297,24 +312,49 @@ export const createTeamUser = async (agencyId: string, userData: any) => {
 }
 
 export const verifyAndAcceptInvitation = async () => {
-  const user = await currentUser()
+  const user = await getAuthUser()
   if (!user) return null
 
   const { data: invitation } = await supabase
     .from('Invitation')
     .select('*')
-    .eq('email', user.emailAddresses[0].emailAddress)
+    .eq('email', user.email)
     .eq('status', 'PENDING')
     .single()
 
   if (invitation) {
     const invitationData = invitation as AnyRecord
+
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('User')
+      .select('*')
+      .eq('email', user.email)
+      .single()
+
+    if (existingUser) {
+      // User exists, just accept the invitation
+      await supabase
+        .from('Invitation')
+        .update({ status: 'ACCEPTED' } as AnyRecord)
+        .eq('id', invitation.id)
+
+      await saveActivityLogsNotification({
+        agencyId: invitationData?.agencyId,
+        description: `Joined`,
+        subaccountId: undefined,
+      })
+
+      return invitationData.agencyId
+    }
+
+    // User doesn't exist, create new user
     const userDetails = await createTeamUser(invitationData.agencyId, {
       email: invitationData.email,
       agencyId: invitationData.agencyId,
-      avatarUrl: user.imageUrl,
+      avatarUrl: user.user_metadata.avatar_url,
       id: user.id,
-      name: `${user.firstName} ${user.lastName}`,
+      name: user.user_metadata.full_name || `${user.user_metadata.name || ''} `,
       role: invitationData.role,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -328,11 +368,12 @@ export const verifyAndAcceptInvitation = async () => {
 
     if (userDetails) {
       const userDetailsData = userDetails as AnyRecord
-      const clerk = await clerkClient()
-      await clerk.users.updateUserMetadata(user.id, {
-        privateMetadata: {
+      // Update Supabase user metadata instead of Clerk
+      const supabaseClient = createClient()
+      await supabaseClient.auth.updateUser({
+        data: {
           role: userDetailsData.role || 'SUBACCOUNT_USER',
-        },
+        }
       })
 
       await supabase
@@ -346,7 +387,7 @@ export const verifyAndAcceptInvitation = async () => {
     const { data: agency } = await supabase
       .from('User')
       .select('agencyId')
-      .eq('email', user.emailAddresses[0].emailAddress)
+      .eq('email', user.email)
       .maybeSingle()
 
     return agency ? (agency as AnyRecord)?.agencyId || null : null
@@ -388,8 +429,8 @@ export const deleteAgency = async (agencyId: string) => {
 
 export const initUser = async (newUser: Partial<any>) => {
   try {
-    // Get current user from Clerk to get proper user data
-    const user = await currentUser()
+    // Get current user from Supabase to get proper user data
+    const user = await getAuthUser()
     if (!user) {
       console.error('No current user found for initialization')
       return null
@@ -428,9 +469,9 @@ export const initUser = async (newUser: Partial<any>) => {
     // User doesn't exist, create new user
     const userData = {
       id: user.id,
-      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User',
-      avatarUrl: user.imageUrl || '/placeholder-avatar.png',
-      email: user.emailAddresses[0]?.emailAddress || '',
+      name: user.user_metadata.full_name || `${user.user_metadata.name || ''} `.trim() || 'User',
+      avatarUrl: user.user_metadata.avatar_url || '/placeholder-avatar.png',
+      email: user.email || '',
       role: newUser.role || 'AGENCY_OWNER',
       agencyId: newUser.agencyId || null,
       createdAt: new Date().toISOString(),
@@ -478,7 +519,8 @@ export const upsertAgency = async (agency: Partial<any>) => {
 
   try {
     // First, ensure the user exists in the database
-    const user = await currentUser()
+    // First, ensure the user exists in the database
+    const user = await getAuthUser()
     if (!user) {
       console.error('No authenticated user found for agency creation')
       throw new Error('User authentication required')
@@ -507,7 +549,7 @@ export const upsertAgency = async (agency: Partial<any>) => {
     if (error) {
       console.error('Error upserting agency:', error)
       console.error('Error details:', JSON.stringify(error, null, 2))
-      throw new Error(`Failed to create agency: ${error.message || 'Unknown error'}`)
+      throw new Error(`Failed to create agency: ${error.message || 'Unknown error'} `)
     }
 
     // After creating the agency, link the user to this agency
@@ -1003,10 +1045,10 @@ export const getUserPermissions = async (userId: string) => {
 
   if (error) {
     console.error('Error fetching user permissions:', error)
-    return []
+    return { Permissions: [] }
   }
 
-  return data
+  return { Permissions: data }
 }
 
 export const updateUser = async (user: Partial<any>) => {
@@ -1070,6 +1112,7 @@ export const changeUserPermissions = async (
     const { data, error } = await supabase
       .from('Permissions')
       .insert({
+        id: v4(),
         email,
         subAccountId,
         access: permission,
@@ -2109,18 +2152,80 @@ export const getSubAccountTeamMembers = async (subAccountId: string) => {
 }
 
 export const getAgencyTeamMembers = async (agencyId: string) => {
-  const { data, error } = await supabase
+  // 1. Get direct agency members
+  const { data: directMembers, error: directError } = await supabase
     .from('User')
-    .select('*')
+    .select(`
+      *,
+      Agency (
+        *,
+        SubAccount (*)
+      ),
+      Permissions (
+        *,
+        SubAccount (*)
+      )
+    `)
     .eq('agencyId', agencyId)
     .order('createdAt', { ascending: false })
 
-  if (error) {
-    console.error('Error fetching agency team members:', error)
+  if (directError) {
+    console.error('Error fetching agency team members:', directError)
     return []
   }
 
-  return data || []
+  // 2. Get members via accepted invitations
+  const { data: acceptedInvitations, error: inviteError } = await supabase
+    .from('Invitation')
+    .select('email, role')
+    .eq('agencyId', agencyId)
+    .eq('status', 'ACCEPTED')
+
+  if (inviteError) {
+    console.error('Error fetching accepted invitations:', inviteError)
+    return directMembers || []
+  }
+
+  const invitedEmails = acceptedInvitations?.map((inv: any) => inv.email) || []
+
+  let invitedUsers: any[] = []
+  if (invitedEmails.length > 0) {
+    const { data: users, error: usersError } = await supabase
+      .from('User')
+      .select(`
+        *,
+        Agency (
+          *,
+          SubAccount (*)
+        ),
+        Permissions (
+          *,
+          SubAccount (*)
+        )
+      `)
+      .in('email', invitedEmails)
+
+    if (!usersError && users) {
+      invitedUsers = users.map(user => {
+        const invitation = acceptedInvitations?.find((inv: any) => inv.email === user.email)
+        return {
+          ...user,
+          role: invitation?.role || user.role // Use invitation role if available
+        }
+      })
+    }
+  }
+
+  // Combine and deduplicate (prefer direct membership if both exist, though they shouldn't)
+  const allMembers = [...(directMembers || [])]
+
+  invitedUsers.forEach(invitedUser => {
+    if (!allMembers.find(m => m.id === invitedUser.id)) {
+      allMembers.push(invitedUser)
+    }
+  })
+
+  return allMembers
 }
 
 export const getAgencyInvitations = async (agencyId: string) => {

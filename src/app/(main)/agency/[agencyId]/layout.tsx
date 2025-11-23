@@ -7,7 +7,7 @@ import {
   verifyAndAcceptInvitation,
   getAuthUserDetails,
 } from '@/lib/queries'
-import { currentUser } from '@clerk/nextjs/server'
+import { getUser } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import React from 'react'
 
@@ -20,7 +20,7 @@ import { SidebarProvider } from '@/providers/sidebar-provider'
 import MainLayoutWrapper from '@/components/sidebar/main-layout-wrapper'
 
 const layout = async ({ children, params }: Props) => {
-  const user = await currentUser()
+  const user = await getUser()
   if (!user) return redirect('/agency/sign-in')
 
   const [userDetails, notifications] = await Promise.all([
@@ -39,6 +39,21 @@ const layout = async ({ children, params }: Props) => {
     userDetails.role !== 'AGENCY_ADMIN'
   ) {
     return <Unauthorized />
+  }
+
+  // Redirect Subaccount Users to their subaccount
+  if (
+    userDetails.role === 'SUBACCOUNT_USER' ||
+    userDetails.role === 'SUBACCOUNT_GUEST'
+  ) {
+    const firstSubaccountWithAccess = userDetails.Permissions.find(
+      (p: any) => p.access === true
+    )
+    if (firstSubaccountWithAccess) {
+      return redirect(`/subaccount/${firstSubaccountWithAccess.subAccountId}`)
+    } else {
+      return <Unauthorized />
+    }
   }
 
   let allNoti: any = []

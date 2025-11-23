@@ -2,7 +2,7 @@ import SubAccountDetails from '@/components/forms/subaccount-details'
 import UserDetails from '@/components/forms/user-details'
 import BlurPage from '@/components/global/blur-page'
 import { supabase } from '@/lib/supabase'
-import { currentUser } from '@clerk/nextjs/server'
+import { getUser } from '@/lib/supabase/server'
 import React from 'react'
 
 type Props = {
@@ -10,15 +10,15 @@ type Props = {
 }
 
 const SubaccountSettingPage = async ({ params }: Props) => {
-  const authUser = await currentUser()
+  const authUser = await getUser()
   if (!authUser) return
-  
+
   const { data: userDetails } = await supabase
     .from('User')
     .select('*')
     .eq('email', authUser.emailAddresses[0].emailAddress)
     .single()
-    
+
   if (!userDetails) return
 
   const { data: subAccount } = await supabase
@@ -26,7 +26,7 @@ const SubaccountSettingPage = async ({ params }: Props) => {
     .select('*')
     .eq('id', params.subaccountId)
     .single()
-    
+
   if (!subAccount) return
 
   const { data: agencyDetails } = await supabase

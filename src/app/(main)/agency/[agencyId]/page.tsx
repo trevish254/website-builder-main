@@ -72,7 +72,7 @@ const Page = async ({
     // Fetch funnels and their pages for each subaccount
     if (subaccounts.length > 0) {
       const subaccountIds = subaccounts.map((sub) => sub.id)
-      
+
       const { data: funnelsData } = await supabase
         .from('Funnel')
         .select(`
@@ -169,7 +169,7 @@ const Page = async ({
       <Separator className="my-6" />
       <div className="flex flex-col gap-4 pb-6">
         {/* Summary Cards Row */}
-        <div className="flex gap-4 flex-col xl:!flex-row">
+        <div className="flex gap-4 flex-col lg:!flex-row">
           <Card className="flex-1 relative">
             <CardHeader>
               <CardDescription>Income</CardDescription>
@@ -240,7 +240,7 @@ const Page = async ({
         </div>
 
         {/* Dashboard Cards Row 1 */}
-        <div className="flex gap-4 flex-col xl:!flex-row">
+        <div className="flex gap-4 flex-col lg:!flex-row">
           <VisaAccountCard />
           <TotalIncomeCard />
           <TotalPaidCard />
@@ -248,8 +248,8 @@ const Page = async ({
         </div>
 
         {/* Dashboard Cards Row 2 */}
-        <div className="flex gap-4 flex-col xl:!flex-row">
-          <div className="flex gap-4 flex-col xl:!flex-row flex-[0.6]">
+        <div className="flex gap-4 flex-col lg:!flex-row">
+          <div className="flex gap-4 flex-col lg:!flex-row flex-[0.6]">
             <TimeRemainingCard />
             <YearlyActivityCard />
           </div>
@@ -259,7 +259,7 @@ const Page = async ({
         </div>
 
         {/* Dashboard Cards Row 3 */}
-        <div className="flex gap-4 flex-col xl:!flex-row">
+        <div className="flex gap-4 flex-col lg:!flex-row">
           <div className="flex-[0.4]">
             <StocksCard />
           </div>
@@ -275,7 +275,7 @@ const Page = async ({
         </div>
 
         {/* Subaccount Activity and Network Charts Row */}
-        <div className="flex gap-4 flex-col xl:!flex-row">
+        <div className="flex gap-4 flex-col lg:!flex-row">
           {/* Stream Chart - 70% width */}
           <Card className="flex-[0.7]">
             <CardHeader>
@@ -323,7 +323,7 @@ const Page = async ({
         </Card>
 
         {/* Middle Row - Charts */}
-        <div className="flex gap-4 flex-col xl:!flex-row">
+        <div className="flex gap-4 flex-col lg:!flex-row">
           {/* Cash Flow Analytics */}
           <Card className="flex-1">
             <CardHeader>
@@ -387,7 +387,7 @@ const Page = async ({
         </div>
 
         {/* Bottom Row - Recent Transactions and Tax Liabilities */}
-        <div className="flex gap-4 flex-col xl:!flex-row">
+        <div className="flex gap-4 flex-col lg:!flex-row">
           {/* Recent Transactions */}
           <Card className="flex-1">
             <CardHeader>
@@ -424,11 +424,10 @@ const Page = async ({
                         </td>
                         <td className="py-3">
                           <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              transaction.status === 'Paid'
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${transaction.status === 'Paid'
                                 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
                                 : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                            }`}
+                              }`}
                           >
                             {transaction.status}
                           </span>
@@ -505,11 +504,10 @@ const Page = async ({
                         <td className="py-2 pr-2 text-xs">${tax.amount}</td>
                         <td className="py-2">
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
-                              tax.status === 'Success'
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${tax.status === 'Success'
                                 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
                                 : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                            }`}
+                              }`}
                           >
                             {tax.status}
                           </span>

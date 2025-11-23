@@ -1,12 +1,12 @@
 import { ModeToggle } from '@/components/global/mode-toggle'
-import { UserButton } from '@clerk/nextjs'
-import { currentUser } from '@clerk/nextjs/server'
+import UserButton from '@/components/global/user-button'
+import { getUser } from '@/lib/supabase/server'
 import Image from 'next/image'
 import Link from 'next/link'
 import React from 'react'
 
 const Navigation = async () => {
-  const user = await currentUser()
+  const user = await getUser()
   return (
     <div className="fixed top-0 right-0 left-0 p-4 flex items-center justify-between z-10 bg-background/80 backdrop-blur-sm border-b">
       <aside className="flex items-center gap-2">

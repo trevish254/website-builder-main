@@ -108,7 +108,7 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
     if (!data.user) return
     const getPermissions = async () => {
       if (!data.user) return
-      const permission = await getUserPermissions(data.user.id)
+      const permission = await getUserPermissions(data.user.email)
       setSubAccountsPermissions(permission)
     }
     getPermissions()
@@ -131,7 +131,7 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
     if (!data.user?.email) return
     setLoadingPermissions(true)
     const response = await changeUserPermissions(
-      permissionsId ? permissionsId : v4(),
+      permissionsId,
       data.user.email,
       subAccountId,
       val
@@ -139,11 +139,10 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
     if (type === 'agency') {
       await saveActivityLogsNotification({
         agencyId: authUserData?.Agency?.id,
-        description: `Gave ${userData?.name} access to | ${
-          subAccountPermissions?.Permissions.find(
-            (p) => p.subAccountId === subAccountId
-          )?.SubAccount.name
-        } `,
+        description: `Gave ${userData?.name} access to | ${subAccountPermissions?.Permissions.find(
+          (p) => p.subAccountId === subAccountId
+        )?.SubAccount.name
+          } `,
         subaccountId: subAccountPermissions?.Permissions.find(
           (p) => p.subAccountId === subAccountId
         )?.SubAccount.id,
@@ -177,7 +176,7 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
   const onSubmit = async (values: z.infer<typeof userDataSchema>) => {
     if (!id) return
     if (userData || data?.user) {
-      const updatedUser = await updateUser(values)
+      const updatedUser = await updateUser({ ...values, id: userData?.id || data?.user?.id })
       authUserData?.Agency?.SubAccount.filter((subacc) =>
         authUserData.Permissions.find(
           (p) => p.subAccountId === subacc.id && p.access
@@ -314,10 +313,10 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
                       </SelectItem>
                       {(data?.user?.role === 'AGENCY_OWNER' ||
                         userData?.role === 'AGENCY_OWNER') && (
-                        <SelectItem value="AGENCY_OWNER">
-                          Agency Owner
-                        </SelectItem>
-                      )}
+                          <SelectItem value="AGENCY_OWNER">
+                            Agency Owner
+                          </SelectItem>
+                        )}
                       <SelectItem value="SUBACCOUNT_USER">
                         Sub Account User
                       </SelectItem>
@@ -337,46 +336,47 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
             >
               {form.formState.isSubmitting ? <Loading /> : 'Save User Details'}
             </Button>
-            {authUserData?.role === 'AGENCY_OWNER' && (
-              <div>
-                <Separator className="my-4" />
-                <FormLabel> User Permissions</FormLabel>
-                <FormDescription className="mb-4">
-                  You can give Sub Account access to team member by turning on
-                  access control for each Sub Account. This is only visible to
-                  agency owners
-                </FormDescription>
-                <div className="flex flex-col gap-4">
-                  {subAccounts?.map((subAccount) => {
-                    const subAccountPermissionsDetails =
-                      subAccountPermissions?.Permissions.find(
-                        (p) => p.subAccountId === subAccount.id
-                      )
-                    return (
-                      <div
-                        key={subAccount.id}
-                        className="flex items-center justify-between rounded-lg border p-4"
-                      >
-                        <div>
-                          <p>{subAccount.name}</p>
+            {(authUserData?.role === 'AGENCY_OWNER' ||
+              authUserData?.role === 'AGENCY_ADMIN') && (
+                <div>
+                  <Separator className="my-4" />
+                  <FormLabel> User Permissions</FormLabel>
+                  <FormDescription className="mb-4">
+                    You can give Sub Account access to team member by turning on
+                    access control for each Sub Account. This is only visible to
+                    agency owners
+                  </FormDescription>
+                  <div className="flex flex-col gap-4">
+                    {subAccounts?.map((subAccount) => {
+                      const subAccountPermissionsDetails =
+                        subAccountPermissions?.Permissions.find(
+                          (p) => p.subAccountId === subAccount.id
+                        )
+                      return (
+                        <div
+                          key={subAccount.id}
+                          className="flex items-center justify-between rounded-lg border p-4"
+                        >
+                          <div>
+                            <p>{subAccount.name}</p>
+                          </div>
+                          <Switch
+                            disabled={loadingPermissions}
+                            checked={subAccountPermissionsDetails?.access}
+                            onCheckedChange={(permission) => {
+                              onChangePermission(
+                                subAccount.id,
+                                permission,
+                                subAccountPermissionsDetails?.id
+                              )
+                            }}
+                          />
                         </div>
-                        <Switch
-                          disabled={loadingPermissions}
-                          checked={subAccountPermissionsDetails?.access}
-                          onCheckedChange={(permission) => {
-                            onChangePermission(
-                              subAccount.id,
-                              permission,
-                              subAccountPermissionsDetails?.id
-                            )
-                          }}
-                        />
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </form>
         </Form>
       </CardContent>

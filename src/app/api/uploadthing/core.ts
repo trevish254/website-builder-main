@@ -1,22 +1,15 @@
 import { createUploadthing, type FileRouter } from 'uploadthing/next'
-import { currentUser } from '@clerk/nextjs/server'
+import { getUser } from '@/lib/supabase/server'
 
 const f = createUploadthing()
 
 const authenticateUser = async () => {
   try {
-    const user = await currentUser()
-    
+    const user = await getUser()
     // If you throw, the user will not be able to upload
-    if (!user) {
-      console.log('⚠️ No authenticated user found for file upload')
-      throw new Error('Unauthorized - Please sign in to upload files')
-    }
-    
-    console.log('✅ User authenticated for upload:', user.id)
-    
+    if (!user) throw new Error('Unauthorized')
     // Whatever is returned here is accessible in onUploadComplete as `metadata`
-    return user
+    return { user }
   } catch (error) {
     console.error('❌ Authentication error:', error)
     throw new Error('Authentication failed')
@@ -29,7 +22,8 @@ export const ourFileRouter = {
   subaccountLogo: f({ image: { maxFileSize: '4MB', maxFileCount: 1 } })
     .middleware(authenticateUser)
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log('✅ Subaccount logo uploaded:', file.url)
+      console.log('Upload complete for userId:', metadata?.user?.id)
+      console.log('file url', file.url)
     }),
   avatar: f({ image: { maxFileSize: '4MB', maxFileCount: 1 } })
     .middleware(authenticateUser)

@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import React, { useEffect, useState } from 'react'
 import { NumberInput } from '@tremor/react'
 import { v4 } from 'uuid'
-import { useUser } from '@clerk/nextjs'
+import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
 
 import { useRouter } from 'next/navigation'
 import {
@@ -71,11 +71,11 @@ const FormSchema = z.object({
 const AgencyDetails = ({ data }: Props) => {
   const { toast } = useToast()
   const router = useRouter()
-  const { user } = useUser()
+  const { user } = useSupabaseUser()
   const [deletingAgency, setDeletingAgency] = useState(false)
   // Get email from user or data, with fallback
-  const defaultEmail = data?.companyEmail || user?.emailAddresses[0]?.emailAddress || ''
-  
+  const defaultEmail = data?.companyEmail || user?.email || ''
+
   const form = useForm<z.infer<typeof FormSchema>>({
     mode: 'onChange',
     resolver: zodResolver(FormSchema),
@@ -103,8 +103,8 @@ const AgencyDetails = ({ data }: Props) => {
   // Ensure email is always set from user if not in data
   useEffect(() => {
     const currentEmail = form.getValues('companyEmail')
-    const userEmail = user?.emailAddresses[0]?.emailAddress
-    
+    const userEmail = user?.email
+
     if (userEmail && (!currentEmail || currentEmail.trim() === '')) {
       console.log('📧 Setting company email from user:', userEmail)
       form.setValue('companyEmail', userEmail, { shouldValidate: true })
@@ -117,10 +117,10 @@ const AgencyDetails = ({ data }: Props) => {
       const formValues = form.getValues()
       console.log('📥 Form submitted with values param:', values)
       console.log('📥 Form getValues():', formValues)
-      
+
       // Use form.getValues() if values param seems empty
-      const actualValues = (values.name && values.name.trim() !== '') 
-        ? values 
+      const actualValues = (values.name && values.name.trim() !== '')
+        ? values
         : formValues
 
       console.log('📊 Using actual values:', actualValues)
@@ -130,7 +130,7 @@ const AgencyDetails = ({ data }: Props) => {
       })
 
       // Ensure email is set from user if not provided
-      const finalEmail = actualValues.companyEmail || user?.emailAddresses[0]?.emailAddress || ''
+      const finalEmail = actualValues.companyEmail || user?.email || ''
       if (!finalEmail) {
         toast({
           variant: 'destructive',
@@ -142,10 +142,10 @@ const AgencyDetails = ({ data }: Props) => {
 
       // Validate that required fields are not empty
       if (!actualValues.name || actualValues.name.trim() === '') {
-        console.error('❌ Name is empty!', { 
-          valuesParam: values.name, 
+        console.error('❌ Name is empty!', {
+          valuesParam: values.name,
           formValues: formValues.name,
-          actualValues: actualValues.name 
+          actualValues: actualValues.name
         })
         toast({
           variant: 'destructive',
@@ -180,11 +180,11 @@ const AgencyDetails = ({ data }: Props) => {
         title: data?.id ? 'Updating Agency...' : 'Creating Agency...',
         description: 'Please wait while we save your changes.',
       })
-      
+
       // If updating existing agency, just update the details
       if (data?.id) {
         console.log('📝 Updating existing agency:', data.id)
-        
+
         const updateData = {
           name: finalValues.name,
           companyEmail: finalValues.companyEmail,
@@ -198,11 +198,11 @@ const AgencyDetails = ({ data }: Props) => {
           whiteLabel: finalValues.whiteLabel,
           updatedAt: new Date(),
         }
-        
+
         console.log('🔄 Update data:', updateData)
-        
+
         const updated = await updateAgencyDetails(data.id, updateData)
-        
+
         if (updated) {
           console.log('✅ Agency updated successfully:', updated)
           toast({
@@ -222,7 +222,7 @@ const AgencyDetails = ({ data }: Props) => {
         }
         return
       }
-      
+
       // For new agency creation
       // M-Pesa profile information (no Stripe needed)
       const mpesaProfile = {
@@ -233,9 +233,9 @@ const AgencyDetails = ({ data }: Props) => {
         zipCode: finalValues.zipCode,
         email: finalValues.companyEmail,
       }
-      
+
       console.log('📱 M-Pesa Profile Info:', mpesaProfile)
-      
+
       // Generate a simple customer ID based on phone number
       // Safety check: ensure companyPhone exists before calling replace
       const phoneNumber = finalValues.companyPhone || ''
@@ -269,7 +269,7 @@ const AgencyDetails = ({ data }: Props) => {
         companyEmailType: typeof agencyData.companyEmail,
         companyEmailLength: agencyData.companyEmail?.length,
       })
-      
+
       // Double-check that companyEmail is present
       if (!agencyData.companyEmail || agencyData.companyEmail.trim() === '') {
         console.error('❌ Company email is missing or empty in agencyData!')
@@ -280,7 +280,7 @@ const AgencyDetails = ({ data }: Props) => {
         })
         return
       }
-      
+
       const response = await upsertAgency(agencyData)
 
       if (response) {
@@ -405,7 +405,7 @@ const AgencyDetails = ({ data }: Props) => {
                       <FormControl>
                         <Input
                           type="email"
-                          placeholder={user?.emailAddresses[0]?.emailAddress || "agency@example.com"}
+                          placeholder={user?.email || "agency@example.com"}
                           {...field}
                         />
                       </FormControl>

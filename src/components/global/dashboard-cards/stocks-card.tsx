@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Link } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 const StocksCard = () => {
   const [mounted, setMounted] = useState(false)
+  const { theme } = useTheme()
 
   useEffect(() => {
     setMounted(true)
@@ -56,6 +58,8 @@ const StocksCard = () => {
       sparkline: {
         enabled: true,
       },
+      background: 'transparent',
+      foreColor: theme === 'dark' ? '#94a3b8' : '#64748b',
     },
     dataLabels: {
       enabled: false,
@@ -83,6 +87,19 @@ const StocksCard = () => {
         formatter: function (val: number) {
           return '$' + (val / 1000).toFixed(1) + 'K'
         },
+        style: {
+          colors: theme === 'dark' ? '#94a3b8' : '#64748b',
+        },
+      },
+    },
+    grid: {
+      borderColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
+      strokeDashArray: 4,
+      padding: {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
       },
     },
     xaxis: {
@@ -100,7 +117,7 @@ const StocksCard = () => {
       },
     },
     theme: {
-      mode: 'light',
+      mode: theme === 'dark' ? 'dark' : 'light',
     },
   }
 
@@ -117,7 +134,7 @@ const StocksCard = () => {
       <CardContent>
         <div className="text-2xl font-bold mb-2">$7,150.80</div>
         <div className="text-sm text-green-600 mb-4">+9.1%</div>
-        <div className="h-48">
+        <div className="h-[200px]">
           {mounted && (
             <Chart
               options={chartOptions}

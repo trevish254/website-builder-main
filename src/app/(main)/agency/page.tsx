@@ -1,6 +1,6 @@
 import AgencyDetails from '@/components/forms/agency-details'
 import { getAuthUserDetails, verifyAndAcceptInvitation } from '@/lib/queries'
-import { currentUser } from '@clerk/nextjs/server'
+import { getUser } from '@/lib/supabase/server'
 import { Plan } from '@prisma/client'
 import { redirect } from 'next/navigation'
 import React from 'react'
@@ -10,19 +10,19 @@ const Page = async ({
 }: {
   searchParams: { plan: Plan; state: string; code: string }
 }) => {
-  const authUser = await currentUser()
+  const authUser = await getUser()
   if (!authUser) return redirect('/agency/sign-in')
 
   // Check for pending invitation and accept it if found
   const agencyId = await verifyAndAcceptInvitation()
-  
+
   let userDetails = await getAuthUserDetails()
-  
-  // If invitation was accepted, redirect to agency dashboard
-  if (agencyId && !userDetails?.agencyId) {
+
+  // If invitation was accepted, redirect to that agency dashboard
+  if (agencyId) {
     return redirect(`/agency/${agencyId}`)
   }
-  
+
   // If user doesn't exist in database, show agency creation form
   if (!userDetails) {
     return (
@@ -51,6 +51,16 @@ const Page = async ({
   // Redirect to the user's agency
   if (userDetails.agencyId) {
     return redirect(`/agency/${userDetails.agencyId}`)
+  }
+
+  // If user has subaccount permissions, redirect to the first one
+  if (userDetails.Permissions && userDetails.Permissions.length > 0) {
+    const firstSubaccountWithAccess = userDetails.Permissions.find(
+      (p: any) => p.access === true
+    )
+    if (firstSubaccountWithAccess) {
+      return redirect(`/subaccount/${firstSubaccountWithAccess.subAccountId}`)
+    }
   }
 
   // If user has no agency, show creation form
