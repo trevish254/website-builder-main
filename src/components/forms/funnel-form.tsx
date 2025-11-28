@@ -64,6 +64,18 @@ const FunnelForm: React.FC<CreateFunnelProps> = ({
     }
   }, [defaultData])
 
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'name' && value.name) {
+        const slug = value.name.toLowerCase().replace(/ /g, '-')
+        const uniqueSuffix = v4().slice(0, 8)
+        form.setValue('subDomainName', `${slug}-${uniqueSuffix}`)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [form])
+
+
   const isLoading = form.formState.isLoading
 
   const onSubmit = async (values: z.infer<typeof CreateFunnelFormSchema>) => {
@@ -90,7 +102,7 @@ const FunnelForm: React.FC<CreateFunnelProps> = ({
           description: `Update funnel | ${response.name}`,
           subaccountId: subAccountId,
         })
-        
+
         toast({
           title: 'Success',
           description: 'Saved funnel details',
@@ -112,7 +124,7 @@ const FunnelForm: React.FC<CreateFunnelProps> = ({
         description: 'An error occurred while saving funnel details',
       })
     }
-    
+
     setClose()
     console.log('🔄 Refreshing page to show new funnel...')
     router.refresh()

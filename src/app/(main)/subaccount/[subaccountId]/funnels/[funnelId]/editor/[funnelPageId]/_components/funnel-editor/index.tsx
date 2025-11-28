@@ -6,6 +6,7 @@ import clsx from 'clsx'
 import { EyeOff } from 'lucide-react'
 import React, { useEffect } from 'react'
 import Recursive from './funnel-editor-components/recursive'
+import TestInteractElement from './funnel-editor-components/test-interact-element'
 
 type Props = { funnelPageId: string; liveMode?: boolean }
 
@@ -51,8 +52,9 @@ const FunnelEditor = ({ funnelPageId, liveMode }: Props) => {
   }
   return (
     <div
+      id="funnel-editor-canvas"
       className={clsx(
-        'use-automation-zoom-in h-full overflow-scroll mr-[385px] bg-background transition-all rounded-md',
+        'use-automation-zoom-in h-full overflow-scroll bg-background rounded-md relative', // Added relative
         {
           '!p-0 !mr-0':
             state.editor.previewMode === true || state.editor.liveMode === true,
@@ -61,8 +63,16 @@ const FunnelEditor = ({ funnelPageId, liveMode }: Props) => {
           'w-full': state.editor.device === 'Desktop',
         }
       )}
+      style={
+        !(state.editor.previewMode || state.editor.liveMode)
+          ? { marginRight: `${(state.editor.sidebarWidth || 320) + 65}px` }
+          : undefined
+      }
       onClick={handleClick}
     >
+      {/* Test Element */}
+      {!state.editor.liveMode && !state.editor.previewMode && <TestInteractElement />}
+
       {state.editor.previewMode && state.editor.liveMode && (
         <Button
           variant={'ghost'}

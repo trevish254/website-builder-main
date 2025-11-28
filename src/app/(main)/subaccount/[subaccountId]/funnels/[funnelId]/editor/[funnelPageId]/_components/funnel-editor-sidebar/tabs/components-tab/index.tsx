@@ -13,6 +13,9 @@ import TwoColumnsPlaceholder from './two-columns-placeholder'
 import LinkPlaceholder from './link-placeholder'
 import ContactFormComponentPlaceholder from './contact-form-placeholder'
 import CheckoutPlaceholder from './checkout-placeholder'
+import HeaderPlaceholder from './header-placeholder'
+import HeroPlaceholder from './hero-placeholder'
+import FooterPlaceholder from './footer-placeholder'
 
 type Props = {}
 
@@ -21,58 +24,95 @@ const ComponentsTab = (props: Props) => {
     Component: React.ReactNode
     label: string
     id: EditorBtns
-    group: 'layout' | 'elements'
+    group: 'layout' | 'elements' | 'sections'
   }[] = [
-    {
-      Component: <TextPlaceholder />,
-      label: 'Text',
-      id: 'text',
-      group: 'elements',
-    },
-    {
-      Component: <ContainerPlaceholder />,
-      label: 'Container',
-      id: 'container',
-      group: 'layout',
-    },
-    {
-      Component: <TwoColumnsPlaceholder />,
-      label: '2 Columns',
-      id: '2Col',
-      group: 'layout',
-    },
-    {
-      Component: <VideoPlaceholder />,
-      label: 'Video',
-      id: 'video',
-      group: 'elements',
-    },
-    {
-      Component: <ContactFormComponentPlaceholder />,
-      label: 'Contact',
-      id: 'contactForm',
-      group: 'elements',
-    },
-    {
-      Component: <CheckoutPlaceholder />,
-      label: 'Checkout',
-      id: 'paymentForm',
-      group: 'elements',
-    },
-    {
-      Component: <LinkPlaceholder />,
-      label: 'Link',
-      id: 'link',
-      group: 'elements',
-    },
-  ]
+      {
+        Component: <HeaderPlaceholder />,
+        label: 'Header',
+        id: 'header',
+        group: 'sections',
+      },
+      {
+        Component: <HeroPlaceholder />,
+        label: 'Hero',
+        id: 'hero',
+        group: 'sections',
+      },
+      {
+        Component: <FooterPlaceholder />,
+        label: 'Footer',
+        id: 'footer',
+        group: 'sections',
+      },
+      {
+        Component: <TextPlaceholder />,
+        label: 'Text',
+        id: 'text',
+        group: 'elements',
+      },
+      {
+        Component: <ContainerPlaceholder />,
+        label: 'Container',
+        id: 'container',
+        group: 'layout',
+      },
+      {
+        Component: <TwoColumnsPlaceholder />,
+        label: '2 Columns',
+        id: '2Col',
+        group: 'layout',
+      },
+      {
+        Component: <VideoPlaceholder />,
+        label: 'Video',
+        id: 'video',
+        group: 'elements',
+      },
+      {
+        Component: <ContactFormComponentPlaceholder />,
+        label: 'Contact',
+        id: 'contactForm',
+        group: 'elements',
+      },
+      {
+        Component: <CheckoutPlaceholder />,
+        label: 'Checkout',
+        id: 'paymentForm',
+        group: 'elements',
+      },
+      {
+        Component: <LinkPlaceholder />,
+        label: 'Link',
+        id: 'link',
+        group: 'elements',
+      },
+    ]
 
   return (
     <Accordion
       type="multiple"
       className="w-full"
-      defaultValue={['Layout', 'Elements']}
+      defaultValue={['Layout', 'Elements', 'Sections']}
     >
+      <AccordionItem
+        value="Sections"
+        className="px-6 py-0 border-y-[1px]"
+      >
+        <AccordionTrigger className="!no-underline">Sections</AccordionTrigger>
+        <AccordionContent className="flex flex-wrap gap-2 ">
+          {elements
+            .filter((element) => element.group === 'sections')
+            .map((element) => (
+              <div
+                key={element.id}
+                className="flex-col items-center justify-center flex"
+              >
+                {element.Component}
+                <span className="text-muted-foreground">{element.label}</span>
+              </div>
+            ))}
+        </AccordionContent>
+      </AccordionItem>
       <AccordionItem
         value="Layout"
         className="px-6 py-0 border-y-[1px]"

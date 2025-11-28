@@ -44,20 +44,20 @@ const FunnelSteps = ({ funnel, funnelId, pages, subaccountId }: Props) => {
   )
   const { setOpen } = useModal()
   const [pagesState, setPagesState] = useState(pages || [])
-  
+
   // Update state when pages prop changes (e.g., after creating a new page)
   useEffect(() => {
     const pagesLength = pages?.length || 0
     const pagesIds = pages?.map(p => p.id).join(',') || ''
     console.log('📄 Pages prop changed:', pagesLength, 'pages', 'IDs:', pagesIds)
-    
+
     // Always update pagesState when pages prop changes
-    if (pages && pages.length >= 0) {
+    if (pages) {
       // Create a new array reference to force re-render
       const sortedPages = [...pages].sort((a, b) => (a.order || 0) - (b.order || 0))
       setPagesState(sortedPages)
       console.log('🔄 Updated pagesState with', sortedPages.length, 'pages')
-      
+
       // Update clickedPage if needed
       if (sortedPages.length > 0) {
         setClickedPage(prevClicked => {
@@ -208,7 +208,15 @@ const FunnelSteps = ({ funnel, funnelId, pages, subaccountId }: Props) => {
                       className="relative group"
                     >
                       <div className="cursor-pointer group-hover:opacity-30 w-full">
-                        <FunnelPagePlaceholder />
+                        {clickedPage?.previewImage ? (
+                          <img
+                            src={clickedPage.previewImage}
+                            alt="preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <FunnelPagePlaceholder />
+                        )}
                       </div>
                       <LucideEdit
                         size={50}

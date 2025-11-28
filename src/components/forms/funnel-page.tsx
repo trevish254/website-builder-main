@@ -24,7 +24,6 @@ import { Button } from '../ui/button'
 import Loading from '../global/loading'
 import { useToast } from '../ui/use-toast'
 import { Database } from '@/lib/database.types'
-import { FunnelPageSchema } from '@/lib/types'
 import { useModal } from '@/providers/modal-provider'
 
 type FunnelPage = Database['public']['Tables']['FunnelPage']['Row']
@@ -37,6 +36,11 @@ import {
 import { useRouter } from 'next/navigation'
 import { v4 } from 'uuid'
 import { CopyPlusIcon, Trash } from 'lucide-react'
+
+const FunnelPageSchema = z.object({
+  name: z.string().min(1),
+  pathName: z.string().optional(),
+})
 
 interface CreateFunnelPageProps {
   defaultData?: FunnelPage
@@ -70,33 +74,56 @@ const CreateFunnelPage: React.FC<CreateFunnelPageProps> = ({
     }
   }, [defaultData])
 
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'name' && value.name && order !== 0) {
+        const slug = value.name.toLowerCase().replace(/ /g, '-')
+        form.setValue('pathName', slug)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [form, order])
+
   const onSubmit = async (values: z.infer<typeof FunnelPageSchema>) => {
-    if (order !== 0 && !values.pathName)
+    // Fallback to getValues if values is empty (debugging weird issue)
+    const formValues = Object.keys(values).length === 0 ? form.getValues() : values;
+
+    if (order !== 0 && !formValues.pathName)
       return form.setError('pathName', {
         message:
           "Pages other than the first page in the funnel require a path name example 'secondstep'.",
       })
-    
+
+    if (!formValues.name) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: `Name is required! Received values: ${JSON.stringify(values)}, getValues: ${JSON.stringify(form.getValues())}`,
+      })
+      return
+    }
+
     try {
-      console.log('🔧 Creating funnel page with values:', values)
+      console.log('🔧 Creating funnel page with values:', formValues)
       console.log('🔧 Funnel ID:', funnelId)
       console.log('🔧 Order:', defaultData?.order || order)
-      
+
       const pageData = {
-        name: values.name,
-        pathName: values.pathName || '',
+        id: defaultData?.id,
+        name: formValues.name,
+        pathName: formValues.pathName || '',
         funnelId: funnelId,
         order: defaultData?.order || order,
       }
-      
+
       console.log('🔧 Page data to be sent:', pageData)
-      
+
       const response = await upsertFunnelPage(
         subaccountId,
         pageData,
         funnelId
       )
-      
+
       console.log('🔧 Response from upsertFunnelPage:', response)
 
       if (response) {
@@ -111,7 +138,7 @@ const CreateFunnelPage: React.FC<CreateFunnelPageProps> = ({
           description: 'Saved Funnel Page Details',
         })
         console.log('✅ Funnel page created successfully:', response.name)
-        
+
         // Close the modal after successful creation
         setClose()
         router.refresh()
@@ -123,12 +150,12 @@ const CreateFunnelPage: React.FC<CreateFunnelPageProps> = ({
         })
         console.error('❌ Failed to create funnel page')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error creating funnel page:', error)
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'An error occurred while saving funnel page details',
+        description: error.message || 'Could not save funnel page details',
       })
     }
   }

@@ -186,14 +186,16 @@ export const getAuthUserDetails = cache(async () => {
       }
 
       // Check for missing subaccount sidebar options and create them
+      // Check for missing subaccount sidebar options and create them
       if (agency && agency.SubAccount) {
         const subAccounts = agency.SubAccount as AnyRecord[]
-        // console.log('🔍 Checking subaccount sidebar options for', subAccounts.length, 'subaccounts')
+        let shouldRefetchSubAccount = false
+
         for (const subAccount of subAccounts) {
-          // console.log('🔍 Subaccount:', subAccount.name, 'has', subAccount.SubAccountSidebarOption?.length || 0, 'sidebar options')
           if (!subAccount.SubAccountSidebarOption || subAccount.SubAccountSidebarOption.length === 0) {
             console.log('🔧 Creating missing sidebar options for subaccount:', subAccount.id)
             await createDefaultSubAccountSidebarOptions(subAccount.id)
+            shouldRefetchSubAccount = true
           } else {
             const hasFinance = subAccount.SubAccountSidebarOption.some(
               (option: any) => option.name === 'Finance'
@@ -202,7 +204,42 @@ export const getAuthUserDetails = cache(async () => {
             if (!hasFinance) {
               console.log('🔧 Adding Finance to existing subaccount sidebar options')
               await addFinanceToExistingSubAccount(subAccount.id)
+              shouldRefetchSubAccount = true
             }
+
+            const hasWebsites = subAccount.SubAccountSidebarOption.some(
+              (option: any) => option.name === 'Websites'
+            )
+
+            if (!hasWebsites) {
+              console.log('🔧 Adding Websites to existing subaccount sidebar options')
+              await addWebsitesToExistingSubAccount(subAccount.id)
+              shouldRefetchSubAccount = true
+            }
+          }
+        }
+
+        if (shouldRefetchSubAccount) {
+          console.log('🔄 Refetching user details to include new subaccount sidebar options')
+          const { data: updatedData, error: refetchError } = await supabase
+            .from('User')
+            .select(`
+              *,
+              Agency (
+                *,
+                AgencySidebarOption (*),
+                SubAccount (
+                  *,
+                  SubAccountSidebarOption (*)
+                )
+              ),
+              Permissions (*)
+            `)
+            .eq('email', user.email || '')
+            .single()
+
+          if (!refetchError && updatedData) {
+            return updatedData
           }
         }
       }
@@ -899,6 +936,50 @@ export const createDefaultSubAccountSidebarOptions = async (subAccountId: string
     }
   } catch (error) {
     console.error('Error creating default subaccount sidebar options:', error)
+  }
+}
+
+export const addWebsitesToExistingSubAccount = async (subAccountId: string) => {
+  try {
+    // Check if Websites option already exists
+    const { data: existingOption, error: checkError } = await supabase
+      .from('SubAccountSidebarOption')
+      .select('id')
+      .eq('subAccountId', subAccountId)
+      .eq('name', 'Websites')
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error('Error checking for existing Websites option:', checkError)
+      return
+    }
+
+    // If option doesn't exist, add it
+    if (!existingOption) {
+      const websitesOption = {
+        id: `sub-sidebar-${subAccountId}-websites`,
+        name: 'Websites',
+        link: `/subaccount/${subAccountId}/websites`,
+        icon: 'compass',
+        subAccountId: subAccountId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      const { error: insertError } = await supabase
+        .from('SubAccountSidebarOption')
+        .insert(websitesOption as AnyRecord)
+
+      if (insertError) {
+        console.error('Error adding Websites option:', insertError)
+      } else {
+        console.log('✅ Websites option added to subaccount:', subAccountId)
+      }
+    } else {
+      console.log('✅ Websites option already exists for subaccount:', subAccountId)
+    }
+  } catch (error) {
+    console.error('Error adding Websites to existing subaccount:', error)
   }
 }
 
@@ -1686,7 +1767,16 @@ export const getFunnels = async (subAccountId: string) => {
       .from('Funnel')
       .select(`
         *,
-        FunnelPage (*)
+        FunnelPage (
+          id,
+          name,
+          updatedAt,
+          previewImage,
+          order,
+          visits,
+          pathName,
+          funnelId
+        )
       `)
       .eq('subAccountId', subAccountId)
 
@@ -1710,8 +1800,14 @@ export const getFunnel = async (funnelId: string) => {
       .select(`
         *,
         FunnelPage (
-          *,
-          order
+          id,
+          name,
+          updatedAt,
+          previewImage,
+          order,
+          visits,
+          pathName,
+          funnelId
         )
       `)
       .eq('id', funnelId)
@@ -1747,20 +1843,27 @@ export const upsertFunnel = async (subAccountId: string, funnel: Partial<any>, f
       return null
     }
 
+    const funnelDataToUpsert = {
+      ...funnel,
+      subAccountId,
+      id: funnelId || funnel.id || v4(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      published: funnel.published || false, // Default to false if not provided
+      subDomainName: funnel.subDomainName || null, // Convert empty string to null to avoid unique constraint violations
+    }
+
+    console.log('🔧 Upserting funnel with data:', funnelDataToUpsert)
+
     const { data, error } = await supabase
       .from('Funnel')
-      .upsert({
-        ...funnel,
-        subAccountId,
-        id: funnelId || funnel.id || v4(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as AnyRecord)
+      .upsert(funnelDataToUpsert as AnyRecord)
       .select()
       .single()
 
     if (error) {
       console.error('Error upserting funnel:', error)
+      console.error('Error details:', JSON.stringify(error, null, 2))
       return null
     }
 
@@ -1835,8 +1938,7 @@ export const upsertFunnelPage = async (subaccountId: string, funnelPage: UpsertF
 
     if (error) {
       console.error('❌ Error upserting funnel page:', error)
-      console.error('Error details:', JSON.stringify(error, null, 2))
-      return null
+      throw error
     }
 
     const pageResult = data as AnyRecord

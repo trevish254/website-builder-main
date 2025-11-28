@@ -26,6 +26,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, { FocusEventHandler, useEffect } from 'react'
 import { toast } from 'sonner'
+import html2canvas from 'html2canvas'
 
 type Props = {
   funnelId: string
@@ -91,11 +92,17 @@ const FunnelEditorNavigation = ({
   const handleOnSave = async () => {
     const content = JSON.stringify(state.editor.elements)
     try {
+      const canvas = await html2canvas(
+        document.querySelector('#funnel-editor-canvas') as HTMLElement
+      )
+      const previewImage = canvas.toDataURL()
+
       const response = await upsertFunnelPage(
         subaccountId,
         {
           ...funnelPageDetails,
           content,
+          previewImage,
         },
         funnelId
       )
@@ -123,9 +130,15 @@ const FunnelEditorNavigation = ({
         )}
       >
         <aside className="flex items-center gap-4 max-w-[260px] w-[300px]">
-          <Link href={`/subaccount/${subaccountId}/funnels/${funnelId}`}>
+          <div
+            className="cursor-pointer hover:opacity-70 transition-opacity"
+            onClick={() => {
+              router.push(`/subaccount/${subaccountId}/funnels/${funnelId}`)
+              router.refresh()
+            }}
+          >
             <ArrowLeftCircle />
-          </Link>
+          </div>
           <div className="flex flex-col w-full ">
             <Input
               defaultValue={funnelPageDetails.name}

@@ -150,6 +150,178 @@ const Container = ({ element }: Props) => {
           },
         })
         break
+      case 'header':
+        dispatch({
+          type: 'ADD_ELEMENT',
+          payload: {
+            containerId: id,
+            elementDetails: {
+              content: [
+                {
+                  content: { innerText: 'Brand Name' },
+                  id: v4(),
+                  name: 'Logo',
+                  styles: {
+                    color: 'black',
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    ...defaultStyles,
+                  },
+                  type: 'text',
+                },
+                {
+                  content: [
+                    {
+                      content: { innerText: 'Home', href: '#' },
+                      id: v4(),
+                      name: 'Link',
+                      styles: { color: 'black', ...defaultStyles },
+                      type: 'link',
+                    },
+                    {
+                      content: { innerText: 'About', href: '#' },
+                      id: v4(),
+                      name: 'Link',
+                      styles: { color: 'black', ...defaultStyles },
+                      type: 'link',
+                    },
+                    {
+                      content: { innerText: 'Contact', href: '#' },
+                      id: v4(),
+                      name: 'Link',
+                      styles: { color: 'black', ...defaultStyles },
+                      type: 'link',
+                    },
+                  ],
+                  id: v4(),
+                  name: 'Nav Links',
+                  styles: {
+                    display: 'flex',
+                    gap: '20px',
+                    ...defaultStyles,
+                  },
+                  type: 'container',
+                },
+              ],
+              id: v4(),
+              name: 'Header',
+              styles: {
+                ...defaultStyles,
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '20px',
+                backgroundColor: '#ffffff',
+              },
+              type: 'container',
+            },
+          },
+        })
+        break
+      case 'hero':
+        dispatch({
+          type: 'ADD_ELEMENT',
+          payload: {
+            containerId: id,
+            elementDetails: {
+              content: [
+                {
+                  content: { innerText: 'Catchy Headline Here' },
+                  id: v4(),
+                  name: 'Headline',
+                  styles: {
+                    color: 'black',
+                    fontSize: '48px',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    marginBottom: '20px',
+                    ...defaultStyles,
+                  },
+                  type: 'text',
+                },
+                {
+                  content: { innerText: 'Subheadline describing your value proposition.' },
+                  id: v4(),
+                  name: 'Subheadline',
+                  styles: {
+                    color: 'gray',
+                    fontSize: '20px',
+                    textAlign: 'center',
+                    marginBottom: '40px',
+                    ...defaultStyles,
+                  },
+                  type: 'text',
+                },
+                {
+                  content: { innerText: 'Get Started', href: '#' },
+                  id: v4(),
+                  name: 'CTA Button',
+                  styles: {
+                    ...defaultStyles,
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    padding: '10px 20px',
+                    borderRadius: '5px',
+                    textAlign: 'center',
+                  },
+                  type: 'link',
+                },
+              ],
+              id: v4(),
+              name: 'Hero Section',
+              styles: {
+                ...defaultStyles,
+                width: '100%',
+                minHeight: '400px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: '#f3f4f6',
+                padding: '40px',
+              },
+              type: 'container',
+            },
+          },
+        })
+        break
+      case 'footer':
+        dispatch({
+          type: 'ADD_ELEMENT',
+          payload: {
+            containerId: id,
+            elementDetails: {
+              content: [
+                {
+                  content: { innerText: '© 2024 Your Company. All rights reserved.' },
+                  id: v4(),
+                  name: 'Copyright',
+                  styles: {
+                    color: 'white',
+                    fontSize: '14px',
+                    textAlign: 'center',
+                    ...defaultStyles,
+                  },
+                  type: 'text',
+                },
+              ],
+              id: v4(),
+              name: 'Footer',
+              styles: {
+                ...defaultStyles,
+                width: '100%',
+                padding: '40px',
+                backgroundColor: '#1f2937',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              },
+              type: 'container',
+            },
+          },
+        })
+        break
     }
   }
 

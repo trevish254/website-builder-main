@@ -162,6 +162,7 @@ export type UpsertFunnelPage = {
   funnelId: string
   order: number
   visits?: number
+  previewImage?: string | null
 }
 
 export type Wallet = {

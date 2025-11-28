@@ -21,6 +21,7 @@ export type Editor = {
   device: DeviceTypes
   previewMode: boolean
   funnelPageId: string
+  sidebarWidth: number
 }
 
 export type HistoryState = {
@@ -51,9 +52,9 @@ const initialEditorState: EditorState['editor'] = {
     type: null,
   },
   device: 'Desktop',
-  previewMode: false,
   liveMode: false,
   funnelPageId: '',
+  sidebarWidth: 320, // Default width
 }
 
 const initialHistoryState: HistoryState = {
@@ -169,12 +170,12 @@ const editorReducer = (
         selectedElement: UpdatedElementIsSelected
           ? action.payload.elementDetails
           : {
-              id: '',
-              content: [],
-              name: '',
-              styles: {},
-              type: null,
-            },
+            id: '',
+            content: [],
+            name: '',
+            styles: {},
+            type: null,
+          },
       }
 
       const updatedHistoryWithUpdate = [
@@ -337,6 +338,17 @@ const editorReducer = (
         },
       }
       return funnelPageIdState
+
+    case 'SET_SIDEBAR_WIDTH':
+      const updatedEditorStateWithWidth = {
+        ...state.editor,
+        sidebarWidth: action.payload.width,
+      }
+      const updatedStateWithWidth = {
+        ...state,
+        editor: updatedEditorStateWithWidth,
+      }
+      return updatedStateWithWidth
 
     default:
       return state

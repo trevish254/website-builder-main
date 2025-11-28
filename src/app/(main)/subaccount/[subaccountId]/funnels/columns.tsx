@@ -4,6 +4,7 @@ import { FunnelsForSubAccount } from '@/lib/types'
 import { ColumnDef } from '@tanstack/react-table'
 import { ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export const columns: ColumnDef<FunnelsForSubAccount>[] = [
   {
@@ -13,12 +14,23 @@ export const columns: ColumnDef<FunnelsForSubAccount>[] = [
       const funnelName = row.getValue('name') || 'Unnamed Funnel'
       const subAccountId = row.original.subAccountId || 'unknown'
       const funnelId = row.original.id || 'unknown'
-      
+      const favicon = row.original.favicon
+
       return (
         <Link
           className="flex gap-2 items-center"
           href={`/subaccount/${subAccountId}/funnels/${funnelId}`}
         >
+          {favicon && (
+            <div className="relative w-8 h-8">
+              <Image
+                src={favicon}
+                fill
+                alt="Favicon"
+                className="object-contain rounded-sm"
+              />
+            </div>
+          )}
           {funnelName}
           <ExternalLink size={15} />
         </Link>
@@ -37,17 +49,17 @@ export const columns: ColumnDef<FunnelsForSubAccount>[] = [
           updatedAt: row.original.updatedAt,
           updatedAtType: typeof row.original.updatedAt
         })
-        
+
         // Convert string to Date object if needed
         const dateValue = row.original.updatedAt
         const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue
-        
+
         // Check if date is valid
         if (isNaN(date.getTime())) {
           console.error('❌ Invalid date value:', dateValue)
           return <span className="text-muted-foreground">Invalid date</span>
         }
-        
+
         const formattedDate = `${date.toDateString()} ${date.toLocaleTimeString()}`
         return <span className="text-muted-foreground">{formattedDate}</span>
       } catch (error) {
@@ -62,7 +74,7 @@ export const columns: ColumnDef<FunnelsForSubAccount>[] = [
     cell: ({ row }) => {
       const status = row.original.published
       const subDomainName = row.original.subDomainName || 'No domain'
-      
+
       return status ? (
         <Badge variant={'default'}>Live - {subDomainName}</Badge>
       ) : (

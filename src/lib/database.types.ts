@@ -639,6 +639,99 @@ export interface Database {
           createdBy?: string
         }
       }
+      TaskBoard: {
+        Row: {
+          id: string
+          name: string
+          agencyId: string | null
+          subAccountId: string | null
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          agencyId?: string | null
+          subAccountId?: string | null
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          agencyId?: string | null
+          subAccountId?: string | null
+          createdAt?: string
+          updatedAt?: string
+        }
+      }
+      TaskLane: {
+        Row: {
+          id: string
+          name: string
+          boardId: string
+          order: number
+          color: string | null
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          boardId: string
+          order?: number
+          color?: string | null
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          boardId?: string
+          order?: number
+          color?: string | null
+          createdAt?: string
+          updatedAt?: string
+        }
+      }
+      Task: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          laneId: string
+          order: number
+          assignedUserId: string | null
+          dueDate: string | null
+          tags: string[] | null
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          laneId: string
+          order?: number
+          assignedUserId?: string | null
+          dueDate?: string | null
+          tags?: string[] | null
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          laneId?: string
+          order?: number
+          assignedUserId?: string | null
+          dueDate?: string | null
+          tags?: string[] | null
+          createdAt?: string
+          updatedAt?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -682,6 +775,9 @@ export type SubAccountNote = Database['public']['Tables']['SubAccountNote']['Row
 export type SubAccountFile = Database['public']['Tables']['SubAccountFile']['Row']
 export type SubAccountEmployee = Database['public']['Tables']['SubAccountEmployee']['Row']
 export type SubAccountReport = Database['public']['Tables']['SubAccountReport']['Row']
+export type TaskBoard = Database['public']['Tables']['TaskBoard']['Row']
+export type TaskLane = Database['public']['Tables']['TaskLane']['Row']
+export type Task = Database['public']['Tables']['Task']['Row']
 
 // Role type
 export type Role = 'AGENCY_OWNER' | 'AGENCY_ADMIN' | 'SUBACCOUNT_USER' | 'SUBACCOUNT_GUEST'

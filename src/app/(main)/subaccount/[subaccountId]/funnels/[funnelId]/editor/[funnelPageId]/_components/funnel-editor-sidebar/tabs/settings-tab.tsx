@@ -35,8 +35,13 @@ import {
 } from '@/components/ui/select'
 import { useEditor } from '@/providers/editor/editor-provider'
 import { Slider } from '@/components/ui/slider'
+import CustomColorPicker from '@/components/global/custom-color-picker'
 
-type Props = {}
+import BackgroundImagePicker from '@/components/global/background-image-picker'
+
+type Props = {
+  subaccountId: string
+}
 
 const SettingsTab = (props: Props) => {
   const { state, dispatch } = useEditor()
@@ -181,18 +186,51 @@ const SettingsTab = (props: Props) => {
           </div>
           <div className="flex flex-col gap-2">
             <p className="text-muted-foreground">Font Family</p>
-            <Input
-              id="DM Sans"
-              onChange={handleOnChanges}
+            <Select
+              onValueChange={(e) =>
+                handleOnChanges({
+                  target: {
+                    id: 'fontFamily',
+                    value: e,
+                  },
+                })
+              }
               value={state.editor.selectedElement.styles.fontFamily}
-            />
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a font" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Font Families</SelectLabel>
+                  <SelectItem value="DM Sans">DM Sans</SelectItem>
+                  <SelectItem value="Arial">Arial</SelectItem>
+                  <SelectItem value="Helvetica">Helvetica</SelectItem>
+                  <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                  <SelectItem value="Courier New">Courier New</SelectItem>
+                  <SelectItem value="Verdana">Verdana</SelectItem>
+                  <SelectItem value="Georgia">Georgia</SelectItem>
+                  <SelectItem value="Trebuchet MS">Trebuchet MS</SelectItem>
+                  <SelectItem value="Comic Sans MS">Comic Sans MS</SelectItem>
+                  <SelectItem value="Impact">Impact</SelectItem>
+                  <SelectItem value="Lucida Console">Lucida Console</SelectItem>
+                  <SelectItem value="Tahoma">Tahoma</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex flex-col gap-2">
             <p className="text-muted-foreground">Color</p>
-            <Input
-              id="color"
-              onChange={handleOnChanges}
-              value={state.editor.selectedElement.styles.color}
+            <CustomColorPicker
+              color={state.editor.selectedElement.styles.color}
+              onChange={(e) =>
+                handleOnChanges({
+                  target: {
+                    id: 'color',
+                    value: e,
+                  },
+                })
+              }
             />
           </div>
           <div className="flex gap-4">
@@ -370,13 +408,13 @@ const SettingsTab = (props: Props) => {
             <div className="flex items-center justify-end">
               <small className="p-2">
                 {typeof state.editor.selectedElement.styles?.opacity ===
-                'number'
+                  'number'
                   ? state.editor.selectedElement.styles?.opacity
                   : parseFloat(
-                      (
-                        state.editor.selectedElement.styles?.opacity || '0'
-                      ).replace('%', '')
-                    ) || 0}
+                    (
+                      state.editor.selectedElement.styles?.opacity || '0'
+                    ).replace('%', '')
+                  ) || 0}
                 %
               </small>
             </div>
@@ -393,10 +431,10 @@ const SettingsTab = (props: Props) => {
                 typeof state.editor.selectedElement.styles?.opacity === 'number'
                   ? state.editor.selectedElement.styles?.opacity
                   : parseFloat(
-                      (
-                        state.editor.selectedElement.styles?.opacity || '0'
-                      ).replace('%', '')
-                    ) || 0,
+                    (
+                      state.editor.selectedElement.styles?.opacity || '0'
+                    ).replace('%', '')
+                  ) || 0,
               ]}
               max={100}
               step={1}
@@ -407,13 +445,13 @@ const SettingsTab = (props: Props) => {
             <div className="flex items-center justify-end">
               <small className="">
                 {typeof state.editor.selectedElement.styles?.borderRadius ===
-                'number'
+                  'number'
                   ? state.editor.selectedElement.styles?.borderRadius
                   : parseFloat(
-                      (
-                        state.editor.selectedElement.styles?.borderRadius || '0'
-                      ).replace('px', '')
-                    ) || 0}
+                    (
+                      state.editor.selectedElement.styles?.borderRadius || '0'
+                    ).replace('px', '')
+                  ) || 0}
                 px
               </small>
             </div>
@@ -428,13 +466,13 @@ const SettingsTab = (props: Props) => {
               }}
               defaultValue={[
                 typeof state.editor.selectedElement.styles?.borderRadius ===
-                'number'
+                  'number'
                   ? state.editor.selectedElement.styles?.borderRadius
                   : parseFloat(
-                      (
-                        state.editor.selectedElement.styles?.borderRadius || '0'
-                      ).replace('%', '')
-                    ) || 0,
+                    (
+                      state.editor.selectedElement.styles?.borderRadius || '0'
+                    ).replace('%', '')
+                  ) || 0,
               ]}
               max={100}
               step={1}
@@ -442,41 +480,32 @@ const SettingsTab = (props: Props) => {
           </div>
           <div className="flex flex-col gap-2">
             <Label className="text-muted-foreground">Background Color</Label>
-            <div className="flex  border-[1px] rounded-md overflow-clip">
-              <div
-                className="w-12 "
-                style={{
-                  backgroundColor:
-                    state.editor.selectedElement.styles.backgroundColor,
-                }}
-              />
-              <Input
-                placeholder="#HFI245"
-                className="!border-y-0 rounded-none !border-r-0 mr-2"
-                id="backgroundColor"
-                onChange={handleOnChanges}
-                value={state.editor.selectedElement.styles.backgroundColor}
-              />
-            </div>
+            <CustomColorPicker
+              color={state.editor.selectedElement.styles.backgroundColor}
+              onChange={(e) =>
+                handleOnChanges({
+                  target: {
+                    id: 'backgroundColor',
+                    value: e,
+                  },
+                })
+              }
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label className="text-muted-foreground">Background Image</Label>
-            <div className="flex  border-[1px] rounded-md overflow-clip">
-              <div
-                className="w-12 "
-                style={{
-                  backgroundImage:
-                    state.editor.selectedElement.styles.backgroundImage,
-                }}
-              />
-              <Input
-                placeholder="url()"
-                className="!border-y-0 rounded-none !border-r-0 mr-2"
-                id="backgroundImage"
-                onChange={handleOnChanges}
-                value={state.editor.selectedElement.styles.backgroundImage}
-              />
-            </div>
+            <BackgroundImagePicker
+              background={state.editor.selectedElement.styles.backgroundImage}
+              subaccountId={props.subaccountId}
+              onChange={(e) =>
+                handleOnChanges({
+                  target: {
+                    id: 'backgroundImage',
+                    value: e,
+                  },
+                })
+              }
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label className="text-muted-foreground">Image Position</Label>

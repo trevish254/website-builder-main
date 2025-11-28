@@ -6,6 +6,7 @@ import VideoComponent from './video'
 import LinkComponent from './link-component'
 import ContactFormComponent from './contact-form-component'
 import Checkout from './checkout'
+import ResizableWrapper from './resizable-wrapper'
 
 type Props = {
   element: EditorElement
@@ -14,22 +15,50 @@ type Props = {
 const Recursive = ({ element }: Props) => {
   switch (element.type) {
     case 'text':
-      return <TextComponent element={element} />
+      return (
+        <ResizableWrapper element={element}>
+          <TextComponent element={element} />
+        </ResizableWrapper>
+      )
     case 'container':
-      return <Container element={element} />
+      return (
+        <ResizableWrapper element={element}>
+          <Container element={element} />
+        </ResizableWrapper>
+      )
     case 'video':
-      return <VideoComponent element={element} />
+      return (
+        <ResizableWrapper element={element}>
+          <VideoComponent element={element} />
+        </ResizableWrapper>
+      )
     case 'contactForm':
-      return <ContactFormComponent element={element} />
+      return (
+        <ResizableWrapper element={element}>
+          <ContactFormComponent element={element} />
+        </ResizableWrapper>
+      )
     case 'paymentForm':
-      return <Checkout element={element} />
+      return (
+        <ResizableWrapper element={element}>
+          <Checkout element={element} />
+        </ResizableWrapper>
+      )
     case '2Col':
-      return <Container element={element} />
+      return (
+        <ResizableWrapper element={element}>
+          <Container element={element} />
+        </ResizableWrapper>
+      )
     case '__body':
       return <Container element={element} />
 
     case 'link':
-      return <LinkComponent element={element} />
+      return (
+        <ResizableWrapper element={element}>
+          <LinkComponent element={element} />
+        </ResizableWrapper>
+      )
     default:
       return null
   }

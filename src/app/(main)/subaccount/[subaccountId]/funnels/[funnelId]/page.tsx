@@ -1,4 +1,5 @@
 import BlurPage from '@/components/global/blur-page'
+import Image from 'next/image'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getFunnel } from '@/lib/queries'
 import Link from 'next/link'
@@ -24,7 +25,21 @@ const FunnelPage = async ({ params }: Props) => {
       >
         Back
       </Link>
-      <h1 className="text-3xl mb-8">{funnelPages.name}</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          {funnelPages.favicon && (
+            <div className="h-16 w-16 relative">
+              <Image
+                src={funnelPages.favicon}
+                fill
+                alt="Funnel Favicon"
+                className="object-contain"
+              />
+            </div>
+          )}
+          <h1 className="text-3xl">{funnelPages.name}</h1>
+        </div>
+      </div>
       <Tabs
         defaultValue="steps"
         className="w-full"
