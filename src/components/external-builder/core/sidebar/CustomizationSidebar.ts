@@ -153,8 +153,15 @@ export class CustomizationSidebar {
       return;
     }
     this.selectedComponent = component;
-    this.sidebarElement.style.display = 'block';
-    this.sidebarElement.classList.add('visible');
+    // this.sidebarElement.style.display = 'block'; // Handled by tab switching
+    // this.sidebarElement.classList.add('visible'); // Handled by tab switching
+
+    // Switch to Settings tab
+    const tabSettings = document.getElementById('tab-settings');
+    if (tabSettings) {
+      tabSettings.click();
+    }
+
     const menuButton = document.getElementById('menu-btn');
     if (menuButton) {
       menuButton.style.backgroundColor = '#e2e8f0';
@@ -352,6 +359,21 @@ export class CustomizationSidebar {
       'border-color',
       'color',
       styles.borderColor || '#000000',
+      this.controlsContainer
+    );
+
+    SidebarUtils.createSliderControl(
+      'Border Radius',
+      'border-radius',
+      parseInt(styles.borderRadius) || 0,
+      this.controlsContainer,
+      { min: 0, max: 100, step: 1, unit: 'px' }
+    );
+
+    SidebarUtils.createImageControl(
+      'Background Image',
+      'background-image',
+      styles.backgroundImage !== 'none' ? styles.backgroundImage : '',
       this.controlsContainer
     );
 
@@ -557,6 +579,10 @@ export class CustomizationSidebar {
       justifyContent: document.getElementById(
         'justify-content'
       ) as HTMLSelectElement,
+      borderRadius: document.getElementById('border-radius') as HTMLInputElement,
+      backgroundImage: document.getElementById(
+        'background-image'
+      ) as HTMLInputElement,
     };
 
     const captureStateDebounced = debounce(() => {
@@ -682,6 +708,22 @@ export class CustomizationSidebar {
     });
     controls.justifyContent?.addEventListener('change', () => {
       component.style.justifyContent = controls.justifyContent.value;
+      captureStateDebounced();
+    });
+
+    controls.borderRadius?.addEventListener('input', () => {
+      component.style.borderRadius = `${controls.borderRadius.value}px`;
+      captureStateDebounced();
+    });
+
+    controls.backgroundImage?.addEventListener('input', () => {
+      const value = controls.backgroundImage.value;
+      // Check if it's a data URL or a regular URL
+      if (value.startsWith('data:') || value.startsWith('http') || value.startsWith('/')) {
+        component.style.backgroundImage = `url(${value})`;
+      } else {
+        component.style.backgroundImage = value;
+      }
       captureStateDebounced();
     });
   }

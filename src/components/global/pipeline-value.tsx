@@ -41,7 +41,7 @@ const PipelineValue = ({ subaccountId }: Props) => {
         pipelines
           .find((pipeline) => pipeline.id === selectedPipelineId)
           ?.Lane?.reduce((totalLanes, lane, currentLaneIndex, array) => {
-            const laneTicketsTotal = lane.Tickets.reduce(
+            const laneTicketsTotal = (lane.Tickets || []).reduce(
               (totalTickets, ticket) => totalTickets + Number(ticket?.value),
               0
             )

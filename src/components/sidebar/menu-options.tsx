@@ -48,6 +48,7 @@ import SubAccountDetails from '../forms/subaccount-details'
 import { Separator } from '../ui/separator'
 import { icons } from '@/lib/constants'
 import { useSidebar } from '@/providers/sidebar-provider'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 
 type Props = {
   defaultOpen?: boolean
@@ -114,51 +115,42 @@ const MenuOptions = ({
   if (!isMounted) return
 
   return (
-    <Sheet
-      modal={false}
-      {...openState}
-    >
-      <SheetTrigger
-        asChild
-        className="absolute left-4 top-4 z-[100] md:!hidden felx"
+    <TooltipProvider delayDuration={0}>
+      <Sheet
+        modal={false}
+        {...openState}
       >
-        <Button
-          variant="outline"
-          size={'icon'}
+        <SheetTrigger
+          asChild
+          className="absolute left-4 top-4 z-[100] md:!hidden felx"
         >
-          <Menu />
-        </Button>
-      </SheetTrigger>
+          <Button
+            variant="outline"
+            size={'icon'}
+          >
+            <Menu />
+          </Button>
+        </SheetTrigger>
 
-      <SheetContent
-        showX={!defaultOpen}
-        side={'left'}
-        className={clsx(
-          'bg-gray-50 dark:bg-gray-950 fixed top-0 border-r-[1px] p-0 transition-all duration-300 ease-in-out',
-          {
-            'hidden md:inline-block z-0': defaultOpen,
-            'inline-block md:hidden z-[100] w-full': !defaultOpen,
-            'w-[300px]': defaultOpen && !isCollapsed,
-            'w-[70px]': defaultOpen && isCollapsed,
-          }
-        )}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo Section */}
-          <div className={clsx("border-b border-gray-200 dark:border-gray-800", isCollapsed ? "p-2" : "p-6 pb-4")}>
-            <div className={clsx("flex items-center gap-3 mb-6", isCollapsed && "justify-center mb-2")}>
-              {isCollapsed ? (
-                <div className="w-10 h-10 relative flex-shrink-0">
-                  <Image
-                    src={sidebarLogo}
-                    alt="Logo"
-                    fill
-                    className="rounded-lg object-cover"
-                  />
-                </div>
-              ) : (
-                <>
-                  <div className="w-12 h-12 relative flex-shrink-0">
+        <SheetContent
+          showX={!defaultOpen}
+          side={'left'}
+          className={clsx(
+            'bg-gray-50 dark:bg-gray-950 fixed top-0 border-r-[1px] p-0 transition-all duration-200 ease-out will-change-transform',
+            {
+              'hidden md:inline-block z-0': defaultOpen,
+              'inline-block md:hidden z-[100] w-full': !defaultOpen,
+              'w-[300px]': defaultOpen && !isCollapsed,
+              'w-[70px]': defaultOpen && isCollapsed,
+            }
+          )}
+        >
+          <div className="flex flex-col h-full">
+            {/* Logo Section */}
+            <div className={clsx("border-b border-gray-200 dark:border-gray-800", isCollapsed ? "p-2" : "p-6 pb-4")}>
+              <div className={clsx("flex items-center gap-3 mb-6", isCollapsed && "justify-center mb-2")}>
+                {isCollapsed ? (
+                  <div className="w-10 h-10 relative flex-shrink-0">
                     <Image
                       src={sidebarLogo}
                       alt="Logo"
@@ -166,87 +158,76 @@ const MenuOptions = ({
                       className="rounded-lg object-cover"
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100 block truncate">
-                      {details.name}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 block truncate">
-                      {details.address || 'Organization'}
-                    </span>
-                  </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="w-12 h-12 relative flex-shrink-0">
+                      <Image
+                        src={sidebarLogo}
+                        alt="Logo"
+                        fill
+                        className="rounded-lg object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-lg font-semibold text-gray-900 dark:text-gray-100 block truncate">
+                        {details.name}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block truncate">
+                        {details.address || 'Organization'}
+                      </span>
+                    </div>
+                  </>
+                )}
 
-              {defaultOpen && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={clsx("ml-auto hidden md:flex", isCollapsed && "!hidden")}
-                  onClick={toggleSidebar}
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            {/* Toggle Button for Collapsed State */}
-            {defaultOpen && isCollapsed && (
-              <div className="flex justify-center mb-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleSidebar}
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
-            {/* Switch Account Button */}
-            {!isCollapsed && (
-              <Popover>
-                <PopoverTrigger asChild>
+                {defaultOpen && (
                   <Button
                     variant="ghost"
-                    className="w-full justify-start text-left text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    size="icon"
+                    className={clsx("ml-auto hidden md:flex", isCollapsed && "!hidden")}
+                    onClick={toggleSidebar}
                   >
-                    <Compass className="mr-2 h-4 w-4" />
-                    Switch Account
-                    <ChevronDown className="ml-auto h-4 w-4" />
+                    <ChevronsLeft className="h-4 w-4" />
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 h-80 mt-4 z-[200]">
-                  <Command className="rounded-lg">
-                    <CommandInput placeholder="Search Accounts..." />
-                    <CommandList className="pb-16">
-                      <CommandEmpty>No results found</CommandEmpty>
-                      {(user?.role === 'AGENCY_OWNER' ||
-                        user?.role === 'AGENCY_ADMIN') &&
-                        user?.Agency && (
-                          <CommandGroup heading="Agency">
-                            <CommandItem className="!bg-transparent my-2 text-primary broder-[1px] border-border p-2 rounded-md hover:!bg-muted cursor-pointer transition-all">
-                              {defaultOpen ? (
-                                <Link
-                                  href={`/agency/${user?.Agency?.id}`}
-                                  className="flex gap-4 w-full h-full"
-                                >
-                                  <div className="relative w-16">
-                                    <Image
-                                      src={user?.Agency?.agencyLogo}
-                                      alt="Agency Logo"
-                                      fill
-                                      className="rounded-md object-contain"
-                                    />
-                                  </div>
-                                  <div className="flex flex-col flex-1">
-                                    {user?.Agency?.name}
-                                    <span className="text-muted-foreground">
-                                      {user?.Agency?.address}
-                                    </span>
-                                  </div>
-                                </Link>
-                              ) : (
-                                <SheetClose asChild>
+                )}
+              </div>
+
+              {/* Toggle Button for Collapsed State */}
+              {defaultOpen && isCollapsed && (
+                <div className="flex justify-center mb-4">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleSidebar}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Switch Account Button */}
+              {!isCollapsed && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-left text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      <Compass className="mr-2 h-4 w-4" />
+                      Switch Account
+                      <ChevronDown className="ml-auto h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 h-80 mt-4 z-[200]">
+                    <Command className="rounded-lg">
+                      <CommandInput placeholder="Search Accounts..." />
+                      <CommandList className="pb-16">
+                        <CommandEmpty>No results found</CommandEmpty>
+                        {(user?.role === 'AGENCY_OWNER' ||
+                          user?.role === 'AGENCY_ADMIN') &&
+                          user?.Agency && (
+                            <CommandGroup heading="Agency">
+                              <CommandItem className="!bg-transparent my-2 text-primary broder-[1px] border-border p-2 rounded-md hover:!bg-muted cursor-pointer transition-all">
+                                {defaultOpen ? (
                                   <Link
                                     href={`/agency/${user?.Agency?.id}`}
                                     className="flex gap-4 w-full h-full"
@@ -266,39 +247,39 @@ const MenuOptions = ({
                                       </span>
                                     </div>
                                   </Link>
-                                </SheetClose>
-                              )}
-                            </CommandItem>
-                          </CommandGroup>
-                        )}
+                                ) : (
+                                  <SheetClose asChild>
+                                    <Link
+                                      href={`/agency/${user?.Agency?.id}`}
+                                      className="flex gap-4 w-full h-full"
+                                    >
+                                      <div className="relative w-16">
+                                        <Image
+                                          src={user?.Agency?.agencyLogo}
+                                          alt="Agency Logo"
+                                          fill
+                                          className="rounded-md object-contain"
+                                        />
+                                      </div>
+                                      <div className="flex flex-col flex-1">
+                                        {user?.Agency?.name}
+                                        <span className="text-muted-foreground">
+                                          {user?.Agency?.address}
+                                        </span>
+                                      </div>
+                                    </Link>
+                                  </SheetClose>
+                                )}
+                              </CommandItem>
+                            </CommandGroup>
+                          )}
 
-                      {/* Invited Agencies */}
-                      {user?.InvitedAgencies && user.InvitedAgencies.length > 0 && (
-                        <CommandGroup heading="Other Agencies">
-                          {user.InvitedAgencies.map((agency: any) => (
-                            <CommandItem key={agency.id} className="!bg-transparent my-2 text-primary broder-[1px] border-border p-2 rounded-md hover:!bg-muted cursor-pointer transition-all">
-                              {defaultOpen ? (
-                                <Link
-                                  href={`/agency/${agency.id}`}
-                                  className="flex gap-4 w-full h-full"
-                                >
-                                  <div className="relative w-16">
-                                    <Image
-                                      src={agency.agencyLogo || '/assets/plura-logo.svg'}
-                                      alt="Agency Logo"
-                                      fill
-                                      className="rounded-md object-contain"
-                                    />
-                                  </div>
-                                  <div className="flex flex-col flex-1">
-                                    {agency.name}
-                                    <span className="text-muted-foreground">
-                                      {agency.address}
-                                    </span>
-                                  </div>
-                                </Link>
-                              ) : (
-                                <SheetClose asChild>
+                        {/* Invited Agencies */}
+                        {user?.InvitedAgencies && user.InvitedAgencies.length > 0 && (
+                          <CommandGroup heading="Other Agencies">
+                            {user.InvitedAgencies.map((agency: any) => (
+                              <CommandItem key={agency.id} className="!bg-transparent my-2 text-primary broder-[1px] border-border p-2 rounded-md hover:!bg-muted cursor-pointer transition-all">
+                                {defaultOpen ? (
                                   <Link
                                     href={`/agency/${agency.id}`}
                                     className="flex gap-4 w-full h-full"
@@ -318,38 +299,38 @@ const MenuOptions = ({
                                       </span>
                                     </div>
                                   </Link>
-                                </SheetClose>
-                              )}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      )}
-                      <CommandGroup heading="Accounts">
-                        {!!subAccounts
-                          ? subAccounts.map((subaccount) => (
-                            <CommandItem key={subaccount.id}>
-                              {defaultOpen ? (
-                                <Link
-                                  href={`/subaccount/${subaccount.id}`}
-                                  className="flex gap-4 w-full h-full"
-                                >
-                                  <div className="relative w-16">
-                                    <Image
-                                      src={subaccount.subAccountLogo}
-                                      alt="subaccount Logo"
-                                      fill
-                                      className="rounded-md object-contain"
-                                    />
-                                  </div>
-                                  <div className="flex flex-col flex-1">
-                                    {subaccount.name}
-                                    <span className="text-muted-foreground">
-                                      {subaccount.address}
-                                    </span>
-                                  </div>
-                                </Link>
-                              ) : (
-                                <SheetClose asChild>
+                                ) : (
+                                  <SheetClose asChild>
+                                    <Link
+                                      href={`/agency/${agency.id}`}
+                                      className="flex gap-4 w-full h-full"
+                                    >
+                                      <div className="relative w-16">
+                                        <Image
+                                          src={agency.agencyLogo || '/assets/plura-logo.svg'}
+                                          alt="Agency Logo"
+                                          fill
+                                          className="rounded-md object-contain"
+                                        />
+                                      </div>
+                                      <div className="flex flex-col flex-1">
+                                        {agency.name}
+                                        <span className="text-muted-foreground">
+                                          {agency.address}
+                                        </span>
+                                      </div>
+                                    </Link>
+                                  </SheetClose>
+                                )}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )}
+                        <CommandGroup heading="Accounts">
+                          {!!subAccounts
+                            ? subAccounts.map((subaccount) => (
+                              <CommandItem key={subaccount.id}>
+                                {defaultOpen ? (
                                   <Link
                                     href={`/subaccount/${subaccount.id}`}
                                     className="flex gap-4 w-full h-full"
@@ -369,200 +350,261 @@ const MenuOptions = ({
                                       </span>
                                     </div>
                                   </Link>
-                                </SheetClose>
-                              )}
-                            </CommandItem>
-                          ))
-                          : 'No Accounts'}
-                      </CommandGroup>
-                    </CommandList>
-                    {(user?.role === 'AGENCY_OWNER' ||
-                      user?.role === 'AGENCY_ADMIN') && (
-                        <SheetClose>
-                          <Button
-                            className="w-full flex gap-2"
-                            onClick={() => {
-                              setOpen(
-                                <CustomModal
-                                  title="Create A Subaccount"
-                                  subheading="You can switch between your agency account and the subaccount from the sidebar"
-                                >
-                                  <SubAccountDetails
-                                    agencyDetails={user?.Agency as Agency}
-                                    userId={user?.id as string}
-                                    userName={user?.name}
-                                  />
-                                </CustomModal>
-                              )
-                            }}
-                          >
-                            <PlusCircleIcon size={15} />
-                            Create Sub Account
-                          </Button>
-                        </SheetClose>
-                      )}
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            )}
+                                ) : (
+                                  <SheetClose asChild>
+                                    <Link
+                                      href={`/subaccount/${subaccount.id}`}
+                                      className="flex gap-4 w-full h-full"
+                                    >
+                                      <div className="relative w-16">
+                                        <Image
+                                          src={subaccount.subAccountLogo}
+                                          alt="subaccount Logo"
+                                          fill
+                                          className="rounded-md object-contain"
+                                        />
+                                      </div>
+                                      <div className="flex flex-col flex-1">
+                                        {subaccount.name}
+                                        <span className="text-muted-foreground">
+                                          {subaccount.address}
+                                        </span>
+                                      </div>
+                                    </Link>
+                                  </SheetClose>
+                                )}
+                              </CommandItem>
+                            ))
+                            : 'No Accounts'}
+                        </CommandGroup>
+                      </CommandList>
+                      {(user?.role === 'AGENCY_OWNER' ||
+                        user?.role === 'AGENCY_ADMIN') && (
+                          <SheetClose>
+                            <Button
+                              className="w-full flex gap-2"
+                              onClick={() => {
+                                setOpen(
+                                  <CustomModal
+                                    title="Create A Subaccount"
+                                    subheading="You can switch between your agency account and the subaccount from the sidebar"
+                                  >
+                                    <SubAccountDetails
+                                      agencyDetails={user?.Agency as Agency}
+                                      userId={user?.id as string}
+                                      userName={user?.name}
+                                    />
+                                  </CustomModal>
+                                )
+                              }}
+                            >
+                              <PlusCircleIcon size={15} />
+                              Create Sub Account
+                            </Button>
+                          </SheetClose>
+                        )}
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
 
-            {/* Navigation Search */}
-            {!isCollapsed && (
-              <div className="mt-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search menu..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md text-gray-700 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+              {/* Navigation Search */}
+              {!isCollapsed && (
+                <div className="mt-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search menu..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md text-gray-700 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Scrollable Container */}
+            <div className="flex-1 overflow-y-auto">
+              {/* MENU Section */}
+              <div className={clsx("pb-4", isCollapsed ? "px-2" : "px-6")}>
+                {!isCollapsed && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-3 flex items-center justify-between mt-4">
+                    <span>MENU</span>
+                    <span className="cursor-pointer">⋯</span>
+                  </p>
+                )}
+                <div className={clsx("space-y-0.5", isCollapsed && "mt-4")}>
+                  {filteredSidebarOpt.length === 0 ? (
+                    <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+                      No results found
+                    </div>
+                  ) : isCollapsed ? (
+                    <div className="space-y-2">
+                      {filteredSidebarOpt.map((sidebarOptions) => {
+                        let val = null
+                        const result = icons.find(
+                          (icon) => icon.value === sidebarOptions.icon
+                        )
+                        if (result && result.path) {
+                          const IconComponent = result.path
+                          val = <IconComponent className="w-5 h-5" />
+                        } else {
+                          val = <Settings className="w-5 h-5" />
+                        }
+                        const isActive = sidebarOptions.link.includes(id)
+
+                        return (
+                          <Tooltip key={sidebarOptions.id}>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={sidebarOptions.link}
+                                className={clsx(
+                                  'flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-200 hover:scale-110 hover:bg-gray-100 dark:hover:bg-gray-800',
+                                  isActive && 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 scale-105'
+                                )}
+                              >
+                                <span className={clsx('text-gray-600 dark:text-gray-400', isActive && 'text-blue-600 dark:text-blue-400')}>
+                                  {val}
+                                </span>
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="font-medium">
+                              {sidebarOptions.name}
+                            </TooltipContent>
+                          </Tooltip>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    filteredSidebarOpt.map((sidebarOptions) => {
+                      let val = null
+                      const result = icons.find(
+                        (icon) => icon.value === sidebarOptions.icon
+                      )
+                      if (result && result.path) {
+                        const IconComponent = result.path
+                        val = <IconComponent className="w-4 h-4" />
+                      } else {
+                        // Fallback icon if not found
+                        val = <Settings className="w-4 h-4" />
+                      }
+                      const isActive = sidebarOptions.link.includes(id)
+
+                      const linkContent = (
+                        <Link
+                          key={sidebarOptions.id}
+                          href={sidebarOptions.link}
+                          className={clsx(
+                            'flex items-center gap-3 px-3 py-1.5 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                            isActive && 'text-blue-600 dark:text-blue-400',
+                            isCollapsed && 'justify-center px-2'
+                          )}
+                        >
+                          <span className={clsx('text-gray-600 dark:text-gray-400', isActive && 'text-blue-600 dark:text-blue-400')}>
+                            {val}
+                          </span>
+                          {!isCollapsed && (
+                            <span className={clsx('text-sm text-gray-700 dark:text-gray-300', isActive && 'text-blue-600 dark:text-blue-400 font-medium')}>
+                              {sidebarOptions.name}
+                            </span>
+                          )}
+                        </Link>
+                      )
+
+                      return linkContent
+                    })
+                  )}
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Scrollable Container */}
-          <div className="flex-1 overflow-y-auto">
-            {/* MENU Section */}
-            <div className={clsx("pb-4", isCollapsed ? "px-2" : "px-6")}>
-              {!isCollapsed && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-3 flex items-center justify-between mt-4">
-                  <span>MENU</span>
-                  <span className="cursor-pointer">⋯</span>
-                </p>
-              )}
-              <div className={clsx("space-y-1", isCollapsed && "mt-4")}>
-                {filteredSidebarOpt.length === 0 ? (
-                  <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
-                    No results found
-                  </div>
-                ) : (
-                  filteredSidebarOpt.map((sidebarOptions) => {
-                    let val = null
-                    const result = icons.find(
-                      (icon) => icon.value === sidebarOptions.icon
-                    )
-                    if (result && result.path) {
-                      const IconComponent = result.path
-                      val = <IconComponent />
-                    } else {
-                      // Fallback icon if not found
-                      val = <Settings className="w-4 h-4" />
-                    }
-                    const isActive = sidebarOptions.link.includes(id)
-                    return (
-                      <Link
-                        key={sidebarOptions.id}
-                        href={sidebarOptions.link}
-                        className={clsx(
-                          'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                          isActive && 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400',
-                          isCollapsed && 'justify-center px-2'
-                        )}
-                        title={isCollapsed ? sidebarOptions.name : undefined}
-                      >
-                        <span className={clsx('text-gray-600 dark:text-gray-400', isActive && 'text-blue-600 dark:text-blue-400')}>
-                          {val}
-                        </span>
-                        {!isCollapsed && (
-                          <span className={clsx('text-sm text-gray-700 dark:text-gray-300', isActive && 'text-blue-600 dark:text-blue-400 font-medium')}>
-                            {sidebarOptions.name}
-                          </span>
-                        )}
-                      </Link>
-                    )
-                  })
+              {/* ACCOUNT Section */}
+              <div className={clsx("pb-4", isCollapsed ? "px-2" : "px-6")}>
+                {!isCollapsed && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span>ACCOUNT</span>
+                    <span className="cursor-pointer">⋯</span>
+                  </p>
                 )}
-              </div>
-            </div>
-
-            {/* ACCOUNT Section */}
-            <div className={clsx("pb-4", isCollapsed ? "px-2" : "px-6")}>
-              {!isCollapsed && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-3 flex items-center justify-between">
-                  <span>ACCOUNT</span>
-                  <span className="cursor-pointer">⋯</span>
-                </p>
-              )}
-              <div className="space-y-1">
-                <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
-                  <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                  {!isCollapsed && <span className="text-sm text-gray-700 dark:text-gray-300">Account</span>}
-                  {!isCollapsed && <ChevronDown className="ml-auto h-4 w-4 text-gray-600 dark:text-gray-400" />}
-                </button>
-                <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
-                  <div className="relative">
-                    {user?.avatarUrl ? (
-                      <Image
-                        src={user.avatarUrl}
-                        alt="User"
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
-                        {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                <div className="space-y-1">
+                  <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
+                    <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    {!isCollapsed && <span className="text-sm text-gray-700 dark:text-gray-300">Account</span>}
+                    {!isCollapsed && <ChevronDown className="ml-auto h-4 w-4 text-gray-600 dark:text-gray-400" />}
+                  </button>
+                  <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
+                    <div className="relative">
+                      {user?.avatarUrl ? (
+                        <Image
+                          src={user.avatarUrl}
+                          alt="User"
+                          width={28}
+                          height={28}
+                          className="h-7 w-7 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
+                          {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                        </div>
+                      )}
+                      <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-gray-900 dark:bg-gray-100 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-50">
+                        <RoleIcon className="h-2.5 w-2.5 text-white dark:text-gray-900" />
                       </div>
-                    )}
-                    <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-gray-900 dark:bg-gray-100 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-50">
-                      <RoleIcon className="h-2.5 w-2.5 text-white dark:text-gray-900" />
                     </div>
-                  </div>
-                  {!isCollapsed && (
-                    <>
-                      <div className="flex flex-col flex-1">
-                        <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                          {user?.name || 'User'}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {roleInfo.title}
-                        </span>
-                      </div>
-                      <ChevronDown className="ml-auto h-4 w-4 text-gray-600 dark:text-gray-400" />
-                    </>
-                  )}
-                </button>
+                    {!isCollapsed && (
+                      <>
+                        <div className="flex flex-col flex-1">
+                          <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                            {user?.name || 'User'}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {roleInfo.title}
+                          </span>
+                        </div>
+                        <ChevronDown className="ml-auto h-4 w-4 text-gray-600 dark:text-gray-400" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* SUPPORT Section */}
+              <div className={clsx("pb-4", isCollapsed ? "px-2" : "px-6")}>
+                {!isCollapsed && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span>SUPPORT</span>
+                    <span className="cursor-pointer">⋯</span>
+                  </p>
+                )}
+                <div className="space-y-1">
+                  <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
+                    <Settings className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    {!isCollapsed && <span className="text-sm text-gray-700 dark:text-gray-300">Setting</span>}
+                  </button>
+                  <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
+                    <Shield className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    {!isCollapsed && <span className="text-sm text-gray-700 dark:text-gray-300">Security</span>}
+                  </button>
+                  <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
+                    <HelpCircle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    {!isCollapsed && <span className="text-sm text-gray-700 dark:text-gray-300">Help & center</span>}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* SUPPORT Section */}
-            <div className={clsx("pb-4", isCollapsed ? "px-2" : "px-6")}>
-              {!isCollapsed && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-3 flex items-center justify-between">
-                  <span>SUPPORT</span>
-                  <span className="cursor-pointer">⋯</span>
-                </p>
-              )}
-              <div className="space-y-1">
-                <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
-                  <Settings className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                  {!isCollapsed && <span className="text-sm text-gray-700 dark:text-gray-300">Setting</span>}
-                </button>
-                <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
-                  <Shield className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                  {!isCollapsed && <span className="text-sm text-gray-700 dark:text-gray-300">Security</span>}
-                </button>
-                <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left", isCollapsed && "justify-center px-2")}>
-                  <HelpCircle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                  {!isCollapsed && <span className="text-sm text-gray-700 dark:text-gray-300">Help & center</span>}
-                </button>
-              </div>
+            {/* Logout */}
+            <div className={clsx("mt-auto pb-6", isCollapsed ? "px-2" : "px-6")}>
+              <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left text-red-600 dark:text-red-400", isCollapsed && "justify-center px-2")}>
+                <LogOut className="h-5 w-5" />
+                {!isCollapsed && <span className="text-sm font-medium">Logout</span>}
+              </button>
             </div>
           </div>
-
-          {/* Logout */}
-          <div className={clsx("mt-auto pb-6", isCollapsed ? "px-2" : "px-6")}>
-            <button className={clsx("w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-left text-red-600 dark:text-red-400", isCollapsed && "justify-center px-2")}>
-              <LogOut className="h-5 w-5" />
-              {!isCollapsed && <span className="text-sm font-medium">Logout</span>}
-            </button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+    </TooltipProvider>
   )
 }
 

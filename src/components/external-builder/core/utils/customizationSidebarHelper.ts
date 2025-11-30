@@ -278,8 +278,7 @@ export class SidebarUtils {
     const selectOptions = options
       .map(
         option =>
-          `<option value="${option}" ${
-            option === currentValue ? 'selected' : ''
+          `<option value="${option}" ${option === currentValue ? 'selected' : ''
           }>${option}</option>`
       )
       .join('');
@@ -429,5 +428,124 @@ export class SidebarUtils {
     } catch (e) {
       console.error('Failed to delete rule:', e);
     }
+  }
+  static createSliderControl(
+    label: string,
+    id: string,
+    value: number,
+    controlsContainer: HTMLElement,
+    options: { min: number; max: number; step: number; unit?: string }
+  ) {
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('control-wrapper');
+    wrapper.innerHTML = `
+      <label for="${id}">${label}:</label>
+      <div class="slider-wrapper" style="display: flex; align-items: center; gap: 10px;">
+        <input type="range" id="${id}-range" min="${options.min}" max="${options.max}" step="${options.step}" value="${value}" style="flex-grow: 1;">
+        <input type="number" id="${id}" value="${value}" style="width: 50px;">
+        <span style="font-size: 12px; color: #64748b;">${options.unit || ''}</span>
+      </div>
+    `;
+
+    const rangeInput = wrapper.querySelector(`#${id}-range`) as HTMLInputElement;
+    const numberInput = wrapper.querySelector(`#${id}`) as HTMLInputElement;
+
+    rangeInput.addEventListener('input', () => {
+      numberInput.value = rangeInput.value;
+      numberInput.dispatchEvent(new Event('input'));
+    });
+
+    numberInput.addEventListener('input', () => {
+      rangeInput.value = numberInput.value;
+    });
+
+    controlsContainer.appendChild(wrapper);
+  }
+
+  static createImageControl(
+    label: string,
+    id: string,
+    value: string,
+    controlsContainer: HTMLElement
+  ) {
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('control-wrapper');
+    // Extract URL from url('...') if present
+    const rawUrl = value?.replace(/^url\([\"']?/, '').replace(/[\"']?\)$/, '') || '';
+
+    wrapper.innerHTML = `
+      <label for="${id}">${label}:</label>
+      <div class="image-control-wrapper" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; gap: 8px;">
+           <div class="image-preview" style="width: 40px; height: 40px; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; background-color: #f8fafc; display: flex; align-items: center; justify-content: center;">
+              ${rawUrl ? `<img src="${rawUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : '<span style="font-size: 10px; color: #cbd5e1;">Img</span>'}
+           </div>
+           <input type="text" id="${id}" value="${rawUrl}" placeholder="https://... or upload" style="flex-grow: 1;">
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button type="button" id="${id}-upload-btn" style="padding: 6px 12px; background-color: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; flex-shrink: 0;">
+            📁 Upload Image/GIF
+          </button>
+          <input type="file" id="${id}-file" accept="image/*,.gif" style="display: none;">
+          <span style="font-size: 11px; color: #64748b;">Supports: JPG, PNG, GIF, WebP</span>
+        </div>
+      </div>
+    `;
+
+    controlsContainer.appendChild(wrapper);
+
+    // Query elements after appending to DOM
+    const urlInput = wrapper.querySelector(`#${id}`) as HTMLInputElement;
+    const fileInput = wrapper.querySelector(`#${id}-file`) as HTMLInputElement;
+    const uploadBtn = wrapper.querySelector(`#${id}-upload-btn`) as HTMLButtonElement;
+    const previewContainer = wrapper.querySelector('.image-preview') as HTMLElement;
+
+    if (!uploadBtn || !fileInput) {
+      console.error('Upload button or file input not found');
+      return;
+    }
+
+    const updatePreview = (url: string) => {
+      if (url) {
+        previewContainer.innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover;">`;
+      } else {
+        previewContainer.innerHTML = '<span style="font-size: 10px; color: #cbd5e1;">Img</span>';
+      }
+    };
+
+    // Click upload button to trigger file input
+    uploadBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Upload button clicked, triggering file input');
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        console.log('File selected:', file.name, file.type);
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          alert('Please upload a valid image file (JPG, PNG, GIF, or WebP)');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          urlInput.value = result;
+          updatePreview(result);
+          // Dispatch input event on the text input to trigger the change listener
+          urlInput.dispatchEvent(new Event('input'));
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    urlInput.addEventListener('input', () => {
+      updatePreview(urlInput.value);
+    });
   }
 }

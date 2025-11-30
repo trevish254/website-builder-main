@@ -1,4 +1,6 @@
 import { PageBuilder } from '../../core/PageBuilder';
+import { svgs } from '../../core/icons/svgs';
+import { GetMediaFiles } from '@/lib/types';
 
 export interface PageBuilderDesign {
   pages?: Array<{
@@ -19,15 +21,43 @@ export class PageBuilderComponent extends HTMLElement {
   private _brandTitle?: string;
   private _showAttributeTab?: boolean;
   private _layoutMode?: 'absolute' | 'grid';
+  private _mediaFiles: GetMediaFiles = null;
   private config = { Basic: [], Extra: [], Custom: [] };
   private template = `<div id="app">
-      <div id="sidebar"></div>
-      <div id="canvas" class="canvas"></div>
-      <div id="customization">
-        <h4 id="component-name">Component: None</h4>
-        <div id="controls"></div>
-        <div id="layers-view" class="hidden"></div>
+      <div id="left-sidebar-container">
+        <div id="sidebar-tabs">
+          <button id="tab-components" class="sidebar-tab active" title="Components">
+            ${svgs.sidebarMenu}
+          </button>
+          <button id="tab-settings" class="sidebar-tab" title="Settings">
+            ${svgs.edit}
+          </button>
+        </div>
+        <div id="sidebar-content">
+          <div id="sidebar" class="tab-pane active">
+            <div class="sidebar-sub-tabs">
+              <button id="subtab-basic" class="sub-tab active">Basic</button>
+              <button id="subtab-media" class="sub-tab">Media Bucket</button>
+            </div>
+            <div id="basic-components" class="sub-tab-content active"></div>
+            <div id="media-bucket" class="sub-tab-content">
+              <div id="media-grid" class="media-grid"></div>
+              <div class="media-upload-container">
+                <button id="media-upload-btn" class="media-upload-btn">
+                  ${svgs.upload || '<span class="icon">📁</span>'} Upload Media
+                </button>
+                <input type="file" id="media-upload-input" accept="image/*,.gif" style="display: none;" multiple>
+              </div>
+            </div>
+          </div>
+          <div id="customization" class="tab-pane">
+            <h4 id="component-name">Component: None</h4>
+            <div id="controls"></div>
+            <div id="layers-view" class="hidden"></div>
+          </div>
+        </div>
       </div>
+      <div id="canvas" class="canvas"></div>
       <div id="notification" class="notification hidden"></div>
       <div id="dialog" class="dialog hidden">
         <div class="dialog-content">
@@ -97,6 +127,20 @@ export class PageBuilderComponent extends HTMLElement {
 
   get layoutMode(): 'absolute' | 'grid' | undefined {
     return this._layoutMode;
+  }
+
+  set mediaFiles(value: GetMediaFiles) {
+    if (this._mediaFiles !== value) {
+      this._mediaFiles = value;
+      if (this.initialized) {
+        this.initialized = false;
+        this.initializePageBuilder();
+      }
+    }
+  }
+
+  get mediaFiles(): GetMediaFiles {
+    return this._mediaFiles;
   }
 
   set initialDesign(value: PageBuilderDesign | null) {
@@ -173,7 +217,8 @@ export class PageBuilderComponent extends HTMLElement {
         this._editable,
         this._brandTitle,
         this.showAttributeTab,
-        this._layoutMode
+        this._layoutMode,
+        this._mediaFiles
       );
       this.initialized = true;
     } catch (error) {

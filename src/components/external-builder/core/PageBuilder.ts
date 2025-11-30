@@ -17,10 +17,13 @@ import { PreviewPanel } from './canvas/PreviewPanel';
 import './styles/main.css';
 import { svgs } from './icons/svgs';
 import html2pdf from 'html2pdf.js';
+import { MediaBucket } from './sidebar/MediaBucket';
+import { GetMediaFiles } from '@/lib/types';
 
 export class PageBuilder {
   private canvas: Canvas;
   private sidebar: Sidebar;
+  private mediaBucket: MediaBucket | null = null;
   private htmlGenerator: HTMLGenerator;
   private jsonStorage: JSONStorage;
   private previewPanel: PreviewPanel;
@@ -32,6 +35,7 @@ export class PageBuilder {
   private showAttributeTab: boolean | undefined;
   public layoutMode: 'absolute' | 'grid';
   private static initialCanvasWidth: number | null = null;
+  private mediaFiles: GetMediaFiles = null;
 
   constructor(
     dynamicComponents: DynamicComponents = {
@@ -43,7 +47,8 @@ export class PageBuilder {
     editable: boolean | null = true,
     brandTitle?: string,
     showAttributeTab?: boolean,
-    layoutMode: 'absolute' | 'grid' | undefined = 'absolute'
+    layoutMode: 'absolute' | 'grid' | undefined = 'absolute',
+    mediaFiles: GetMediaFiles = null
   ) {
     this.dynamicComponents = dynamicComponents;
     this.initialDesign = initialDesign;
@@ -56,6 +61,7 @@ export class PageBuilder {
     this.brandTitle = brandTitle;
     this.showAttributeTab = showAttributeTab;
     this.layoutMode = layoutMode;
+    this.mediaFiles = mediaFiles;
     this.initializeEventListeners();
   }
 
@@ -80,7 +86,62 @@ export class PageBuilder {
     this.setupExportPDFButton();
     this.setupViewButton();
     this.setupPreviewModeButtons();
+    this.setupPreviewModeButtons();
     this.setupUndoRedoButtons();
+    this.setupSidebarTabs();
+    this.setupSubTabs();
+  }
+
+  public setupSidebarTabs() {
+    const tabComponents = document.getElementById('tab-components');
+    const tabSettings = document.getElementById('tab-settings');
+    const sidebar = document.getElementById('sidebar');
+    const customization = document.getElementById('customization');
+
+    if (tabComponents && tabSettings && sidebar && customization) {
+      tabComponents.addEventListener('click', () => {
+        tabComponents.classList.add('active');
+        tabSettings.classList.remove('active');
+        sidebar.classList.add('active');
+        customization.classList.remove('active');
+        // Hide customization if it was shown
+        customization.style.display = 'none';
+        sidebar.style.display = 'block';
+      });
+
+      tabSettings.addEventListener('click', () => {
+        tabSettings.classList.add('active');
+        tabComponents.classList.remove('active');
+        customization.classList.add('active');
+        sidebar.classList.remove('active');
+        // Show customization
+        customization.style.display = 'block';
+        sidebar.style.display = 'none';
+      });
+    }
+  }
+
+  public setupSubTabs() {
+    const subtabBasic = document.getElementById('subtab-basic');
+    const subtabMedia = document.getElementById('subtab-media');
+    const basicContent = document.getElementById('basic-components');
+    const mediaContent = document.getElementById('media-bucket');
+
+    if (subtabBasic && subtabMedia && basicContent && mediaContent) {
+      subtabBasic.addEventListener('click', () => {
+        subtabBasic.classList.add('active');
+        subtabMedia.classList.remove('active');
+        basicContent.classList.add('active');
+        mediaContent.classList.remove('active');
+      });
+
+      subtabMedia.addEventListener('click', () => {
+        subtabMedia.classList.add('active');
+        subtabBasic.classList.remove('active');
+        mediaContent.classList.add('active');
+        basicContent.classList.remove('active');
+      });
+    }
   }
 
   public setupInitialComponents() {
@@ -102,6 +163,9 @@ export class PageBuilder {
       this.dynamicComponents.Basic,
       this.showAttributeTab
     );
+
+    // Initialize Media Bucket
+    this.mediaBucket = MediaBucket.init(this.mediaFiles);
 
     // Create header logic - improved to handle re-initialization
     this.createHeaderIfNeeded();
@@ -574,9 +638,9 @@ export class PageBuilder {
 
     const sizes = [
       {
-        icon: svgs.mobile,
+        icon: svgs.desktop,
         title: 'Desktop',
-        width: '375px',
+        width: '100%',
         height: '100%',
       },
       {
@@ -586,9 +650,9 @@ export class PageBuilder {
         height: '100%',
       },
       {
-        icon: svgs.desktop,
+        icon: svgs.mobile,
         title: 'Mobile',
-        width: '100%',
+        width: '375px',
         height: '100%',
       },
     ];

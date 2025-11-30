@@ -214,5 +214,13 @@ export function createSidebar(
     templatesMenu.appendChild(categoryMenu);
   });
 
-  sidebar.appendChild(templatesMenu);
+
+
+  const basicComponentsContainer = document.getElementById('basic-components');
+  if (basicComponentsContainer) {
+    basicComponentsContainer.innerHTML = ''; // Clear existing content
+    basicComponentsContainer.appendChild(templatesMenu);
+  } else {
+    sidebar.appendChild(templatesMenu);
+  }
 }

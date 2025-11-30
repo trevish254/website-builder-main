@@ -20,6 +20,7 @@ import { ComponentControlsManager } from './ComponentControls';
 import { CustomizationSidebar } from '../sidebar/CustomizationSidebar';
 import { MultiColumnContainer } from '../services/MultiColumnContainer';
 import { GridManager } from './GridManager';
+import interact from 'interactjs';
 
 export class Canvas {
   private static components: HTMLElement[] = [];
@@ -37,6 +38,26 @@ export class Canvas {
   private static textAttributeConfig: ComponentAttribute[] | undefined;
   private static headerAttributeConfig: ComponentAttribute[] | undefined;
   private static ImageAttributeConfig: Function | undefined;
+
+  private static snapTargets: { left: number; top: number; right: number; bottom: number; centerX: number; centerY: number }[] = [];
+  private static guides: HTMLElement[] = [];
+
+  static clearGuides() {
+    this.guides.forEach(guide => guide.remove());
+    this.guides = [];
+  }
+
+  static drawGuide(type: 'vertical' | 'horizontal', position: number) {
+    const guide = document.createElement('div');
+    guide.classList.add('guide-line', type);
+    if (type === 'vertical') {
+      guide.style.left = `${position}px`;
+    } else {
+      guide.style.top = `${position}px`;
+    }
+    this.canvasElement.appendChild(guide);
+    this.guides.push(guide);
+  }
 
   public static getComponents(): HTMLElement[] {
     return Canvas.components;
@@ -186,7 +207,16 @@ export class Canvas {
     const canvasElement = Canvas.canvasElement;
     const computedStyles = window.getComputedStyle(canvasElement);
     const canvasStyles: { [key: string]: string } = {};
-    ['background-color', 'min-height', 'padding', 'margin'].forEach(prop => {
+    [
+      'background-color',
+      'background-image',
+      'background-size',
+      'background-position',
+      'background-repeat',
+      'min-height',
+      'padding',
+      'margin',
+    ].forEach(prop => {
       const value = computedStyles.getPropertyValue(prop);
       if (
         value &&
@@ -584,6 +614,7 @@ export class Canvas {
       }
 
       Canvas.controlsManager.addControlButtons(element);
+      Canvas.addResizeHandles(element);
     }
     if (element) {
       const uniqueClass = Canvas.generateUniqueClass(type);
@@ -650,96 +681,232 @@ export class Canvas {
   }
 
   static addDraggableListeners(element: HTMLElement) {
-    element.setAttribute('draggable', 'true');
+    // Remove native draggable attribute if it exists, as interact.js handles it
+    element.removeAttribute('draggable');
     element.style.cursor = 'grab';
+    element.style.touchAction = 'none'; // Required for interact.js
 
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let elementStartX = 0;
-    let elementStartY = 0;
-    let canvasScrollStartX = 0;
-    let canvasScrollStartY = 0;
+    interact(element)
+      .draggable({
+        inertia: true,
+        modifiers: [
+          interact.modifiers.restrictRect({
+            restriction: 'parent',
+            endOnly: true,
+          }),
+          // Removed grid snap to prevent conflict with alignment guides
+        ],
+        autoScroll: {
+          container: Canvas.canvasElement,
+          margin: 50,
+          speed: 300,
+        },
+        listeners: {
+          start(event) {
+            const target = event.target as HTMLElement;
+            target.style.cursor = 'grabbing';
 
-    element.addEventListener('dragstart', (event: DragEvent) => {
-      event.stopPropagation();
-      if (event.dataTransfer) {
-        // Store exact mouse position at drag start
-        dragStartX = event.clientX;
-        dragStartY = event.clientY;
+            // Initialize data attributes for transform
+            const x = (parseFloat(target.getAttribute('data-x') || '0'));
+            const y = (parseFloat(target.getAttribute('data-y') || '0'));
 
-        // Store canvas scroll position at drag start
-        canvasScrollStartX = Canvas.canvasElement.scrollLeft;
-        canvasScrollStartY = Canvas.canvasElement.scrollTop;
+            target.setAttribute('data-x', x.toString());
+            target.setAttribute('data-y', y.toString());
 
-        // Get current element position relative to canvas
-        elementStartX = parseFloat(element.style.left) || 0;
-        elementStartY = parseFloat(element.style.top) || 0;
+            // Collect snap targets (all other components)
+            Canvas.snapTargets = Canvas.components
+              .filter(c => c !== element && document.body.contains(c)) // Exclude self and detached elements
+              .map(c => {
+                const rect = c.getBoundingClientRect();
+                // Convert to canvas-relative
+                const canvasRect = Canvas.canvasElement.getBoundingClientRect();
+                const left =
+                  rect.left - canvasRect.left + Canvas.canvasElement.scrollLeft;
+                const top =
+                  rect.top - canvasRect.top + Canvas.canvasElement.scrollTop;
+                return {
+                  left,
+                  top,
+                  right: left + rect.width,
+                  bottom: top + rect.height,
+                  centerX: left + rect.width / 2,
+                  centerY: top + rect.height / 2,
+                };
+              });
+          },
+          move(event) {
+            const target = event.target as HTMLElement;
 
-        event.dataTransfer.effectAllowed = 'move';
-        element.style.cursor = 'grabbing';
-      }
-    });
+            // Current transform values
+            let x = (parseFloat(target.getAttribute('data-x') || '0')) + event.dx;
+            let y = (parseFloat(target.getAttribute('data-y') || '0')) + event.dy;
 
-    element.addEventListener('dragend', (event: DragEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
+            // Calculate absolute position for snapping
+            const currentLeft = parseFloat(target.style.left) || 0;
+            const currentTop = parseFloat(target.style.top) || 0;
 
-      // Get current canvas scroll position
-      const canvasScrollCurrentX = Canvas.canvasElement.scrollLeft;
-      const canvasScrollCurrentY = Canvas.canvasElement.scrollTop;
+            let absLeft = currentLeft + x;
+            let absTop = currentTop + y;
 
-      // Calculate scroll delta (how much the canvas scrolled during drag)
-      const scrollDeltaX = canvasScrollCurrentX - canvasScrollStartX;
-      const scrollDeltaY = canvasScrollCurrentY - canvasScrollStartY;
+            const width = target.offsetWidth;
+            const height = target.offsetHeight;
+            const right = absLeft + width;
+            const bottom = absTop + height;
+            const centerX = absLeft + width / 2;
+            const centerY = absTop + height / 2;
 
-      // Calculate mouse movement delta
-      const mouseDeltaX = event.clientX - dragStartX;
-      const mouseDeltaY = event.clientY - dragStartY;
+            Canvas.clearGuides();
+            const SNAP_THRESHOLD = 5;
+            let snappedX = false;
+            let snappedY = false;
 
-      // Calculate new position accounting for both mouse movement and scroll changes
-      let newX = elementStartX + mouseDeltaX + scrollDeltaX;
-      let newY = elementStartY + mouseDeltaY + scrollDeltaY;
+            // Check X alignment
+            for (const snap of Canvas.snapTargets) {
+              if (Math.abs(absLeft - snap.left) < SNAP_THRESHOLD) {
+                x += snap.left - absLeft; // Adjust transform x
+                absLeft = snap.left;
+                snappedX = true;
+                Canvas.drawGuide('vertical', absLeft);
+              } else if (Math.abs(absLeft - snap.right) < SNAP_THRESHOLD) {
+                x += snap.right - absLeft;
+                absLeft = snap.right;
+                snappedX = true;
+                Canvas.drawGuide('vertical', absLeft);
+              } else if (Math.abs(right - snap.left) < SNAP_THRESHOLD) {
+                x += (snap.left - width) - absLeft;
+                absLeft = snap.left - width;
+                snappedX = true;
+                Canvas.drawGuide('vertical', snap.left);
+              } else if (Math.abs(right - snap.right) < SNAP_THRESHOLD) {
+                x += (snap.right - width) - absLeft;
+                absLeft = snap.right - width;
+                snappedX = true;
+                Canvas.drawGuide('vertical', snap.right);
+              } else if (Math.abs(centerX - snap.centerX) < SNAP_THRESHOLD) {
+                x += (snap.centerX - width / 2) - absLeft;
+                absLeft = snap.centerX - width / 2;
+                snappedX = true;
+                Canvas.drawGuide('vertical', snap.centerX);
+              }
 
-      // Alternative approach: Use the actual mouse position relative to canvas
-      // This is more accurate when dealing with scrolling
-      const canvasRect = Canvas.canvasElement.getBoundingClientRect();
-      const actualMouseX =
-        event.clientX - canvasRect.left + Canvas.canvasElement.scrollLeft;
-      const actualMouseY =
-        event.clientY - canvasRect.top + Canvas.canvasElement.scrollTop;
+              if (snappedX) break;
+            }
 
-      // Calculate the offset between drag start mouse position and element position
-      const canvasRectStart = Canvas.canvasElement.getBoundingClientRect();
-      const dragStartMouseX =
-        dragStartX - canvasRectStart.left + canvasScrollStartX;
-      const dragStartMouseY =
-        dragStartY - canvasRectStart.top + canvasScrollStartY;
+            // Check Y alignment
+            for (const snap of Canvas.snapTargets) {
+              if (Math.abs(absTop - snap.top) < SNAP_THRESHOLD) {
+                y += snap.top - absTop; // Adjust transform y
+                absTop = snap.top;
+                snappedY = true;
+                Canvas.drawGuide('horizontal', absTop);
+              } else if (Math.abs(absTop - snap.bottom) < SNAP_THRESHOLD) {
+                y += snap.bottom - absTop;
+                absTop = snap.bottom;
+                snappedY = true;
+                Canvas.drawGuide('horizontal', absTop);
+              } else if (Math.abs(bottom - snap.top) < SNAP_THRESHOLD) {
+                y += (snap.top - height) - absTop;
+                absTop = snap.top - height;
+                snappedY = true;
+                Canvas.drawGuide('horizontal', snap.top);
+              } else if (Math.abs(bottom - snap.bottom) < SNAP_THRESHOLD) {
+                y += (snap.bottom - height) - absTop;
+                absTop = snap.bottom - height;
+                snappedY = true;
+                Canvas.drawGuide('horizontal', snap.bottom);
+              } else if (Math.abs(centerY - snap.centerY) < SNAP_THRESHOLD) {
+                y += (snap.centerY - height / 2) - absTop;
+                absTop = snap.centerY - height / 2;
+                snappedY = true;
+                Canvas.drawGuide('horizontal', snap.centerY);
+              }
 
-      const offsetX = elementStartX - dragStartMouseX;
-      const offsetY = elementStartY - dragStartMouseY;
+              if (snappedY) break;
+            }
 
-      // Use actual mouse position for more precise positioning
-      newX = actualMouseX + offsetX;
-      newY = actualMouseY + offsetY;
+            // Apply transform instead of top/left
+            target.style.transform = `translate(${x}px, ${y}px)`;
 
-      // Constrain within canvas boundaries (accounting for scroll area)
-      const elementRect = element.getBoundingClientRect();
-      const maxX = Canvas.canvasElement.scrollWidth - elementRect.width;
-      const maxY = Canvas.canvasElement.scrollHeight - elementRect.height;
+            // Update data attributes
+            target.setAttribute('data-x', x.toString());
+            target.setAttribute('data-y', y.toString());
+          },
+          end(event) {
+            const target = event.target as HTMLElement;
+            target.style.cursor = 'grab';
+            Canvas.clearGuides();
 
-      newX = Math.max(0, Math.min(newX, maxX));
-      newY = Math.max(0, Math.min(newY, maxY));
+            // Apply final position to top/left and reset transform
+            const x = (parseFloat(target.getAttribute('data-x') || '0'));
+            const y = (parseFloat(target.getAttribute('data-y') || '0'));
+            const currentLeft = parseFloat(target.style.left) || 0;
+            const currentTop = parseFloat(target.style.top) || 0;
 
-      // Set new position
-      element.style.left = `${newX}px`;
-      element.style.top = `${newY}px`;
+            target.style.left = `${currentLeft + x}px`;
+            target.style.top = `${currentTop + y}px`;
+            target.style.transform = 'none';
 
-      // Reset cursor
-      element.style.cursor = 'grab';
+            // Reset data attributes
+            target.setAttribute('data-x', '0');
+            target.setAttribute('data-y', '0');
 
-      // Capture the state after dragging
-      Canvas.historyManager.captureState();
-      Canvas.dispatchDesignChange();
+            Canvas.historyManager.captureState();
+            Canvas.dispatchDesignChange();
+          },
+        },
+      })
+      .resizable({
+        // resize from all edges and corners
+        edges: {
+          left: '.resize-handle-left',
+          right: '.resize-handle-right',
+          bottom: '.resize-handle-bottom',
+          top: '.resize-handle-top',
+        },
+
+        listeners: {
+          move(event) {
+            const target = event.target as HTMLElement;
+            let x = parseFloat(target.style.left) || 0;
+            let y = parseFloat(target.style.top) || 0;
+
+            // update the element's style
+            target.style.width = `${event.rect.width}px`;
+            target.style.height = `${event.rect.height}px`;
+
+            // translate when resizing from top or left edges
+            x += event.deltaRect?.left || 0;
+            y += event.deltaRect?.top || 0;
+
+            target.style.left = `${x}px`;
+            target.style.top = `${y}px`;
+          },
+          end(event) {
+            Canvas.historyManager.captureState();
+            Canvas.dispatchDesignChange();
+          },
+        },
+        modifiers: [
+          // keep the edges inside the parent
+          interact.modifiers.restrictEdges({
+            outer: 'parent',
+          }),
+
+          // minimum size
+          interact.modifiers.restrictSize({
+            min: { width: 20, height: 20 },
+          }),
+        ],
+
+        inertia: false,
+      });
+  }
+  static addResizeHandles(element: HTMLElement) {
+    const handles = ['top', 'bottom', 'left', 'right'];
+    handles.forEach(handle => {
+      const div = document.createElement('div');
+      div.classList.add(`resize-handle-${handle}`);
+      element.appendChild(div);
     });
   }
 }

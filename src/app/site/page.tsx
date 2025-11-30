@@ -11,6 +11,9 @@ import clsx from 'clsx'
 import { Check } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { ThreeDMarqueeDemo } from '@/components/site/three-d-marquee-demo'
+import { HeroParallaxDemo } from '@/components/site/hero-parallax-demo'
+import { Footer } from '@/components/ui/footer-section'
 
 export default async function Home() {
   // Stripe is disabled, using static pricing
@@ -29,14 +32,9 @@ export default async function Home() {
             Plura
           </h1>
         </div>
-        <div className="flex justify-center items-center relative md:mt-[-70px]">
-          <Image
-            src={'/assets/preview.png'}
-            alt="banner image"
-            height={1200}
-            width={1200}
-            className="rounded-tl-2xl rounded-tr-2xl border-2 border-muted"
-          />
+        <div className="flex flex-col justify-center items-center relative md:mt-[-70px] w-full gap-10">
+          <ThreeDMarqueeDemo />
+          <HeroParallaxDemo />
           <div className="bottom-0 top-[50%] bg-gradient-to-t dark:from-background left-0 right-0 absolute z-10"></div>
         </div>
       </section>
@@ -81,7 +79,7 @@ export default async function Home() {
       <section id="about" className="flex justify-center items-center flex-col gap-4 md:!mt-20">
         <h2 className="text-4xl text-center">About Plura</h2>
         <p className="text-muted-foreground text-center max-w-3xl">
-          Plura is the all-in-one platform designed specifically for agencies looking to scale their operations. 
+          Plura is the all-in-one platform designed specifically for agencies looking to scale their operations.
           From lead management to team collaboration, we provide the tools you need to run your agency efficiently.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-4xl">
@@ -231,6 +229,7 @@ export default async function Home() {
           </Link>
         </div>
       </section>
+      <Footer />
     </>
   )
 }

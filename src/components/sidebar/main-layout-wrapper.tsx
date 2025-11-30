@@ -14,7 +14,7 @@ const MainLayoutWrapper = ({ children }: Props) => {
     return (
         <div
             className={cn(
-                'transition-all duration-300 ease-in-out',
+                'transition-all duration-200 ease-out will-change-transform',
                 isCollapsed ? 'md:pl-[70px]' : 'md:pl-[300px]'
             )}
         >

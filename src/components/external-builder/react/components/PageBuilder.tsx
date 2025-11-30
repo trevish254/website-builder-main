@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import {
@@ -6,8 +7,9 @@ import {
   PageBuilderDesign,
   PageBuilderElement,
 } from '../types/types';
+import { GetMediaFiles } from '@/lib/types';
 
-export const PageBuilderReact: React.FC<PageBuilderReactProps> = ({
+export const PageBuilderReact: React.FC<PageBuilderReactProps & { mediaFiles?: GetMediaFiles }> = ({
   config,
   customComponents,
   initialDesign,
@@ -15,7 +17,8 @@ export const PageBuilderReact: React.FC<PageBuilderReactProps> = ({
   editable = true,
   brandTitle,
   showAttributeTab,
-  layoutMode = 'absolute'
+  layoutMode = 'absolute',
+  mediaFiles
 }) => {
   const builderRef = useRef<PageBuilderElement>(null);
   const [processedConfig, setProcessedConfig] =
@@ -139,6 +142,9 @@ export const PageBuilderReact: React.FC<PageBuilderReactProps> = ({
             builderRef.current.brandTitle = brandTitle;
             builderRef.current.showAttributeTab = showAttributeTab;
             builderRef.current.layoutMode = layoutMode;
+            if (mediaFiles) {
+              builderRef.current.mediaFiles = mediaFiles;
+            }
 
             const configString = JSON.stringify(processedConfig);
             builderRef.current.setAttribute('config-data', configString);
@@ -148,7 +154,7 @@ export const PageBuilderReact: React.FC<PageBuilderReactProps> = ({
         }
       });
     }
-  }, [processedConfig, initialDesign, editable, brandTitle, showAttributeTab]);
+  }, [processedConfig, initialDesign, editable, brandTitle, showAttributeTab, mediaFiles]);
   useEffect(() => {
     const webComponent = builderRef.current;
 

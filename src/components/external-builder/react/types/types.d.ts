@@ -1,3 +1,5 @@
+import { GetMediaFiles } from '@/lib/types';
+
 export interface DynamicComponents {
   Basic: BasicComponent[];
   Extra: string[];
@@ -42,6 +44,7 @@ export interface PageBuilderElement extends HTMLElement {
   brandTitle?: string;
   showAttributeTab?: boolean;
   layoutMode?: 'absolute' | 'grid';
+  mediaFiles?: GetMediaFiles;
 }
 export interface CustomComponentConfig {
   component: React.ComponentType<any> | string;
