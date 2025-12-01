@@ -140,8 +140,8 @@ const MenuOptions = ({
             {
               'hidden md:inline-block z-0': defaultOpen,
               'inline-block md:hidden z-[100] w-full': !defaultOpen,
-              'w-[300px]': defaultOpen && !isCollapsed,
-              'w-[70px]': defaultOpen && isCollapsed,
+              'w-[220px]': defaultOpen && !isCollapsed,
+              'w-[60px]': defaultOpen && isCollapsed,
             }
           )}
         >
@@ -441,7 +441,7 @@ const MenuOptions = ({
                       No results found
                     </div>
                   ) : isCollapsed ? (
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       {filteredSidebarOpt.map((sidebarOptions) => {
                         let val = null
                         const result = icons.find(
@@ -455,20 +455,28 @@ const MenuOptions = ({
                         }
                         const isActive = sidebarOptions.link.includes(id)
 
+                        const iconLink = (
+                          <Link
+                            href={sidebarOptions.link}
+                            className={clsx(
+                              'flex items-center justify-center transition-all duration-200 hover:scale-110',
+                              isActive && 'text-blue-600 dark:text-blue-400 scale-105'
+                            )}
+                          >
+                            <span className={clsx('text-gray-600 dark:text-gray-400', isActive && 'text-blue-600 dark:text-blue-400')}>
+                              {val}
+                            </span>
+                          </Link>
+                        )
+
                         return (
                           <Tooltip key={sidebarOptions.id}>
                             <TooltipTrigger asChild>
-                              <Link
-                                href={sidebarOptions.link}
-                                className={clsx(
-                                  'flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-200 hover:scale-110 hover:bg-gray-100 dark:hover:bg-gray-800',
-                                  isActive && 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 scale-105'
-                                )}
-                              >
-                                <span className={clsx('text-gray-600 dark:text-gray-400', isActive && 'text-blue-600 dark:text-blue-400')}>
-                                  {val}
-                                </span>
-                              </Link>
+                              {defaultOpen ? iconLink : (
+                                <SheetClose asChild>
+                                  {iconLink}
+                                </SheetClose>
+                              )}
                             </TooltipTrigger>
                             <TooltipContent side="right" className="font-medium">
                               {sidebarOptions.name}
@@ -513,7 +521,12 @@ const MenuOptions = ({
                         </Link>
                       )
 
-                      return linkContent
+                      // Wrap in SheetClose for mobile to auto-close sidebar
+                      return defaultOpen ? linkContent : (
+                        <SheetClose asChild key={sidebarOptions.id}>
+                          {linkContent}
+                        </SheetClose>
+                      )
                     })
                   )}
                 </div>

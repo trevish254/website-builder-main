@@ -207,3 +207,16 @@ export type MpesaSettings = {
   createdAt: string
   updatedAt: string
 }
+
+export const CreateTaskLaneFormSchema = z.object({
+  name: z.string().min(1),
+  color: z.string().optional(),
+})
+
+export const CreateTaskFormSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional(),
+  dueDate: z.date().optional(),
+  assignedUserId: z.string().optional(),
+  laneId: z.string().min(1),
+})

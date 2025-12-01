@@ -5,10 +5,10 @@ import { SubAccount } from '@/lib/database.types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Search, 
-  Filter, 
-  Plus, 
+import {
+  Search,
+  Filter,
+  Plus,
   ChevronDown,
   ChevronRight,
   Building2,
@@ -30,19 +30,19 @@ const SubAccountListPanel = ({ subaccounts, agencyId, selectedSubaccountId }: Pr
   console.log('🎯 SubAccountListPanel rendered!')
   console.log('📋 Subaccounts:', subaccounts.length)
   console.log('📋 Selected Subaccount ID:', selectedSubaccountId)
-  
+
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState('all')
   const router = useRouter()
 
   const filteredSubaccounts = subaccounts.filter(subaccount => {
     const matchesSearch = subaccount.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         subaccount.address.toLowerCase().includes(searchQuery.toLowerCase())
-    
+      subaccount.address.toLowerCase().includes(searchQuery.toLowerCase())
+
     if (filterType === 'all') return matchesSearch
     if (filterType === 'active') return matchesSearch && subaccount.goal > 0
     if (filterType === 'inactive') return matchesSearch && subaccount.goal === 0
-    
+
     return matchesSearch
   })
 
@@ -66,14 +66,23 @@ const SubAccountListPanel = ({ subaccounts, agencyId, selectedSubaccountId }: Pr
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {subaccounts.length} Subaccounts
           </h2>
-          <Button 
-            size="sm" 
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={() => router.push(`/agency/${agencyId}/all-subaccounts/create`)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Subaccount
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => router.push(`/agency/${agencyId}/all-subaccounts/metrics`)}
+            >
+              📊 View Metrics
+            </Button>
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => router.push(`/agency/${agencyId}/all-subaccounts/create`)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Subaccount
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
@@ -128,11 +137,10 @@ const SubAccountListPanel = ({ subaccounts, agencyId, selectedSubaccountId }: Pr
               <div
                 key={subaccount.id}
                 onClick={() => handleSubaccountSelect(subaccount.id)}
-                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                  selectedSubaccountId === subaccount.id 
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' 
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedSubaccountId === subaccount.id
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                     : ''
-                }`}
+                  }`}
               >
                 {/* Avatar/Logo */}
                 <div className="relative w-10 h-10 flex-shrink-0">

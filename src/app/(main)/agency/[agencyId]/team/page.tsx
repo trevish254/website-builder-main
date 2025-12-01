@@ -20,6 +20,8 @@ import { getAgencyTeamMembers, getAgencyInvitations, deleteInvitation, deleteUse
 import { useModal } from '@/providers/modal-provider'
 import CustomModal from '@/components/global/custom-modal'
 import UserDetails from '@/components/forms/user-details'
+import AgencyTeamTreeChart from '@/components/global/agency-team-tree-chart'
+import { supabase } from '@/lib/supabase'
 
 
 type Props = {
@@ -39,6 +41,8 @@ const TeamPage = ({ params }: Props) => {
   const [teamMembers, setTeamMembers] = useState<User[]>([])
   const [invitations, setInvitations] = useState<InvitationType[]>([])
   const [loading, setLoading] = useState(true)
+  const [agencyDetails, setAgencyDetails] = useState<any>(null)
+  const [subaccounts, setSubaccounts] = useState<any[]>([])
 
   // Modal states
   const [showAddEmployee, setShowAddEmployee] = useState(false)
@@ -59,6 +63,60 @@ const TeamPage = ({ params }: Props) => {
       ])
       setTeamMembers(members)
       setInvitations(invs)
+
+      // Fetch agency details and subaccounts for hierarchy chart
+      const { data: agencyData } = await supabase
+        .from('Agency')
+        .select('*')
+        .eq('id', params.agencyId)
+        .single()
+
+      const { data: subaccountsData } = await supabase
+        .from('SubAccount')
+        .select('*')
+        .eq('agencyId', params.agencyId)
+
+      setAgencyDetails(agencyData)
+
+      // Fetch employees for each subaccount
+      if (subaccountsData && subaccountsData.length > 0) {
+        const subaccountIds = subaccountsData.map((sub) => sub.id)
+
+        const { data: employeesData } = await supabase
+          .from('SubAccountEmployee')
+          .select('*')
+          .in('subAccountId', subaccountIds)
+          .eq('isActive', true)
+
+        // Fetch user details for employees
+        let employeesWithUsers: any[] = []
+        if (employeesData && employeesData.length > 0) {
+          const userIds = employeesData.map((emp) => emp.userId)
+          const { data: usersData } = await supabase
+            .from('User')
+            .select('id, name, email')
+            .in('id', userIds)
+
+          employeesWithUsers = employeesData.map((emp) => {
+            const user = usersData?.find((u) => u.id === emp.userId)
+            return {
+              ...emp,
+              userName: user?.name || `User ${emp.userId.slice(0, 8)}`,
+              userEmail: user?.email || '',
+            }
+          })
+        }
+
+        // Attach employees to their respective subaccounts
+        const subaccountsWithEmployees = subaccountsData.map((subaccount) => ({
+          ...subaccount,
+          employees: employeesWithUsers.filter((emp) => emp.subAccountId === subaccount.id) || [],
+        }))
+
+        setSubaccounts(subaccountsWithEmployees)
+      } else {
+        setSubaccounts([])
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
       toast({
@@ -586,6 +644,28 @@ const TeamPage = ({ params }: Props) => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Team Hierarchy & Access Structure */}
+      <Card className="w-full mt-6">
+        <CardHeader>
+          <CardTitle>Team Hierarchy & Access Structure</CardTitle>
+          <CardDescription>
+            Organizational structure showing agency, subaccounts, team members, and their access permissions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center h-full min-h-[600px] text-muted-foreground">
+              <p>Loading team hierarchy...</p>
+            </div>
+          ) : (
+            <AgencyTeamTreeChart
+              agencyName={agencyDetails?.name || 'Agency'}
+              subaccounts={subaccounts}
+            />
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

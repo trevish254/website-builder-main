@@ -7,15 +7,32 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { MoreVertical, Plus } from 'lucide-react'
 import TaskCard from './task-card'
 import { Button } from '@/components/ui/button'
+import { useModal } from '@/providers/modal-provider'
+import CustomModal from '../global/custom-modal'
+import CreateTaskForm from '../forms/create-task-form'
 
 type Props = {
     lane: TaskLaneType & { Task: Task[] }
     index: number
     agencyId?: string
     subAccountId?: string
+    teamMembers: { id: string; name: string; avatarUrl: string }[]
 }
 
-const TaskLane = ({ lane, index, agencyId, subAccountId }: Props) => {
+const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers }: Props) => {
+    const { setOpen } = useModal()
+
+    const handleAddTask = () => {
+        setOpen(
+            <CustomModal
+                title="Create a Task"
+                subheading="Add a new task to your board."
+            >
+                <CreateTaskForm laneId={lane.id} subAccountUsers={teamMembers} />
+            </CustomModal>
+        )
+    }
+
     return (
         <Draggable draggableId={lane.id} index={index}>
             {(provided) => (
@@ -55,6 +72,7 @@ const TaskLane = ({ lane, index, agencyId, subAccountId }: Props) => {
                                         key={task.id}
                                         task={task}
                                         index={index}
+                                        subAccountUsers={teamMembers}
                                     />
                                 ))}
                                 {provided.placeholder}
@@ -66,7 +84,7 @@ const TaskLane = ({ lane, index, agencyId, subAccountId }: Props) => {
                         <Button
                             variant="ghost"
                             className="w-full justify-start"
-                            onClick={() => { /* TODO: Open Create Task Modal */ }}
+                            onClick={handleAddTask}
                         >
                             <Plus className="w-4 h-4 mr-2" />
                             Add Task

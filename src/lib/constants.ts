@@ -1,33 +1,47 @@
-import BarChart from '@/components/icons/bar_chart'
-import Calendar from '@/components/icons/calendar'
-import CheckCircle from '@/components/icons/check_circled'
-import Chip from '@/components/icons/chip'
-import ClipboardIcon from '@/components/icons/clipboardIcon'
-import Compass from '@/components/icons/compass'
-import Database from '@/components/icons/database'
-import Flag from '@/components/icons/flag'
-import Headphone from '@/components/icons/headphone'
-import Home from '@/components/icons/home'
-import Info from '@/components/icons/info'
-import LinkIcon from '@/components/icons/link'
-import Lock from '@/components/icons/lock'
-import Message from '@/components/icons/messages'
-import Notification from '@/components/icons/notification'
-import Payment from '@/components/icons/payment'
-import Person from '@/components/icons/person'
-import Pipelines from '@/components/icons/pipelines'
-import PluraCategory from '@/components/icons/plura-category'
-import Power from '@/components/icons/power'
-import Receipt from '@/components/icons/receipt'
-import Send from '@/components/icons/send'
-import Settings from '@/components/icons/settings'
-import Shield from '@/components/icons/shield'
-import Star from '@/components/icons/star'
-import Tune from '@/components/icons/tune'
-import Video from '@/components/icons/video_recorder'
-import Wallet from '@/components/icons/wallet'
-import Warning from '@/components/icons/warning'
-import Government from '@/components/icons/government'
+import {
+  BarChart3,
+  Calendar,
+  CheckCircle,
+  Cpu,
+  Clipboard,
+  Compass,
+  Database,
+  Flag,
+  Headphones,
+  Home,
+  Info,
+  Link2,
+  Lock,
+  MessageSquare,
+  Bell,
+  CreditCard,
+  Power,
+  Receipt,
+  Send,
+  Settings,
+  Shield,
+  Star,
+  Sliders,
+  Video,
+  Wallet,
+  AlertTriangle,
+  User,
+  LayoutGrid,
+  Building2,
+  Workflow,
+  Users,
+  Image as ImageIcon,
+  Zap,
+  Mail,
+  Phone,
+  FileText,
+  TrendingUp,
+  Target,
+  Award,
+  Briefcase,
+  Globe,
+} from 'lucide-react'
+
 export const pricingCards = [
   {
     title: 'Starter',
@@ -66,12 +80,12 @@ export const icons = [
   {
     value: 'chart',
     label: 'Bar Chart',
-    path: BarChart,
+    path: BarChart3,
   },
   {
     value: 'headphone',
     label: 'Headphones',
-    path: Headphone,
+    path: Headphones,
   },
   {
     value: 'send',
@@ -81,7 +95,7 @@ export const icons = [
   {
     value: 'pipelines',
     label: 'Pipelines',
-    path: Pipelines,
+    path: Workflow,
   },
   {
     value: 'calendar',
@@ -101,7 +115,7 @@ export const icons = [
   {
     value: 'chip',
     label: 'Chip',
-    path: Chip,
+    path: Cpu,
   },
   {
     value: 'compass',
@@ -131,7 +145,7 @@ export const icons = [
   {
     value: 'link',
     label: 'Link',
-    path: LinkIcon,
+    path: Link2,
   },
   {
     value: 'lock',
@@ -141,17 +155,17 @@ export const icons = [
   {
     value: 'messages',
     label: 'Messages',
-    path: Message,
+    path: MessageSquare,
   },
   {
     value: 'notification',
     label: 'Notification',
-    path: Notification,
+    path: Bell,
   },
   {
     value: 'payment',
     label: 'Payment',
-    path: Payment,
+    path: CreditCard,
   },
   {
     value: 'power',
@@ -176,7 +190,7 @@ export const icons = [
   {
     value: 'tune',
     label: 'Tune',
-    path: Tune,
+    path: Sliders,
   },
   {
     value: 'videorecorder',
@@ -191,27 +205,87 @@ export const icons = [
   {
     value: 'warning',
     label: 'Warning',
-    path: Warning,
+    path: AlertTriangle,
   },
   {
     value: 'person',
     label: 'Person',
-    path: Person,
+    path: User,
   },
   {
     value: 'category',
     label: 'Category',
-    path: PluraCategory,
+    path: LayoutGrid,
   },
   {
     value: 'clipboardIcon',
     label: 'Clipboard Icon',
-    path: ClipboardIcon,
+    path: Clipboard,
   },
   {
     value: 'government',
     label: 'Government',
-    path: Government,
+    path: Building2,
+  },
+  {
+    value: 'image',
+    label: 'Image',
+    path: ImageIcon,
+  },
+  {
+    value: 'kanban',
+    label: 'Kanban',
+    path: LayoutGrid,
+  },
+  {
+    value: 'automation',
+    label: 'Automation',
+    path: Zap,
+  },
+  {
+    value: 'email',
+    label: 'Email',
+    path: Mail,
+  },
+  {
+    value: 'phone',
+    label: 'Phone',
+    path: Phone,
+  },
+  {
+    value: 'document',
+    label: 'Document',
+    path: FileText,
+  },
+  {
+    value: 'analytics',
+    label: 'Analytics',
+    path: TrendingUp,
+  },
+  {
+    value: 'target',
+    label: 'Target',
+    path: Target,
+  },
+  {
+    value: 'award',
+    label: 'Award',
+    path: Award,
+  },
+  {
+    value: 'briefcase',
+    label: 'Briefcase',
+    path: Briefcase,
+  },
+  {
+    value: 'globe',
+    label: 'Globe',
+    path: Globe,
+  },
+  {
+    value: 'users',
+    label: 'Users',
+    path: Users,
   },
 ]
 

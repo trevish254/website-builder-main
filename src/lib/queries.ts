@@ -1722,38 +1722,6 @@ export const getContacts = async (subAccountId: string) => {
   return data
 }
 
-export const upsertContact = async (contact: Partial<any>) => {
-  const contactData = {
-    ...contact,
-    id: contact.id || v4(),
-    createdAt: contact.createdAt || new Date().toISOString(),
-    updatedAt: contact.updatedAt || new Date().toISOString(),
-  }
-
-  const { data, error } = await supabase
-    .from('Contact')
-    .upsert(contactData as AnyRecord)
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Error upserting contact:', error)
-    return null
-  }
-
-  // Revalidate the contacts page to ensure it shows the new/updated contact
-  if (contact.subAccountId) {
-    try {
-      revalidatePath(`/subaccount/${contact.subAccountId}/contacts`)
-      console.log('🔄 Revalidated contacts page')
-    } catch (revalidateError) {
-      console.log('⚠️ Could not revalidate contacts page:', revalidateError)
-    }
-  }
-
-  return data
-}
-
 export const getFunnels = async (subAccountId: string) => {
   try {
     // Check if Supabase is properly configured
@@ -2536,4 +2504,74 @@ export const getMpesaSettings = async (agencyId?: string, subAccountId?: string)
     return null
   }
   return data
+}
+
+export const getTaskBoardDetails = async (subAccountId: string) => {
+  console.log('🔍 getTaskBoardDetails called for subAccount:', subAccountId)
+  const { data: board } = await supabase
+    .from('TaskBoard')
+    .select('*')
+    .eq('subAccountId', subAccountId)
+    .single()
+
+  if (!board) {
+    console.log('⚠️ No board found, creating default board...')
+    const newBoardId = v4()
+    // Create default board if not exists
+    const { data: newBoard, error: createError } = await supabase
+      .from('TaskBoard')
+      .insert({
+        id: newBoardId,
+        name: 'Task Board',
+        subAccountId: subAccountId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as AnyRecord)
+      .select()
+      .single()
+
+    if (createError) {
+      console.error('❌ Error creating default board:', createError)
+      return null
+    }
+
+    if (newBoard) {
+      console.log('✅ Default board created:', newBoard.id)
+      // Create default lanes
+      const defaultLanes = [
+        { id: v4(), name: 'To Do', boardId: newBoard.id, order: 0, color: '#3b82f6', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: v4(), name: 'In Progress', boardId: newBoard.id, order: 1, color: '#eab308', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: v4(), name: 'Done', boardId: newBoard.id, order: 2, color: '#22c55e', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      ]
+      const { error: lanesError } = await supabase.from('TaskLane').insert(defaultLanes as AnyRecord[])
+
+      if (lanesError) {
+        console.error('❌ Error creating default lanes:', lanesError)
+      } else {
+        console.log('✅ Default lanes created')
+      }
+
+      // Return new board with lanes (need to refetch to get structure right or just return board and let page fetch lanes)
+      return { ...newBoard, TaskLane: defaultLanes }
+    }
+    return null
+  }
+
+  console.log('✅ Board found:', board.id)
+  const { data: lanes } = await supabase
+    .from('TaskLane')
+    .select(`
+      *,
+      Task (*)
+    `)
+    .eq('boardId', board.id)
+    .order('order')
+
+  // Sort tasks by order
+  const lanesWithTasks = lanes?.map(lane => ({
+    ...lane,
+    Task: lane.Task?.sort((a: any, b: any) => a.order - b.order) || []
+  })) || []
+
+  return { ...board, TaskLane: lanesWithTasks }
 }

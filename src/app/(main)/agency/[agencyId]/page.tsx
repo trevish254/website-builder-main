@@ -7,12 +7,12 @@ import TotalIncomeCard from '@/components/global/dashboard-cards/total-income-ca
 import TotalPaidCard from '@/components/global/dashboard-cards/total-paid-card'
 import SystemLockCard from '@/components/global/dashboard-cards/system-lock-card'
 import TimeRemainingCard from '@/components/global/dashboard-cards/time-remaining-card'
-import YearlyActivityCard from '@/components/global/dashboard-cards/yearly-activity-card'
+import ActivityChartCard from '@/components/global/dashboard-cards/activity-chart-card'
 import ActivityManagerCard from '@/components/global/dashboard-cards/activity-manager-card'
-import StocksCard from '@/components/global/dashboard-cards/stocks-card'
+import TotalSalesChart from '@/components/global/dashboard-cards/total-sales-chart'
 import ActivityValueCard from '@/components/global/dashboard-cards/activity-value-card'
-import BusinessPlansListCard from '@/components/global/dashboard-cards/business-plans-list-card'
-import BusinessPlansActionCard from '@/components/global/dashboard-cards/business-plans-action-card'
+
+import CalendarCard from '@/components/global/dashboard-cards/calendar-card'
 import {
   Card,
   CardContent,
@@ -32,6 +32,8 @@ import {
   DollarSign,
   Goal,
   ShoppingCart,
+  Users,
+  ArrowRight,
 } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
@@ -242,148 +244,114 @@ const Page = async ({
         {/* Dashboard Cards Row 1 */}
         <div className="flex gap-4 flex-col lg:!flex-row">
           <VisaAccountCard />
-          <TotalIncomeCard />
-          <TotalPaidCard />
-          <SystemLockCard />
+
+          {/* Total Income, Total Paid, and System Lock Container */}
+          <div className="flex-1 flex flex-col gap-4">
+            {/* Total Income and Total Paid - Side by Side */}
+            <div className="flex gap-4 flex-col sm:flex-row">
+              <TotalIncomeCard />
+              <TotalPaidCard />
+            </div>
+
+            {/* System Lock - Below Income/Paid */}
+            <SystemLockCard />
+          </div>
+
+          {/* Calendar - Fourth position */}
+          <CalendarCard />
         </div>
 
-        {/* Dashboard Cards Row 2 */}
-        <div className="flex gap-4 flex-col lg:!flex-row">
-          <div className="flex gap-4 flex-col lg:!flex-row flex-[0.6]">
-            <TimeRemainingCard />
-            <YearlyActivityCard />
-          </div>
-          <div className="flex-[0.4]">
-            <ActivityManagerCard />
-          </div>
-        </div>
-
-        {/* Dashboard Cards Row 3 */}
-        <div className="flex gap-4 flex-col lg:!flex-row">
-          <div className="flex-[0.4]">
-            <StocksCard />
-          </div>
-          <div className="flex-[0.2]">
-            <ActivityValueCard />
-          </div>
-          <div className="flex-[0.2]">
-            <BusinessPlansListCard />
-          </div>
-          <div className="flex-[0.2]">
-            <BusinessPlansActionCard />
-          </div>
-        </div>
-
-        {/* Subaccount Activity and Network Charts Row */}
-        <div className="flex gap-4 flex-col lg:!flex-row">
-          {/* Stream Chart - 70% width */}
-          <Card className="flex-[0.7]">
-            <CardHeader>
-              <CardTitle>Subaccount Activity Performance</CardTitle>
-              <CardDescription>
-                Activity trends across all subaccounts over time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AgencySubaccountStreamChart subaccounts={subaccounts} />
-            </CardContent>
-          </Card>
-
-          {/* Network Chart - 30% width */}
-          <Card className="flex-[0.3]">
-            <CardHeader>
-              <CardTitle>Network Overview</CardTitle>
-              <CardDescription>
-                Visual representation of your agency network showing subaccounts and funnel visitors
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AgencyNetworkChart
-                agencyName={agencyDetails?.name || 'Agency'}
-                subaccounts={subaccounts}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Team Hierarchy Tree Chart */}
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Team Hierarchy & Access Structure</CardTitle>
-            <CardDescription>
-              Organizational structure showing agency, subaccounts, team members, and their access permissions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AgencyTeamTreeChart
-              agencyName={agencyDetails?.name || 'Agency'}
-              subaccounts={subaccounts}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Middle Row - Charts */}
-        <div className="flex gap-4 flex-col lg:!flex-row">
-          {/* Cash Flow Analytics */}
-          <Card className="flex-1">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Cash Flow Analytics</CardTitle>
-                <select className="text-sm border rounded-md px-2 py-1">
-                  <option>Monthly</option>
-                  <option>Weekly</option>
-                  <option>Yearly</option>
-                </select>
+        {/* Dashboard Cards Split Layout */}
+        <div className="flex gap-4 flex-col xl:!flex-row">
+          {/* Left Column */}
+          <div className="flex-1 flex flex-col gap-4">
+            {/* Row 1 in Left Column */}
+            <div className="flex gap-4 flex-col lg:!flex-row">
+              <div className="lg:flex-[0.4]">
+                <TimeRemainingCard />
               </div>
-            </CardHeader>
-            <CardContent>
-              <AreaChart
-                className="h-72"
-                data={cashFlowData}
-                index="month"
-                categories={['income', 'expense']}
-                colors={['emerald', 'blue']}
-                showLegend
-                yAxisWidth={60}
-              />
-            </CardContent>
-          </Card>
+              <div className="lg:flex-[0.6]">
+                <ActivityChartCard />
+              </div>
+            </div>
 
-          {/* Financial Balance */}
-          <Card className="xl:w-[400px] w-full">
-            <CardHeader>
-              <CardTitle>Financial Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center h-64">
-                <CircleProgress
-                  value={48}
-                  description={
-                    <div className="text-center">
-                      <p className="text-2xl font-bold">48%</p>
-                      <p className="text-xs text-muted-foreground">
-                        from yesterday
-                      </p>
+            {/* Row 2 in Left Column */}
+            <div className="flex gap-4 flex-col lg:!flex-row">
+              <div className="lg:flex-[0.6]">
+                <TotalSalesChart />
+              </div>
+              <div className="lg:flex-[0.4]">
+                <ActivityValueCard />
+              </div>
+            </div>
+
+            {/* Row 3 in Left Column (Cash Flow & Financial Balance) */}
+            <div className="flex gap-4 flex-col lg:!flex-row">
+              <Card className="flex-1">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Cash Flow Analytics</CardTitle>
+                    <select className="text-sm border rounded-md px-2 py-1">
+                      <option>Monthly</option>
+                      <option>Weekly</option>
+                      <option>Yearly</option>
+                    </select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <AreaChart
+                    className="h-72"
+                    data={cashFlowData}
+                    index="month"
+                    categories={['income', 'expense']}
+                    colors={['emerald', 'blue']}
+                    showLegend
+                    yAxisWidth={60}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="xl:w-[400px] w-full">
+                <CardHeader>
+                  <CardTitle>Financial Balance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-center h-64">
+                    <CircleProgress
+                      value={48}
+                      description={
+                        <div className="text-center">
+                          <p className="text-2xl font-bold">48%</p>
+                          <p className="text-xs text-muted-foreground">
+                            from yesterday
+                          </p>
+                        </div>
+                      }
+                    />
+                  </div>
+                  <div className="flex justify-between mt-4 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500" />
+                      <span className="text-muted-foreground">Total Profit</span>
                     </div>
-                  }
-                />
-              </div>
-              <div className="flex justify-between mt-4 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
-                  <span className="text-muted-foreground">Total Profit</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gray-300" />
-                  <span className="text-muted-foreground">Profit Today</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gray-600" />
-                  <span className="text-muted-foreground">For Week</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-gray-300" />
+                      <span className="text-muted-foreground">Profit Today</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-gray-600" />
+                      <span className="text-muted-foreground">For Week</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Right Column - Activity Manager */}
+          <div className="xl:w-[400px] w-full">
+            <ActivityManagerCard className="h-full" />
+          </div>
         </div>
 
         {/* Bottom Row - Recent Transactions and Tax Liabilities */}
@@ -425,8 +393,8 @@ const Page = async ({
                         <td className="py-3">
                           <span
                             className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${transaction.status === 'Paid'
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                                : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
                               }`}
                           >
                             {transaction.status}
@@ -505,8 +473,8 @@ const Page = async ({
                         <td className="py-2">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${tax.status === 'Success'
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                                : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
                               }`}
                           >
                             {tax.status}

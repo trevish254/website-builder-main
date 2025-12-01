@@ -55,7 +55,7 @@ const SubaccountLayout = async ({ children, params }: Props) => {
             role={((userDetails as any).role || 'AGENCY_OWNER') as Role}
             subAccountId={params.subaccountId as string}
           />
-          <div className="relative">{children}</div>
+          <div className="relative flex-1 overflow-hidden">{children}</div>
         </MainLayoutWrapper>
       </div>
     </SidebarProvider>

@@ -333,6 +333,15 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
           updatedAt: new Date().toISOString(),
         },
         {
+          id: `sidebar-${id}-tasks`,
+          name: 'Tasks',
+          link: `/agency/${id}/tasks`,
+          icon: 'check',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
           id: `sidebar-${id}-messages`,
           name: 'Messages',
           link: `/agency/${id}/messages`,
@@ -376,6 +385,22 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
           updatedAt: new Date().toISOString(),
         })
         console.log('✅ Added Messages to sidebar options')
+      }
+
+      // Check if Tasks is missing from existing options
+      const hasTasks = sidebarOpt.some((option: any) => option.name === 'Tasks')
+      if (!hasTasks) {
+        console.log('🔧 Adding Tasks to existing sidebar options')
+        sidebarOpt.push({
+          id: `sidebar-${id}-tasks`,
+          name: 'Tasks',
+          link: `/agency/${id}/tasks`,
+          icon: 'check',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        console.log('✅ Added Tasks to sidebar options')
       }
 
       // Check if Government Services is missing from existing options

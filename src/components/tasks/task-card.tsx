@@ -12,9 +12,12 @@ import { format } from 'date-fns'
 type Props = {
     task: Task
     index: number
+    subAccountUsers?: { id: string; name: string; avatarUrl: string }[]
 }
 
-const TaskCard = ({ task, index }: Props) => {
+const TaskCard = ({ task, index, subAccountUsers }: Props) => {
+    const assignee = subAccountUsers?.find(u => u.id === task.assignedUserId)
+
     return (
         <Draggable draggableId={task.id} index={index}>
             {(provided) => (
@@ -51,10 +54,10 @@ const TaskCard = ({ task, index }: Props) => {
                                 </div>
 
                                 <div className="flex items-center">
-                                    {task.assignedUserId ? (
+                                    {assignee ? (
                                         <Avatar className="w-6 h-6">
-                                            <AvatarImage src="" /> {/* TODO: Fetch user avatar */}
-                                            <AvatarFallback className="text-[10px]">U</AvatarFallback>
+                                            <AvatarImage src={assignee.avatarUrl} />
+                                            <AvatarFallback className="text-[10px]">{assignee.name.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                     ) : (
                                         <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
