@@ -26,7 +26,16 @@ const SubaccountLayout = async ({ children, params }: Props) => {
   const userDetails = await getAuthUserDetails()
   if (!userDetails) return redirect('/agency')
 
-  const subaccounts = ((userDetails as any).Agency?.SubAccount || []) as Array<{ id: string; agencyId: string }>
+  let subaccounts = ((userDetails as any).Agency?.SubAccount || []) as Array<{ id: string; agencyId: string }>
+
+  // Also check permissions for subaccounts (for invited users)
+  if ((userDetails as any).Permissions) {
+    const permittedSubaccounts = (userDetails as any).Permissions
+      .filter((p: any) => p.access && p.SubAccount)
+      .map((p: any) => p.SubAccount)
+    subaccounts = [...subaccounts, ...permittedSubaccounts]
+  }
+
   const subaccount = subaccounts.find((s) => s.id === params.subaccountId)
   if (!subaccount) {
     return <Unauthorized />

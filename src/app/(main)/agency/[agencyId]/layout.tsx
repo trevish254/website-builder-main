@@ -8,6 +8,7 @@ import {
   getAuthUserDetails,
 } from '@/lib/queries'
 import { getUser } from '@/lib/supabase/server'
+import { supabase } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import React from 'react'
 
@@ -23,7 +24,7 @@ const layout = async ({ children, params }: Props) => {
   const user = await getUser()
   if (!user) return redirect('/agency/sign-in')
 
-  const [userDetails, notifications] = await Promise.all([
+  let [userDetails, notifications] = await Promise.all([
     getAuthUserDetails(),
     getNotificationAndUser(params.agencyId),
   ])
@@ -32,13 +33,35 @@ const layout = async ({ children, params }: Props) => {
     return redirect('/agency/sign-in')
   }
 
+  // Check for invited access and override user details for context
+  const invitedAgency = userDetails.InvitedAgencies?.find(
+    (agency: any) => agency.id === params.agencyId
+  )
+
+  if (invitedAgency) {
+    // If accessing an invited agency, use the role from the invitation
+    // and pretend we are in that agency for the UI context
+    userDetails = {
+      ...userDetails,
+      agencyId: invitedAgency.id,
+      role: invitedAgency.role || userDetails.role, // Fallback to existing role if not found (shouldn't happen)
+    }
+  }
+
   // Check if user has access to this agency
-  if (
-    userDetails.agencyId !== params.agencyId &&
-    userDetails.role !== 'AGENCY_OWNER' &&
-    userDetails.role !== 'AGENCY_ADMIN'
-  ) {
-    return <Unauthorized />
+  // User has access if:
+  // 1. Their agencyId matches (they own/are assigned to this agency)
+  // 2. They have an accepted invitation to this agency (InvitedAgencies)
+  const hasDirectAccess = userDetails.agencyId === params.agencyId
+  // We already checked invited access above, so if invitedAgency exists, we have access
+  const hasAccess = hasDirectAccess || !!invitedAgency
+
+  if (!hasAccess) {
+    // Only show unauthorized if they don't have access through either method
+    if (userDetails.role !== 'AGENCY_OWNER' && userDetails.role !== 'AGENCY_ADMIN') {
+      return <Unauthorized />
+    }
+    return redirect('/')
   }
 
   // Redirect Subaccount Users to their subaccount
@@ -46,7 +69,20 @@ const layout = async ({ children, params }: Props) => {
     userDetails.role === 'SUBACCOUNT_USER' ||
     userDetails.role === 'SUBACCOUNT_GUEST'
   ) {
-    const firstSubaccountWithAccess = userDetails.Permissions.find(
+    // If this is an invited user, we need to fetch their permissions for THIS agency
+    let permissions = userDetails.Permissions
+
+    if (invitedAgency) {
+      // Fetch permissions for the invited agency
+      const { data: invitedPermissions } = await supabase
+        .from('Permissions')
+        .select('*')
+        .eq('email', user.email)
+
+      permissions = invitedPermissions || []
+    }
+
+    const firstSubaccountWithAccess = permissions.find(
       (p: any) => p.access === true
     )
     if (firstSubaccountWithAccess) {

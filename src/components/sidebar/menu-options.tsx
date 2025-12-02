@@ -280,9 +280,21 @@ const MenuOptions = ({
                             {user.InvitedAgencies.map((agency: any) => (
                               <CommandItem key={agency.id} className="!bg-transparent my-2 text-primary broder-[1px] border-border p-2 rounded-md hover:!bg-muted cursor-pointer transition-all">
                                 {defaultOpen ? (
-                                  <Link
-                                    href={`/agency/${agency.id}`}
-                                    className="flex gap-4 w-full h-full"
+                                  <button
+                                    onClick={async () => {
+                                      console.log('🔄 Switching to agency:', agency.id, agency.name)
+                                      const { switchUserAgency } = await import('@/lib/actions/switch-agency')
+                                      const result = await switchUserAgency(agency.id)
+                                      console.log('✅ Switch result:', result)
+                                      if (result.success) {
+                                        console.log('🚀 Navigating to:', `/agency/${agency.id}`)
+                                        window.location.replace(`/agency/${agency.id}`)
+                                      } else {
+                                        console.error('Failed to switch agency:', result.error)
+                                        alert('Failed to switch agency. Please try again.')
+                                      }
+                                    }}
+                                    className="flex gap-4 w-full h-full text-left"
                                   >
                                     <div className="relative w-16">
                                       <Image
@@ -298,12 +310,21 @@ const MenuOptions = ({
                                         {agency.address}
                                       </span>
                                     </div>
-                                  </Link>
+                                  </button>
                                 ) : (
                                   <SheetClose asChild>
-                                    <Link
-                                      href={`/agency/${agency.id}`}
-                                      className="flex gap-4 w-full h-full"
+                                    <button
+                                      onClick={async () => {
+                                        const { switchUserAgency } = await import('@/lib/actions/switch-agency')
+                                        const result = await switchUserAgency(agency.id)
+                                        if (result.success) {
+                                          window.location.replace(`/agency/${agency.id}`)
+                                        } else {
+                                          console.error('Failed to switch agency:', result.error)
+                                          alert('Failed to switch agency. Please try again.')
+                                        }
+                                      }}
+                                      className="flex gap-4 w-full h-full text-left"
                                     >
                                       <div className="relative w-16">
                                         <Image
@@ -319,7 +340,7 @@ const MenuOptions = ({
                                           {agency.address}
                                         </span>
                                       </div>
-                                    </Link>
+                                    </button>
                                   </SheetClose>
                                 )}
                               </CommandItem>

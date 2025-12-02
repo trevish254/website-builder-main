@@ -190,7 +190,7 @@ const ActivityManagerCard = ({ className }: Props) => {
             </Button>
           </Badge>
         </div>
-        <div className="space-y-4 mt-4">
+        <div className="space-y-4 mt-4 max-h-[380px] overflow-y-auto pr-2">
           {mockActivities.map((activity) => (
             <div key={activity.id} className="flex items-start gap-3 pb-4 border-b last:border-0 last:pb-0">
               <Avatar className="h-8 w-8">

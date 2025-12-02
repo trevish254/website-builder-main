@@ -198,7 +198,7 @@ export const getLanesWithTicketAndTags = async (pipelineId: string) => {
 }
 
 export const updateLanesOrder = async (lanes: Array<{ id: string; order: number }>) => {
-  const updates = lanes.map(lane => 
+  const updates = lanes.map(lane =>
     supabase
       .from('Lane')
       .update({ order: lane.order })
@@ -207,7 +207,7 @@ export const updateLanesOrder = async (lanes: Array<{ id: string; order: number 
 
   const results = await Promise.all(updates)
   const errors = results.filter(result => result.error)
-  
+
   if (errors.length > 0) {
     console.error('Error updating lanes order:', errors)
     return false
@@ -217,7 +217,7 @@ export const updateLanesOrder = async (lanes: Array<{ id: string; order: number 
 }
 
 export const updateTicketsOrder = async (tickets: Array<{ id: string; order: number; laneId: string }>) => {
-  const updates = tickets.map(ticket => 
+  const updates = tickets.map(ticket =>
     supabase
       .from('Ticket')
       .update({ order: ticket.order, laneId: ticket.laneId })
@@ -226,7 +226,7 @@ export const updateTicketsOrder = async (tickets: Array<{ id: string; order: num
 
   const results = await Promise.all(updates)
   const errors = results.filter(result => result.error)
-  
+
   if (errors.length > 0) {
     console.error('Error updating tickets order:', errors)
     return false
@@ -529,7 +529,13 @@ export const ensureDirectConversation = async (params: {
 }
 
 // Get all users in an agency for conversation initiation
-export const getAgencyUsers = async (agencyId: string) => {
+export const getAgencyUsers = async (agencyId: string): Promise<Array<{
+  id: string
+  name: string | null
+  email: string
+  avatarUrl: string
+  role: string
+}>> => {
   const { data, error } = await supabase
     .from('User')
     .select('id, name, email, avatarUrl, role')
@@ -597,7 +603,7 @@ export const verifyAndAcceptInvitation = async () => {
     }
 
     const newUser = await createUser(userData)
-    
+
     if (newUser) {
       // Update invitation status
       await supabase
@@ -617,4 +623,22 @@ export const verifyAndAcceptInvitation = async () => {
     .single()
 
   return existingUser?.agencyId || null
+}
+
+export const uploadChatAttachment = async (file: File) => {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${Math.random()}.${fileExt}`
+  const filePath = `${fileName}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('chat-attachments')
+    .upload(filePath, file)
+
+  if (uploadError) {
+    console.error('Error uploading file:', uploadError)
+    return null
+  }
+
+  const { data } = supabase.storage.from('chat-attachments').getPublicUrl(filePath)
+  return data.publicUrl
 }

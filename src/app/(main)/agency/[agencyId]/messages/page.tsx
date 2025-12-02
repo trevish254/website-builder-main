@@ -1,62 +1,26 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   MessageSquare,
   Search,
-  Send,
-  Paperclip,
-  MoreVertical,
-  Archive,
-  Trash2,
-  Star,
-  StarOff,
-  Pin,
-  User,
-  CheckCircle2,
-  Circle,
-  Smile,
-  Image as ImageIcon,
-  Video,
-  FileText,
-  Clock,
-  Reply,
-  Forward
+  Plus,
+  User
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { supabase } from '@/lib/supabase'
 import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
-import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getAgencyUsers, ensureDirectConversation, getConversationWithParticipants } from '@/lib/supabase-queries'
+import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getAgencyUsers, ensureDirectConversation, getConversationWithParticipants, uploadChatAttachment } from '@/lib/supabase-queries'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
-import { Plus } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import ChatSidebar, { InboxItem } from '@/components/global/chat/chat-sidebar'
+import ChatWindow from '@/components/global/chat/chat-window'
 
 type Props = {
   params: { agencyId: string }
-}
-
-interface InboxItem {
-  id: string
-  title: string
-  preview: string
-  timestamp: string
-  unread: boolean
-  starred: boolean
-  pinned: boolean
-  avatar?: string
-  email?: string
-  attachments?: number
-  participantInfo?: {
-    id: string
-    name: string
-    email: string
-    avatarUrl: string
-  } | null
 }
 
 interface ChatMessage {
@@ -65,6 +29,9 @@ interface ChatMessage {
   text: string
   timestamp: string
   attachments?: { type: string; name: string; url: string }[]
+  senderName?: string
+  senderAvatar?: string
+  isRead?: boolean
 }
 
 const MessagesPage = ({ params }: Props) => {
@@ -79,6 +46,10 @@ const MessagesPage = ({ params }: Props) => {
   const [showNewMessageDialog, setShowNewMessageDialog] = useState(false)
   const [agencyUsers, setAgencyUsers] = useState<any[]>([])
   const [searchUserQuery, setSearchUserQuery] = useState('')
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set())
+  const [isUploading, setIsUploading] = useState(false)
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch agency users for new message dialog
   useEffect(() => {
@@ -113,7 +84,7 @@ const MessagesPage = ({ params }: Props) => {
           id: c.id,
           title: c.title || otherParticipant?.User?.name || 'Conversation',
           preview: lastMessage?.content || '',
-          timestamp: c.lastMessageAt || c.updatedAt || c.createdAt || '',
+          timestamp: c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleDateString() : '',
           unread: true, // TODO: Calculate based on lastReadAt
           starred: false,
           pinned: false,
@@ -139,12 +110,17 @@ const MessagesPage = ({ params }: Props) => {
     const loadMessages = async () => {
       if (!selectedConversationId) return
       const msgs = await getConversationMessages(selectedConversationId, 200)
-      const mapped: ChatMessage[] = msgs.map((m) => ({
-        id: m.id,
-        sender: m.senderId === user?.id ? 'me' : 'other',
-        text: m.content,
-        timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }))
+      const mapped: ChatMessage[] = msgs.map((m) => {
+        const metadata = m.metadata as any
+        return {
+          id: m.id,
+          sender: m.senderId === user?.id ? 'me' : 'other',
+          text: m.content,
+          timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          attachments: metadata?.attachments || [],
+          isRead: true // In a real app, check read receipts
+        }
+      })
       setChatMessages(mapped)
       if (user?.id) await markConversationRead(selectedConversationId, user.id)
     }
@@ -161,48 +137,162 @@ const MessagesPage = ({ params }: Props) => {
         { event: 'INSERT', schema: 'public', table: 'Message', filter: `conversationId=eq.${selectedConversationId}` },
         (payload) => {
           const m = payload.new as any
+          const metadata = m.metadata as any
           setChatMessages((prev) => [
             ...prev,
             {
               id: m.id,
               sender: m.senderId === user?.id ? 'me' : 'other',
               text: m.content,
-              timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              attachments: metadata?.attachments || []
             }
           ])
         }
       )
       .subscribe()
 
+    const readChannel = supabase
+      .channel(`participants:${selectedConversationId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'ConversationParticipant', filter: `conversationId=eq.${selectedConversationId}` },
+        (payload) => {
+          // Update messages read status if needed, or just trigger a re-fetch/update local state
+          // For now, we can assume if we get an update here, someone read something
+          // In a real app, we would update specific message 'isRead' status based on 'lastReadAt'
+          console.log('Read receipt update:', payload)
+        }
+      )
+      .subscribe()
+
     return () => {
       supabase.removeChannel(channel)
+      supabase.removeChannel(readChannel)
     }
   }, [selectedConversationId, user?.id])
 
-  const filteredMessages = inboxItems.filter(msg => {
-    if (searchQuery) {
-      return msg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msg.preview.toLowerCase().includes(searchQuery.toLowerCase())
+  // Presence and Typing Indicators
+  useEffect(() => {
+    if (!user?.id) return
+
+    const channel = supabase.channel('online-users', {
+      config: {
+        presence: {
+          key: user.id,
+        },
+      },
+    })
+
+    channel.on('presence', { event: 'sync' }, () => {
+      const newState = channel.presenceState()
+      const online = new Set(Object.keys(newState))
+      setOnlineUsers(online)
+    })
+
+    channel.on('broadcast', { event: 'typing' }, ({ payload }) => {
+      if (payload.conversationId === selectedConversationId && payload.userId !== user.id) {
+        setTypingUsers((prev) => {
+          const newSet = new Set(prev)
+          newSet.add(payload.userId)
+          return newSet
+        })
+
+        // Clear typing status after 3 seconds
+        setTimeout(() => {
+          setTypingUsers((prev) => {
+            const newSet = new Set(prev)
+            newSet.delete(payload.userId)
+            return newSet
+          })
+        }, 3000)
+      }
+    })
+
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({
+          online_at: new Date().toISOString(),
+          user_id: user.id,
+        })
+      }
+    })
+
+    return () => {
+      channel.unsubscribe()
     }
-    return true
-  })
+  }, [user?.id, selectedConversationId])
 
   const unreadCount = inboxItems.filter(m => m.unread).length
   const starredCount = inboxItems.filter(m => m.starred).length
 
-  const handleStarToggle = (id: string) => {
-    setInboxItems(inboxItems.map(msg =>
-      msg.id === id ? { ...msg, starred: !msg.starred } : msg
-    ))
-  }
-
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversationId || !user?.id) return
-    await sendMessageApi({ conversationId: selectedConversationId, senderId: user.id, content: newMessage })
+    await sendMessageApi({
+      conversationId: selectedConversationId,
+      senderId: user.id,
+      content: newMessage,
+      metadata: { attachments: [] } // Add attachments here if we had a staging area
+    })
     setNewMessage('')
   }
 
-  const selectedMsg = useMemo(() => inboxItems.find(m => m.id === selectedConversationId), [inboxItems, selectedConversationId])
+  const handleTyping = () => {
+    if (!selectedConversationId || !user?.id) return
+
+    // Debounce typing events
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+
+    const channel = supabase.channel('online-users')
+    channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { conversationId: selectedConversationId, userId: user.id }
+    })
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !selectedConversationId || !user?.id) return
+    setIsUploading(true)
+
+    const files = Array.from(e.target.files)
+    const attachments = []
+
+    for (const file of files) {
+      const url = await uploadChatAttachment(file)
+      if (url) {
+        attachments.push({
+          type: file.type,
+          name: file.name,
+          url
+        })
+      }
+    }
+
+    if (attachments.length > 0) {
+      await sendMessageApi({
+        conversationId: selectedConversationId,
+        senderId: user.id,
+        content: 'Sent an attachment',
+        metadata: { attachments }
+      })
+    }
+
+    setIsUploading(false)
+  }
+
+  const selectedMsg = useMemo(() => {
+    const item = inboxItems.find(m => m.id === selectedConversationId)
+    if (item && item.participantInfo) {
+      return {
+        ...item,
+        isOnline: onlineUsers.has(item.participantInfo.id)
+      }
+    }
+    return item || null
+  }, [inboxItems, selectedConversationId, onlineUsers])
 
   const handleStartConversation = async (selectedUserId: string) => {
     if (!user?.id || !selectedUserId) return
@@ -316,298 +406,41 @@ const MessagesPage = ({ params }: Props) => {
 
       {/* Main Content */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
-        {/* Inbox Panel */
-        }
-        <Card className="lg:col-span-1 flex flex-col overflow-hidden">
-          <CardHeader className="pb-4 border-b">
-            <div className="flex items-center justify-between mb-4">
-              <CardTitle className="text-xl">Inbox</CardTitle>
-              <div className="flex gap-2">
-                <Button
-                  variant={activeTab === 'inbox' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('inbox')}
-                >
-                  Inbox
-                </Button>
-                <Button
-                  variant={activeTab === 'archived' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('archived')}
-                >
-                  Archived
-                </Button>
-              </div>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search messages..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-hidden p-0">
-            <ScrollArea className="h-full">
-              <div className="space-y-1 p-4">
-                {filteredMessages.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No messages found</p>
-                  </div>
-                ) : (
-                  filteredMessages.map((message) => (
-                    <div
-                      key={message.id}
-                      onClick={() => setSelectedConversationId(message.id)}
-                      className={`
-                        p-4 rounded-lg cursor-pointer transition-all
-                        ${selectedConversationId === message.id
-                          ? 'bg-blue-50 dark:bg-blue-950 border-2 border-blue-500'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-2 border-transparent'
-                        }
-                        ${message.unread ? 'bg-gray-50 dark:bg-gray-900' : ''}
-                      `}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={message.avatar || message.participantInfo?.avatarUrl || ''} />
-                          <AvatarFallback>
-                            {message.participantInfo?.name?.charAt(0) || message.title.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`
-                                font-semibold text-sm truncate
-                                ${message.unread ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}
-                              `}>
-                                {message.participantInfo?.name || message.title}
-                              </span>
-                              {message.pinned && (
-                                <Pin className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                              )}
-                              {message.starred && (
-                                <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                              )}
-                            </div>
-                            <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                              {message.timestamp}
-                            </span>
-                          </div>
-                          <p className={` 
-                            text-sm truncate mb-1
-                            ${message.unread ? 'font-medium text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}
-                          `}>
-                            {message.preview || 'No messages yet'}
-                          </p>
-                          {message.participantInfo?.email && (
-                            <p className="text-xs text-gray-500 truncate">
-                              {message.participantInfo.email}
-                            </p>
-                          )}
-                          {message.attachments && message.attachments > 0 && (
-                            <div className="flex items-center gap-1 mt-2">
-                              <Paperclip className="h-3 w-3 text-gray-400" />
-                              <span className="text-xs text-gray-500">
-                                {message.attachments} attachment{message.attachments > 1 ? 's' : ''}
-                              </span>
-                            </div>
-                          )}
-                          {message.unread && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <Circle className="h-2 w-2 fill-blue-500 text-blue-500" />
-                              <span className="text-xs text-blue-600 dark:text-blue-400">New</span>
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleStarToggle(message.id)
-                          }}
-                        >
-                          {message.starred ? (
-                            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                          ) : (
-                            <StarOff className="h-4 w-4 text-gray-400" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        <ChatSidebar
+          inboxItems={inboxItems.map(item => ({
+            ...item,
+            isOnline: item.participantInfo ? onlineUsers.has(item.participantInfo.id) : false
+          }))}
+          selectedConversationId={selectedConversationId || ''}
+          onSelectConversation={setSelectedConversationId}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-        {/* Chat/Message Detail Panel */}
-        <Card className="lg:col-span-2 flex flex-col overflow-hidden">
-          {selectedConversationId && selectedMsg ? (
-            <>
-              {/* Chat Header */}
-              <CardHeader className="pb-4 border-b">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={selectedMsg.avatar || selectedMsg.participantInfo?.avatarUrl || ''} />
-                      <AvatarFallback>
-                        {selectedMsg.participantInfo?.name?.charAt(0) || selectedMsg.title.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle className="text-lg">{selectedMsg.participantInfo?.name || selectedMsg.title}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedMsg.participantInfo?.email || 'Direct Message'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon">
-                      <Archive className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-
-              {/* Chat Messages */}
-              <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
-                <div className="px-6 py-4 border-b bg-gray-50 dark:bg-gray-900">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{selectedMsg.title}</h3>
-                      <p className="text-sm text-muted-foreground">Last updated {selectedMsg.timestamp}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
-                        <Reply className="h-4 w-4 mr-2" />
-                        Reply
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Forward className="h-4 w-4 mr-2" />
-                        Forward
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <ScrollArea className="flex-1 px-6">
-                  <div className="space-y-4 py-6">
-                    {chatMessages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div className={`
-                          max-w-[70%] rounded-2xl px-4 py-3
-                          ${msg.sender === 'me'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                          }
-                        `}>
-                          {msg.attachments && msg.attachments.length > 0 && (
-                            <div className="mb-2 space-y-2">
-                              {msg.attachments.map((att, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-center gap-2 p-2 bg-white dark:bg-gray-700 rounded-lg"
-                                >
-                                  {att.type === 'pdf' && <FileText className="h-4 w-4 text-red-500" />}
-                                  {att.type === 'image' && <ImageIcon className="h-4 w-4 text-blue-500" />}
-                                  {att.type === 'video' && <Video className="h-4 w-4 text-purple-500" />}
-                                  <span className="text-xs truncate">{att.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                          <div className={`
-                            flex items-center justify-end gap-1 mt-2 text-xs
-                            ${msg.sender === 'me' ? 'text-blue-100' : 'text-gray-500'}
-                          `}>
-                            <span>{msg.timestamp}</span>
-                            {msg.sender === 'me' && (
-                              <CheckCircle2 className="h-3 w-3" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-
-                {/* Message Input */}
-                <div className="p-4 border-t bg-gray-50 dark:bg-gray-900">
-                  <div className="flex items-end gap-2">
-                    <div className="flex-1">
-                      <Textarea
-                        placeholder="Type your message..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault()
-                            handleSendMessage()
-                          }
-                        }}
-                        className="min-h-[80px] resize-none"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-9 w-9">
-                          <Paperclip className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-9 w-9">
-                          <ImageIcon className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-9 w-9">
-                          <Smile className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <Button
-                        onClick={handleSendMessage}
-                        className="bg-blue-600 hover:bg-blue-700"
-                        size="icon"
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </>
-          ) : (
-            <CardContent className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageSquare className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-700" />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  Select a message to view
-                </h3>
-                <p className="text-gray-500">
-                  Choose a conversation from the inbox to start chatting
-                </p>
-              </div>
-            </CardContent>
-          )}
-        </Card>
+        <ChatWindow
+          selectedMsg={selectedMsg}
+          chatMessages={chatMessages}
+          newMessage={newMessage}
+          onNewMessageChange={(val) => {
+            setNewMessage(val)
+            handleTyping()
+          }}
+          onSendMessage={handleSendMessage}
+          onFileUpload={handleFileUpload}
+          isUploading={isUploading}
+          isTyping={typingUsers.size > 0}
+          onInputKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              handleSendMessage()
+            }
+          }}
+        />
       </div>
     </div>
   )
 }
 
 export default MessagesPage
-

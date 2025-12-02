@@ -247,7 +247,7 @@ export const getAuthUserDetails = cache(async () => {
       // Fetch agencies where the user is an invited member
       const { data: invitations } = await supabase
         .from('Invitation')
-        .select('agencyId')
+        .select('agencyId, role')
         .eq('email', user.email || '')
         .eq('status', 'ACCEPTED')
 
@@ -272,7 +272,10 @@ export const getAuthUserDetails = cache(async () => {
           `)
           .in('id', invitedAgencyIds)
 
-        invitedAgencies = agencies || []
+        invitedAgencies = agencies?.map((agency) => {
+          const invite = invitations?.find((i) => i.agencyId === agency.id)
+          return { ...agency, role: invite?.role }
+        }) || []
       }
 
       return {
@@ -370,7 +373,28 @@ export const verifyAndAcceptInvitation = async () => {
       .single()
 
     if (existingUser) {
-      // User exists, just accept the invitation
+      // CRITICAL: Only update agencyId for AGENCY_OWNER/ADMIN invitations
+      // SUBACCOUNT users should keep their original agencyId
+      const isAgencyRole = invitationData.role === 'AGENCY_OWNER' || invitationData.role === 'AGENCY_ADMIN'
+
+      if (isAgencyRole) {
+        // User is joining as agency staff - update their agencyId
+        const { error: updateError } = await supabase
+          .from('User')
+          .update({
+            agencyId: invitationData.agencyId,
+            role: invitationData.role,
+            updatedAt: new Date().toISOString()
+          } as AnyRecord)
+          .eq('id', user.id)
+
+        if (updateError) {
+          console.error('Error updating user agency:', updateError)
+        }
+      }
+      // For SUBACCOUNT roles, don't update agencyId - they access via Permissions table
+
+      // Accept the invitation
       await supabase
         .from('Invitation')
         .update({ status: 'ACCEPTED' } as AnyRecord)

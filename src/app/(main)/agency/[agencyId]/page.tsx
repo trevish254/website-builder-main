@@ -10,7 +10,9 @@ import TimeRemainingCard from '@/components/global/dashboard-cards/time-remainin
 import ActivityChartCard from '@/components/global/dashboard-cards/activity-chart-card'
 import ActivityManagerCard from '@/components/global/dashboard-cards/activity-manager-card'
 import TotalSalesChart from '@/components/global/dashboard-cards/total-sales-chart'
-import ActivityValueCard from '@/components/global/dashboard-cards/activity-value-card'
+import AnimatedCardChart from '@/components/global/dashboard-cards/animated-card-chart'
+import ClientHealthScoreCard from '@/components/global/dashboard-cards/client-health-score-card'
+import SubaccountTableCard from '@/components/global/dashboard-cards/subaccount-table-card'
 
 import CalendarCard from '@/components/global/dashboard-cards/calendar-card'
 import {
@@ -281,78 +283,90 @@ const Page = async ({
                 <TotalSalesChart />
               </div>
               <div className="lg:flex-[0.4]">
-                <ActivityValueCard />
+                <AnimatedCardChart />
               </div>
             </div>
 
             {/* Row 3 in Left Column (Cash Flow & Financial Balance) */}
-            <div className="flex gap-4 flex-col lg:!flex-row">
-              <Card className="flex-1">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Cash Flow Analytics</CardTitle>
-                    <select className="text-sm border rounded-md px-2 py-1">
-                      <option>Monthly</option>
-                      <option>Weekly</option>
-                      <option>Yearly</option>
-                    </select>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <AreaChart
-                    className="h-72"
-                    data={cashFlowData}
-                    index="month"
-                    categories={['income', 'expense']}
-                    colors={['emerald', 'blue']}
-                    showLegend
-                    yAxisWidth={60}
-                  />
-                </CardContent>
-              </Card>
+            <Card className="flex-1">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Cash Flow Analytics</CardTitle>
+                  <select className="text-sm border rounded-md px-2 py-1">
+                    <option>Monthly</option>
+                    <option>Weekly</option>
+                    <option>Yearly</option>
+                  </select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <AreaChart
+                  className="h-72"
+                  data={cashFlowData}
+                  index="month"
+                  categories={['income', 'expense']}
+                  colors={['emerald', 'blue']}
+                  showLegend
+                  yAxisWidth={60}
+                />
+              </CardContent>
+            </Card>
 
-              <Card className="xl:w-[400px] w-full">
-                <CardHeader>
-                  <CardTitle>Financial Balance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-center h-64">
-                    <CircleProgress
-                      value={48}
-                      description={
-                        <div className="text-center">
-                          <p className="text-2xl font-bold">48%</p>
-                          <p className="text-xs text-muted-foreground">
-                            from yesterday
-                          </p>
-                        </div>
-                      }
-                    />
-                  </div>
-                  <div className="flex justify-between mt-4 text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-500" />
-                      <span className="text-muted-foreground">Total Profit</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-gray-300" />
-                      <span className="text-muted-foreground">Profit Today</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-gray-600" />
-                      <span className="text-muted-foreground">For Week</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+            {/* Row 4 in Left Column (Client Health Score Dashboard) */}
+            <ClientHealthScoreCard />
 
-          {/* Right Column - Activity Manager */}
-          <div className="xl:w-[400px] w-full">
-            <ActivityManagerCard className="h-full" />
           </div>
         </div>
+
+
+
+        {/* New Section: Activity Manager & Financial Balance + Subaccount Table */}
+        <div className="flex gap-4 flex-col xl:!flex-row">
+          {/* Left Side: Activity Manager & Financial Balance */}
+          <div className="xl:w-[400px] w-full flex flex-col gap-4">
+            <ActivityManagerCard />
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>Financial Balance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-center h-64">
+                  <CircleProgress
+                    value={48}
+                    description={
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">48%</p>
+                        <p className="text-xs text-muted-foreground">
+                          from yesterday
+                        </p>
+                      </div>
+                    }
+                  />
+                </div>
+                <div className="flex justify-between mt-4 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500" />
+                    <span className="text-muted-foreground">Total Profit</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gray-300" />
+                    <span className="text-muted-foreground">Profit Today</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gray-600" />
+                    <span className="text-muted-foreground">For Week</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Side: Subaccount Table List */}
+          <div className="flex-1">
+            <SubaccountTableCard className="h-full" />
+          </div>
+        </div>
+
 
         {/* Bottom Row - Recent Transactions and Tax Liabilities */}
         <div className="flex gap-4 flex-col lg:!flex-row">
@@ -406,10 +420,10 @@ const Page = async ({
                 </table>
               </div>
             </CardContent>
-          </Card>
+          </Card >
 
           {/* Tax Liabilities */}
-          <Card className="xl:w-[400px] w-full">
+          < Card className="xl:w-[400px] w-full" >
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Tax Liabilities</CardTitle>
@@ -490,6 +504,7 @@ const Page = async ({
         </div>
       </div>
     </div>
+
   )
 }
 

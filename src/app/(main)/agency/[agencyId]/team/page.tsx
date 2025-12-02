@@ -194,8 +194,8 @@ const TeamPage = ({ params }: Props) => {
       >
         <UserDetails
           type="agency"
-          id={member.agencyId || null}
-          subAccounts={member.Agency?.SubAccount}
+          id={params.agencyId}
+          subAccounts={subaccounts}
           userData={member}
         />
       </CustomModal>,

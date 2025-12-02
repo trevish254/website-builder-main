@@ -251,10 +251,33 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
 
   if (!user.Agency) return
 
-  details =
-    type === 'agency'
-      ? user?.Agency
-      : user?.Agency.SubAccount.find((subaccount) => subaccount.id === id)
+  if (!user.Agency) return
+
+  // Determine details and sidebar options based on type and id
+  if (type === 'agency') {
+    if (user.Agency.id === id) {
+      details = user.Agency
+      sidebarOpt = user.Agency.AgencySidebarOption || []
+    } else {
+      // Check invited agencies
+      const invited = user?.InvitedAgencies?.find((agency: any) => agency.id === id)
+      details = invited
+      sidebarOpt = invited?.AgencySidebarOption || []
+    }
+  } else {
+    // Subaccount logic
+    details = user?.Agency.SubAccount.find((subaccount) => subaccount.id === id)
+
+    if (!details) {
+      // Check permissions for invited subaccounts
+      const permitted = user?.Permissions?.find((p: any) => p.subAccountId === id && p.access)
+      if (permitted?.SubAccount) {
+        details = permitted.SubAccount
+      }
+    }
+
+    sidebarOpt = details?.SubAccountSidebarOption || []
+  }
 
   if (!details) return
 
@@ -263,19 +286,10 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
     // For subaccounts, show subaccount logo if it exists, otherwise fall back to agency logo
     const subaccount = user?.Agency.SubAccount.find((subaccount) => subaccount.id === id)
     sideBarLogo = subaccount?.subAccountLogo || user.Agency.agencyLogo || '/assets/plura-logo.svg'
-    console.log('🔍 Subaccount logo:', subaccount?.subAccountLogo)
-    console.log('🔍 Agency logo fallback:', user.Agency.agencyLogo)
-    console.log('🔍 Final sidebar logo:', sideBarLogo)
   } else {
     // For agency, show agency logo
-    sideBarLogo = user.Agency.agencyLogo || '/assets/plura-logo.svg'
+    sideBarLogo = details.agencyLogo || user.Agency.agencyLogo || '/assets/plura-logo.svg'
   }
-
-  sidebarOpt =
-    type === 'agency'
-      ? user.Agency.AgencySidebarOption || []
-      : user.Agency.SubAccount.find((subaccount) => subaccount.id === id)
-        ?.SubAccountSidebarOption || []
 
   // Debug logging for agency sidebar options
   if (type === 'agency') {
