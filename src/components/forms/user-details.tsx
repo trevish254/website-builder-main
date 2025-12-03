@@ -137,15 +137,13 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
       val
     )
     if (type === 'agency') {
+      const permission = subAccountPermissions?.Permissions.find(
+        (p) => p.subAccountId === subAccountId
+      )
       await saveActivityLogsNotification({
         agencyId: authUserData?.Agency?.id,
-        description: `Gave ${userData?.name} access to | ${subAccountPermissions?.Permissions.find(
-          (p) => p.subAccountId === subAccountId
-        )?.SubAccount.name
-          } `,
-        subaccountId: subAccountPermissions?.Permissions.find(
-          (p) => p.subAccountId === subAccountId
-        )?.SubAccount.id,
+        description: `Gave ${userData?.name} access to | ${permission?.SubAccount?.name || 'Unknown Subaccount'}`,
+        subaccountId: permission?.SubAccount?.id,
       })
     }
 

@@ -48,6 +48,12 @@ const Page = async ({
     )
   }
 
+  // NEW: If user has accepted invitations, redirect to the first one
+  // This prioritizes invited agencies over the user's home agency
+  if ((userDetails as any).InvitedAgencies?.length > 0) {
+    return redirect(`/agency/${(userDetails as any).InvitedAgencies[0].id}`)
+  }
+
   // Redirect to the user's agency
   if (userDetails.agencyId) {
     return redirect(`/agency/${userDetails.agencyId}`)

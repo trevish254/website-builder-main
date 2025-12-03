@@ -72,22 +72,35 @@ const layout = async ({ children, params }: Props) => {
     // If this is an invited user, we need to fetch their permissions for THIS agency
     let permissions = userDetails.Permissions
 
+    console.log('🔍 Checking subaccount access for user:', user.email)
+    console.log('🔍 Is invited agency?', !!invitedAgency)
+    console.log('🔍 User role:', userDetails.role)
+
     if (invitedAgency) {
       // Fetch permissions for the invited agency
+      console.log('🔍 Fetching permissions for invited user...')
       const { data: invitedPermissions } = await supabase
         .from('Permissions')
         .select('*')
         .eq('email', user.email)
 
+      console.log('🔍 Invited permissions found:', invitedPermissions)
       permissions = invitedPermissions || []
+    } else {
+      console.log('🔍 Using home agency permissions:', permissions)
     }
 
     const firstSubaccountWithAccess = permissions.find(
       (p: any) => p.access === true
     )
+
+    console.log('🔍 First subaccount with access:', firstSubaccountWithAccess)
+
     if (firstSubaccountWithAccess) {
+      console.log('✅ Redirecting to subaccount:', firstSubaccountWithAccess.subAccountId)
       return redirect(`/subaccount/${firstSubaccountWithAccess.subAccountId}`)
     } else {
+      console.log('❌ No subaccount access found - showing Unauthorized')
       return <Unauthorized />
     }
   }

@@ -277,6 +277,19 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
     }
 
     sidebarOpt = details?.SubAccountSidebarOption || []
+
+    // Add Messages option if not present
+    if (!sidebarOpt.find((opt) => opt.name === 'Messages')) {
+      sidebarOpt.push({
+        id: `sidebar-${details?.id}-messages`,
+        name: 'Messages',
+        icon: 'messages',
+        link: `/subaccount/${details?.id}/messages`,
+        subAccountId: details?.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+    }
   }
 
   if (!details) return
@@ -284,8 +297,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
   // Determine which logo to show
   if (type === 'subaccount') {
     // For subaccounts, show subaccount logo if it exists, otherwise fall back to agency logo
-    const subaccount = user?.Agency.SubAccount.find((subaccount) => subaccount.id === id)
-    sideBarLogo = subaccount?.subAccountLogo || user.Agency.agencyLogo || '/assets/plura-logo.svg'
+    sideBarLogo = (details as any)?.subAccountLogo || user.Agency.agencyLogo || '/assets/plura-logo.svg'
   } else {
     // For agency, show agency logo
     sideBarLogo = details.agencyLogo || user.Agency.agencyLogo || '/assets/plura-logo.svg'

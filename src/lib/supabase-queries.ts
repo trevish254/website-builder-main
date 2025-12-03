@@ -402,6 +402,8 @@ export const getConversationParticipants = async (conversationId: string) => {
 }
 
 export const getConversationMessages = async (conversationId: string, limit = 50) => {
+  console.log('[QUERY] getConversationMessages called with conversationId:', conversationId, 'limit:', limit)
+
   const { data, error } = await supabase
     .from('Message')
     .select('*')
@@ -409,10 +411,14 @@ export const getConversationMessages = async (conversationId: string, limit = 50
     .order('createdAt', { ascending: true })
     .limit(limit)
 
+  console.log('[QUERY] getConversationMessages result - data:', data, 'error:', error)
+
   if (error) {
-    console.error('Error fetching messages:', error)
+    console.error('[QUERY] Error fetching messages:', error)
     return [] as Message[]
   }
+
+  console.log('[QUERY] Returning', data?.length || 0, 'messages')
   return data
 }
 
@@ -423,24 +429,32 @@ export const sendMessage = async (payload: {
   type?: string
   metadata?: Record<string, unknown> | null
 }) => {
+  console.log('[QUERY] sendMessage called with payload:', payload)
+
+  const messageData = {
+    id: crypto.randomUUID(),
+    conversationId: payload.conversationId,
+    senderId: payload.senderId,
+    content: payload.content,
+    type: payload.type || 'text',
+    metadata: (payload.metadata ?? null) as unknown as Database['public']['Tables']['Message']['Row']['metadata'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isEdited: false,
+  }
+
+  console.log('[QUERY] Inserting message:', messageData)
+
   const { data, error } = await supabase
     .from('Message')
-    .insert({
-      id: crypto.randomUUID(),
-      conversationId: payload.conversationId,
-      senderId: payload.senderId,
-      content: payload.content,
-      type: payload.type || 'text',
-      metadata: (payload.metadata ?? null) as unknown as Database['public']['Tables']['Message']['Row']['metadata'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      isEdited: false,
-    })
+    .insert(messageData)
     .select()
     .single()
 
+  console.log('[QUERY] sendMessage result - data:', data, 'error:', error)
+
   if (error) {
-    console.error('Error sending message:', error)
+    console.error('[QUERY] Error sending message:', error)
     return null
   }
 
@@ -450,6 +464,7 @@ export const sendMessage = async (payload: {
     .update({ lastMessageAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
     .eq('id', payload.conversationId)
 
+  console.log('[QUERY] Message inserted successfully with ID:', data.id)
   return data as Message
 }
 
@@ -473,12 +488,35 @@ export const ensureDirectConversation = async (params: {
   agencyId: string
   subAccountId?: string | null
 }) => {
+  let finalAgencyId = params.agencyId
+
+  // If agencyId is missing but subAccountId is provided, fetch agencyId
+  if (!finalAgencyId && params.subAccountId) {
+    const { data: sub } = await supabase
+      .from('SubAccount')
+      .select('agencyId')
+      .eq('id', params.subAccountId)
+      .single()
+    if (sub) finalAgencyId = sub.agencyId
+  }
+
+  if (!finalAgencyId) {
+    console.error('ensureDirectConversation: Could not resolve agencyId')
+    return null
+  }
+
   // Try to find existing conversation with both participants
-  const { data: existing } = await supabase
+  const query = supabase
     .from('Conversation')
     .select('id, type, ConversationParticipant (*)')
     .eq('type', 'direct')
-    .eq('agencyId', params.agencyId)
+    .eq('agencyId', finalAgencyId)
+
+  if (params.subAccountId) {
+    query.eq('subAccountId', params.subAccountId)
+  }
+
+  const { data: existing } = await query
 
   const match = (existing as unknown as (Conversation & { ConversationParticipant: ConversationParticipant[] })[] | null)?.find((c) => {
     const userIds = new Set(c.ConversationParticipant?.map((p) => p.userId))
@@ -495,7 +533,7 @@ export const ensureDirectConversation = async (params: {
       id: conversationId,
       type: 'direct',
       title: null,
-      agencyId: params.agencyId,
+      agencyId: finalAgencyId,
       subAccountId: params.subAccountId ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -550,6 +588,68 @@ export const getAgencyUsers = async (agencyId: string): Promise<Array<{
   return data || []
 }
 
+// Get all users with access to a subaccount (Agency Owners, Admins, and Subaccount Users)
+export const getSubaccountUsers = async (subAccountId: string): Promise<Array<{
+  id: string
+  name: string | null
+  email: string
+  avatarUrl: string
+  role: string
+}>> => {
+  // 1. Get the subaccount to find its agencyId
+  const { data: subAccount } = await supabase
+    .from('SubAccount')
+    .select('agencyId')
+    .eq('id', subAccountId)
+    .single()
+
+  if (!subAccount) return []
+
+  // 2. Get Agency Owners and Admins (they have access to all subaccounts)
+  const { data: agencyUsers, error: agencyError } = await supabase
+    .from('User')
+    .select('id, name, email, avatarUrl, role')
+    .eq('agencyId', subAccount.agencyId)
+    .in('role', ['AGENCY_OWNER', 'AGENCY_ADMIN'])
+
+  if (agencyError) {
+    console.error('Error fetching agency users for subaccount:', agencyError)
+    return []
+  }
+
+  // 3. Get Subaccount Users who have permission for this subaccount
+  const { data: permissions, error: permissionError } = await supabase
+    .from('Permissions')
+    .select('email')
+    .eq('subAccountId', subAccountId)
+    .eq('access', true)
+
+  if (permissionError) {
+    console.error('Error fetching subaccount permissions:', permissionError)
+    return agencyUsers || []
+  }
+
+  const permittedEmails = permissions?.map(p => p.email) || []
+
+  let subaccountUsers: any[] = []
+  if (permittedEmails.length > 0) {
+    const { data: users, error: usersError } = await supabase
+      .from('User')
+      .select('id, name, email, avatarUrl, role')
+      .in('email', permittedEmails)
+
+    if (!usersError && users) {
+      subaccountUsers = users
+    }
+  }
+
+  // Combine and deduplicate
+  const allUsers = [...(agencyUsers || []), ...subaccountUsers]
+  const uniqueUsers = Array.from(new Map(allUsers.map(item => [item.id, item])).values())
+
+  return uniqueUsers
+}
+
 // Get conversation with participant details
 export const getConversationWithParticipants = async (conversationId: string) => {
   const { data, error } = await supabase
@@ -576,6 +676,61 @@ export const getConversationWithParticipants = async (conversationId: string) =>
   }
 
   return data
+}
+
+// Alternative: Get conversation with participants manually (bypasses foreign key relationship issues)
+export const getConversationWithParticipantsManual = async (conversationId: string) => {
+  console.log('🔧 Using manual query for conversation:', conversationId)
+
+  // First, get the conversation
+  const { data: conversation, error: convError } = await supabase
+    .from('Conversation')
+    .select('*')
+    .eq('id', conversationId)
+    .single()
+
+  if (convError || !conversation) {
+    console.error('Error fetching conversation:', convError)
+    return null
+  }
+
+  console.log('✅ Conversation found:', conversation)
+
+  // Then, get the participants
+  const { data: participants, error: partError } = await supabase
+    .from('ConversationParticipant')
+    .select('*')
+    .eq('conversationId', conversationId)
+
+  if (partError) {
+    console.error('Error fetching participants:', partError)
+    return { ...conversation, ConversationParticipant: [] }
+  }
+
+  console.log('✅ Participants found:', participants)
+
+  // For each participant, get their user details
+  const participantsWithUsers = await Promise.all(
+    (participants || []).map(async (participant) => {
+      const { data: user } = await supabase
+        .from('User')
+        .select('id, name, email, avatarUrl, role')
+        .eq('id', participant.userId)
+        .single()
+
+      return {
+        ...participant,
+        User: user
+      }
+    })
+  )
+
+  console.log('✅ Participants with user details:', participantsWithUsers)
+
+  return {
+    ...conversation,
+    ConversationParticipant: participantsWithUsers
+  }
 }
 
 // Utility Functions

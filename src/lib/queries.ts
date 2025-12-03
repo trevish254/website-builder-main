@@ -81,7 +81,14 @@ export const getAuthUserDetails = cache(async () => {
           id,
           email,
           subAccountId,
-          access
+          access,
+          SubAccount (
+            id,
+            name,
+            subAccountLogo,
+            agencyId,
+            SubAccountSidebarOption (*)
+          )
         )
       `)
         .eq('email', user.email || '')
@@ -2598,4 +2605,19 @@ export const getTaskBoardDetails = async (subAccountId: string) => {
   })) || []
 
   return { ...board, TaskLane: lanesWithTasks }
+}
+
+export const upsertContact = async (contact: {
+  email: string
+  subAccountId: string
+  name: string
+}) => {
+  const { data, error } = await supabase
+    .from('Contact')
+    .upsert(contact)
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data
 }

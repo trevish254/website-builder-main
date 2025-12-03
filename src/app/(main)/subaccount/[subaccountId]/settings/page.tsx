@@ -16,7 +16,7 @@ const SubaccountSettingPage = async ({ params }: Props) => {
   const { data: userDetails } = await supabase
     .from('User')
     .select('*')
-    .eq('email', authUser.emailAddresses[0].emailAddress)
+    .eq('email', authUser.email)
     .single()
 
   if (!userDetails) return
@@ -41,6 +41,29 @@ const SubaccountSettingPage = async ({ params }: Props) => {
   if (!agencyDetails) return
   const subAccounts = agencyDetails.SubAccount
 
+  // Check if this subaccount belongs to an invited agency (not the user's home agency)
+  let contextUserDetails = { ...userDetails }
+
+  if (userDetails.agencyId !== subAccount.agencyId) {
+    // User is accessing an invited agency's subaccount
+    // Find their role from the invitation
+    const { data: invitation } = await supabase
+      .from('Invitation')
+      .select('role')
+      .eq('email', authUser.email)
+      .eq('agencyId', subAccount.agencyId)
+      .eq('status', 'ACCEPTED')
+      .single()
+
+    if (invitation) {
+      contextUserDetails = {
+        ...userDetails,
+        role: invitation.role,
+        agencyId: subAccount.agencyId
+      }
+    }
+  }
+
   return (
     <BlurPage>
       <div className="flex lg:!flex-row flex-col gap-4">
@@ -54,7 +77,7 @@ const SubaccountSettingPage = async ({ params }: Props) => {
           type="subaccount"
           id={params.subaccountId}
           subAccounts={subAccounts}
-          userData={userDetails}
+          userData={contextUserDetails}
         />
       </div>
     </BlurPage>

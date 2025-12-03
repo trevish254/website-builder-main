@@ -1,5 +1,6 @@
 import AgencyDetails from '@/components/forms/agency-details'
 import UserDetails from '@/components/forms/user-details'
+import Unauthorized from '@/components/unauthorized'
 import { getAuthUserDetails } from '@/lib/queries'
 import { supabase } from '@/lib/supabase'
 import { getUser } from '@/lib/supabase/server'
@@ -22,7 +23,14 @@ const SettingsPage = async ({ params }: Props) => {
     // Ensure the signed-in user is authorized for this agency
     const userDetails = await getAuthUserDetails()
     if (!userDetails) return null
-    if ((userDetails as any).agencyId !== params.agencyId) {
+
+    // Check if user has access (either owns it or was invited)
+    const hasDirectAccess = (userDetails as any).agencyId === params.agencyId
+    const invitedAgency = (userDetails as any).InvitedAgencies?.find(
+      (agency: any) => agency.id === params.agencyId
+    )
+
+    if (!hasDirectAccess && !invitedAgency) {
       return <Unauthorized />
     }
 
@@ -49,16 +57,22 @@ const SettingsPage = async ({ params }: Props) => {
       console.error('Error fetching subaccounts:', subAccountsError)
     }
 
+    // Determine the correct role based on context
+    let contextRole = userDetails.role || 'AGENCY_OWNER'
+    if (invitedAgency) {
+      contextRole = invitedAgency.role || contextRole
+    }
+
     const userData = userDetails ? {
       id: userDetails.id,
       name: userDetails.name || `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim(),
-      email: userDetails.email || authUser.emailAddresses[0]?.emailAddress || '',
+      email: userDetails.email || authUser.email || '',
       avatarUrl: userDetails.avatarUrl || authUser.imageUrl || '',
-      role: userDetails.role || 'AGENCY_OWNER'
+      role: contextRole
     } : {
       id: authUser.id,
       name: `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim() || 'User',
-      email: authUser.emailAddresses[0]?.emailAddress || '',
+      email: authUser.email || '',
       avatarUrl: authUser.imageUrl || '',
       role: 'AGENCY_OWNER'
     }
