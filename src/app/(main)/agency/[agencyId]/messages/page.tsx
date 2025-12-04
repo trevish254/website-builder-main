@@ -361,505 +361,503 @@ const AgencyMessagesPage = ({ params }: Props) => {
   const starredCount = inboxItems.filter(m => m.starred).length
 
   const handleSendMessage = async () => {
-    console.log('[SEND] handleSendMessage called')
-    console.log('[SEND] Message content:', newMessage)
-    console.log('[SEND] Conversation ID:', selectedConversationId)
-    console.log('[SEND] User ID:', user?.id)
+    if (!newMessage.trim() || !selectedConversationId || !user?.id) return
 
-    if (!newMessage.trim() || !selectedConversationId || !user?.id) {
-      console.warn('[SEND] Cannot send message - missing required data')
+    try {
+      const response = await sendMessageApi({
+        conversationId: selectedConversationId,
+        senderId: user.id,
+        content: newMessage,
+        metadata: {}
+      })
+
+      if (response) {
+        setNewMessage('')
+        toast({
+          title: 'Success',
+          description: 'Message sent'
+        })
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to send message'
+        })
+      }
+    } catch (error) {
+      console.error('❌ Error sending message:', error)
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Cannot send message. Please try again.'
+        description: 'An error occurred while sending the message'
       })
-      setNewMessage('')
+    }
+  }
+
+  const handleTyping = () => {
+    if (!selectedConversationId || !user?.id) return
+
+    // Debounce typing events
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+
+    const channel = supabase.channel('online-users')
+    channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { conversationId: selectedConversationId, userId: user.id }
+    })
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !selectedConversationId || !user?.id) return
+    setIsUploading(true)
+
+    const files = Array.from(e.target.files)
+    const attachments = []
+
+    for (const file of files) {
+      const url = await uploadChatAttachment(file)
+      if (url) {
+        attachments.push({
+          type: file.type,
+          name: file.name,
+          url
+        })
+      }
+    }
+
+    if (attachments.length > 0) {
+      await sendMessageApi({
+        conversationId: selectedConversationId,
+        senderId: user.id,
+        content: 'Sent an attachment',
+        metadata: { attachments }
+      })
       toast({
         title: 'Success',
-        description: 'Message sent'
+        description: 'File sent successfully'
       })
     } else {
-      console.error('[SEND] sendMessageApi returned null')
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to send message'
+        description: 'Failed to upload file'
       })
     }
-  } catch (error) {
-    console.error('❌ Error sending message:', error)
-    toast({
-      variant: 'destructive',
-      title: 'Error',
-      description: 'An error occurred while sending the message'
-    })
-  }
-}
-
-const handleTyping = () => {
-  if (!selectedConversationId || !user?.id) return
-
-  // Debounce typing events
-  if (typingTimeoutRef.current) {
-    clearTimeout(typingTimeoutRef.current)
+    setIsUploading(false)
+    if (e.target) e.target.value = ''
   }
 
-  const channel = supabase.channel('online-users')
-  channel.send({
-    type: 'broadcast',
-    event: 'typing',
-    payload: { conversationId: selectedConversationId, userId: user.id }
-  })
-}
+  const selectedMsg = useMemo(() => {
+    const item = inboxItems.find(m => m.id === selectedConversationId)
+    if (item && item.participantInfo) {
+      return {
+        ...item,
+        isOnline: onlineUsers.has(item.participantInfo.id)
+      }
+    }
+    return item || null
+  }, [inboxItems, selectedConversationId, onlineUsers])
 
-const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (!e.target.files || !selectedConversationId || !user?.id) return
-  setIsUploading(true)
+  const handleDeleteConversation = async (conversationId: string) => {
+    if (!user?.id) return
 
-  const files = Array.from(e.target.files)
-  const attachments = []
+    // Optimistic update
+    setInboxItems(prev => prev.filter(i => i.id !== conversationId))
+    if (selectedConversationId === conversationId) {
+      setSelectedConversationId(null)
+      setChatMessages([])
+    }
 
-  for (const file of files) {
-    const url = await uploadChatAttachment(file)
-    if (url) {
-      attachments.push({
-        type: file.type,
-        name: file.name,
-        url
+    const success = await deleteConversation(conversationId, user.id)
+    if (success) {
+      toast({
+        title: 'Conversation deleted',
+        description: 'The conversation has been removed from your inbox.'
+      })
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete conversation'
       })
     }
   }
 
-  if (attachments.length > 0) {
-    await sendMessageApi({
-      conversationId: selectedConversationId,
-      senderId: user.id,
-      content: 'Sent an attachment',
-      metadata: { attachments }
-    })
-    toast({
-      title: 'Success',
-      description: 'File sent successfully'
-    })
-  } else {
-    toast({
-      variant: 'destructive',
-      title: 'Error',
-      description: 'Failed to upload file'
-    })
-  }
-  setIsUploading(false)
-  if (e.target) e.target.value = ''
-}
+  const handleStartConversation = async (selectedUserId: string) => {
+    console.log('[CONVERSATION] handleStartConversation called with userId:', selectedUserId)
+    console.log('[CONVERSATION] Current user ID:', user?.id)
 
-const selectedMsg = useMemo(() => {
-  const item = inboxItems.find(m => m.id === selectedConversationId)
-  if (item && item.participantInfo) {
-    return {
-      ...item,
-      isOnline: onlineUsers.has(item.participantInfo.id)
-    }
-  }
-  return item || null
-}, [inboxItems, selectedConversationId, onlineUsers])
-
-const handleDeleteConversation = async (conversationId: string) => {
-  if (!user?.id) return
-
-  // Optimistic update
-  setInboxItems(prev => prev.filter(i => i.id !== conversationId))
-  if (selectedConversationId === conversationId) {
-    setSelectedConversationId(null)
-    setChatMessages([])
-  }
-
-  const success = await deleteConversation(conversationId, user.id)
-  if (success) {
-    toast({
-      title: 'Conversation deleted',
-      description: 'The conversation has been removed from your inbox.'
-    })
-  } else {
-    toast({
-      variant: 'destructive',
-      title: 'Error',
-      description: 'Failed to delete conversation'
-    })
-  }
-}
-
-const handleStartConversation = async (selectedUserId: string) => {
-  console.log('[CONVERSATION] handleStartConversation called with userId:', selectedUserId)
-  console.log('[CONVERSATION] Current user ID:', user?.id)
-
-  if (!user?.id || !selectedUserId) {
-    console.error('[CONVERSATION] Missing user ID or selectedUserId')
-    toast({
-      variant: 'destructive',
-      title: 'Error',
-      description: 'Cannot start conversation: User not authenticated'
-    })
-    return
-  }
-
-  try {
-    console.log('[CONVERSATION] Calling ensureDirectConversation...')
-    const conversationId = await ensureDirectConversation({
-      userAId: user.id,
-      userBId: selectedUserId,
-      agencyId: params.agencyId
-    })
-
-    console.log('[CONVERSATION] ensureDirectConversation returned:', conversationId)
-
-    if (!conversationId) {
-      console.error('[CONVERSATION] Failed to create/get conversation')
+    if (!user?.id || !selectedUserId) {
+      console.error('[CONVERSATION] Missing user ID or selectedUserId')
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to create conversation. Please try again.'
+        description: 'Cannot start conversation: User not authenticated'
       })
       return
     }
 
-    setShowNewMessageDialog(false)
-    setSearchUserQuery('')
+    try {
+      console.log('[CONVERSATION] Calling ensureDirectConversation...')
+      const conversationId = await ensureDirectConversation({
+        userAId: user.id,
+        userBId: selectedUserId,
+        agencyId: params.agencyId
+      })
 
-    console.log('[CONVERSATION] Fetching conversation details...')
+      console.log('[CONVERSATION] ensureDirectConversation returned:', conversationId)
 
-    let convWithParticipants = null
-    let retries = 3
-
-    while (retries > 0 && !convWithParticipants) {
-      convWithParticipants = await getConversationWithParticipantsManual(conversationId)
-
-      if (!convWithParticipants && retries > 1) {
-        console.log(`[CONVERSATION] Conversation not found, retrying... (${retries - 1} attempts left)`)
-        await new Promise(resolve => setTimeout(resolve, 500))
-      }
-      retries--
-    }
-
-    console.log('[CONVERSATION] Conversation details:', convWithParticipants)
-
-    if (convWithParticipants) {
-      const participants = (convWithParticipants as any)?.ConversationParticipant || []
-      const otherParticipant = participants.find((p: any) => p.userId !== user.id && p.User)
-
-      console.log('[CONVERSATION] Other participant:', otherParticipant?.User)
-
-      const newItem: InboxItem = {
-        id: convWithParticipants.id,
-        title: convWithParticipants.title || otherParticipant?.User?.name || 'Conversation',
-        preview: '',
-        timestamp: convWithParticipants.lastMessageAt ? new Date(convWithParticipants.lastMessageAt).toLocaleDateString() : '',
-        unread: false,
-        starred: false,
-        pinned: false,
-        avatar: otherParticipant?.User?.avatarUrl,
-        email: otherParticipant?.User?.email,
-        participantInfo: otherParticipant?.User ? {
-          id: otherParticipant.User.id,
-          name: otherParticipant.User.name,
-          email: otherParticipant.User.email,
-          avatarUrl: otherParticipant.User.avatarUrl
-        } : null
+      if (!conversationId) {
+        console.error('[CONVERSATION] Failed to create/get conversation')
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to create conversation. Please try again.'
+        })
+        return
       }
 
-      console.log('[CONVERSATION] New inbox item:', newItem)
+      setShowNewMessageDialog(false)
+      setSearchUserQuery('')
 
-      setInboxItems(prev => {
-        const exists = prev.find(i => i.id === newItem.id)
-        if (exists) {
-          console.log('[CONVERSATION] Conversation already exists in list')
-          return prev
+      console.log('[CONVERSATION] Fetching conversation details...')
+
+      let convWithParticipants = null
+      let retries = 3
+
+      while (retries > 0 && !convWithParticipants) {
+        convWithParticipants = await getConversationWithParticipantsManual(conversationId)
+
+        if (!convWithParticipants && retries > 1) {
+          console.log(`[CONVERSATION] Conversation not found, retrying... (${retries - 1} attempts left)`)
+          await new Promise(resolve => setTimeout(resolve, 500))
         }
-        console.log('[CONVERSATION] Adding new conversation to list')
-        return [newItem, ...prev]
-      })
+        retries--
+      }
 
-      console.log('[CONVERSATION] Setting selected conversation ID:', conversationId)
-      setSelectedConversationId(conversationId)
+      console.log('[CONVERSATION] Conversation details:', convWithParticipants)
 
-      toast({
-        title: 'Success',
-        description: `Conversation with ${otherParticipant?.User?.name || 'user'} started`
-      })
-    } else {
-      console.error('[CONVERSATION] Failed to fetch conversation details')
+      if (convWithParticipants) {
+        const participants = (convWithParticipants as any)?.ConversationParticipant || []
+        const otherParticipant = participants.find((p: any) => p.userId !== user.id && p.User)
+
+        console.log('[CONVERSATION] Other participant:', otherParticipant?.User)
+
+        const newItem: InboxItem = {
+          id: convWithParticipants.id,
+          title: convWithParticipants.title || otherParticipant?.User?.name || 'Conversation',
+          preview: '',
+          timestamp: convWithParticipants.lastMessageAt ? new Date(convWithParticipants.lastMessageAt).toLocaleDateString() : '',
+          unread: false,
+          starred: false,
+          pinned: false,
+          avatar: otherParticipant?.User?.avatarUrl,
+          email: otherParticipant?.User?.email,
+          participantInfo: otherParticipant?.User ? {
+            id: otherParticipant.User.id,
+            name: otherParticipant.User.name,
+            email: otherParticipant.User.email,
+            avatarUrl: otherParticipant.User.avatarUrl
+          } : null
+        }
+
+        console.log('[CONVERSATION] New inbox item:', newItem)
+
+        setInboxItems(prev => {
+          const exists = prev.find(i => i.id === newItem.id)
+          if (exists) {
+            console.log('[CONVERSATION] Conversation already exists in list')
+            return prev
+          }
+          console.log('[CONVERSATION] Adding new conversation to list')
+          return [newItem, ...prev]
+        })
+
+        console.log('[CONVERSATION] Setting selected conversation ID:', conversationId)
+        setSelectedConversationId(conversationId)
+
+        toast({
+          title: 'Success',
+          description: `Conversation with ${otherParticipant?.User?.name || 'user'} started`
+        })
+      } else {
+        console.error('[CONVERSATION] Failed to fetch conversation details')
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load conversation details'
+        })
+      }
+    } catch (error) {
+      console.error('[CONVERSATION] Error in handleStartConversation:', error)
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to load conversation details'
+        description: 'An unexpected error occurred. Check console for details.'
       })
     }
-  } catch (error) {
-    console.error('[CONVERSATION] Error in handleStartConversation:', error)
-    toast({
-      variant: 'destructive',
-      title: 'Error',
-      description: 'An unexpected error occurred. Check console for details.'
-    })
   }
-}
 
-const filteredUsers = useMemo(() => {
-  if (!searchUserQuery) return agencyUsers
-  return agencyUsers.filter(u =>
-    u.name?.toLowerCase().includes(searchUserQuery.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchUserQuery.toLowerCase())
-  )
-}, [agencyUsers, searchUserQuery])
+  const filteredUsers = useMemo(() => {
+    if (!searchUserQuery) return agencyUsers
+    return agencyUsers.filter(u =>
+      u.name?.toLowerCase().includes(searchUserQuery.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchUserQuery.toLowerCase())
+    )
+  }, [agencyUsers, searchUserQuery])
 
-// Handle agency search
-const handleAgencySearch = async (email: string) => {
-  setSearchAgencyEmail(email)
-  if (email.length < 3) {
-    setSearchedAgencies([])
-    return
+  // Handle agency search
+  const handleAgencySearch = async (email: string) => {
+    setSearchAgencyEmail(email)
+    if (email.length < 3) {
+      setSearchedAgencies([])
+      return
+    }
+    const agencies = await searchAgenciesByEmail(email)
+    // Filter out current agency
+    setSearchedAgencies(agencies.filter(a => a.id !== params.agencyId))
   }
-  const agencies = await searchAgenciesByEmail(email)
-  // Filter out current agency
-  setSearchedAgencies(agencies.filter(a => a.id !== params.agencyId))
-}
 
-// Handle agency selection
-const handleSelectAgency = async (agency: any) => {
-  setSelectedAgency(agency)
-  const admins = await getAgencyOwner(agency.id)
-  setAgencyAdmins(admins)
-}
+  // Handle agency selection
+  const handleSelectAgency = async (agency: any) => {
+    setSelectedAgency(agency)
+    const admins = await getAgencyOwner(agency.id)
+    setAgencyAdmins(admins)
+  }
 
-return (
-  <div className="flex flex-col h-[calc(100vh-80px)] p-6 gap-6">
-    {/* Header */}
-    <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-          <MessageSquare className="h-10 w-10 text-blue-600" />
-          Messages
-        </h1>
-        <p className="text-muted-foreground text-lg mt-1">
-          Chat with your team and subaccount users
-        </p>
-      </div>
-      <div className="flex items-center gap-4">
-        <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              New Message
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Start New Conversation</DialogTitle>
-              <DialogDescription>
-                Select a user to start a conversation with
-              </DialogDescription>
-            </DialogHeader>
-            <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as 'team' | 'agencies')} className="mt-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="team">Team</TabsTrigger>
-                <TabsTrigger value="agencies">Other Agencies</TabsTrigger>
-              </TabsList>
+  return (
+    <div className="flex flex-col h-[calc(100vh-80px)] p-6 gap-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+            <MessageSquare className="h-10 w-10 text-blue-600" />
+            Messages
+          </h1>
+          <p className="text-muted-foreground text-lg mt-1">
+            Chat with your team and subaccount users
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                New Message
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Start New Conversation</DialogTitle>
+                <DialogDescription>
+                  Select a user to start a conversation with
+                </DialogDescription>
+              </DialogHeader>
+              <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as 'team' | 'agencies')} className="mt-4">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="team">Team</TabsTrigger>
+                  <TabsTrigger value="agencies">Other Agencies</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="team" className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search users by name or email..."
-                    value={searchUserQuery}
-                    onChange={(e) => setSearchUserQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-2">
-                    {filteredUsers.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No users found</p>
-                      </div>
-                    ) : (
-                      filteredUsers.map((agencyUser) => (
-                        <div
-                          key={agencyUser.id}
-                          onClick={() => handleStartConversation(agencyUser.id)}
-                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
-                        >
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={agencyUser.avatarUrl || ''} />
-                            <AvatarFallback>
-                              {agencyUser.name?.charAt(0) || 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm truncate">
-                              {agencyUser.name}
-                            </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {agencyUser.email}
-                            </p>
-                            <Badge variant="outline" className="text-[10px] mt-1">
-                              {agencyUser.role}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))
-                    )}
+                <TabsContent value="team" className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search users by name or email..."
+                      value={searchUserQuery}
+                      onChange={(e) => setSearchUserQuery(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="agencies" className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search agencies by email (e.g., owner@agency.com)..."
-                    value={searchAgencyEmail}
-                    onChange={(e) => handleAgencySearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-2">
-                    {searchAgencyEmail.length < 3 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-sm">Type at least 3 characters to search</p>
-                      </div>
-                    ) : searchedAgencies.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No agencies found</p>
-                      </div>
-                    ) : selectedAgency ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedAgency(null)
-                            setAgencyAdmins([])
-                          }}
-                          className="mb-2"
-                        >
-                          ← Back to agencies
-                        </Button>
-                        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                          <p className="font-semibold">{selectedAgency.name}</p>
-                          <p className="text-xs text-gray-500">{selectedAgency.companyEmail}</p>
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-2">
+                      {filteredUsers.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No users found</p>
                         </div>
-                        {agencyAdmins.map((admin) => (
+                      ) : (
+                        filteredUsers.map((agencyUser) => (
                           <div
-                            key={admin.id}
-                            onClick={() => handleStartConversation(admin.id)}
+                            key={agencyUser.id}
+                            onClick={() => handleStartConversation(agencyUser.id)}
                             className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
                           >
                             <Avatar className="h-10 w-10">
-                              <AvatarImage src={admin.avatarUrl || ''} />
+                              <AvatarImage src={agencyUser.avatarUrl || ''} />
                               <AvatarFallback>
-                                {admin.name?.charAt(0) || 'U'}
+                                {agencyUser.name?.charAt(0) || 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-sm truncate">
-                                {admin.name}
+                                {agencyUser.name}
                               </p>
                               <p className="text-xs text-gray-500 truncate">
-                                {admin.email}
+                                {agencyUser.email}
                               </p>
                               <Badge variant="outline" className="text-[10px] mt-1">
-                                {admin.role}
+                                {agencyUser.role}
                               </Badge>
                             </div>
                           </div>
-                        ))}
-                      </>
-                    ) : (
-                      searchedAgencies.map((agency) => (
-                        <div
-                          key={agency.id}
-                          onClick={() => handleSelectAgency(agency)}
-                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
-                        >
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={agency.agencyLogo || ''} />
-                            <AvatarFallback>
-                              {agency.name?.charAt(0) || 'A'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm truncate">
-                              {agency.name}
-                            </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {agency.companyEmail}
-                            </p>
-                            {agency.ownerName && (
-                              <p className="text-xs text-blue-600 truncate">
-                                Owner: {agency.ownerName}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="agencies" className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search agencies by email (e.g., owner@agency.com)..."
+                      value={searchAgencyEmail}
+                      onChange={(e) => handleAgencySearch(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
-          </DialogContent>
-        </Dialog>
-        <Badge variant="secondary" className="px-3 py-1.5">
-          {unreadCount} Unread
-        </Badge>
-        <Badge variant="outline" className="px-3 py-1.5">
-          {starredCount} Starred
-        </Badge>
+
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-2">
+                      {searchAgencyEmail.length < 3 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p className="text-sm">Type at least 3 characters to search</p>
+                        </div>
+                      ) : searchedAgencies.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No agencies found</p>
+                        </div>
+                      ) : selectedAgency ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAgency(null)
+                              setAgencyAdmins([])
+                            }}
+                            className="mb-2"
+                          >
+                            ← Back to agencies
+                          </Button>
+                          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                            <p className="font-semibold">{selectedAgency.name}</p>
+                            <p className="text-xs text-gray-500">{selectedAgency.companyEmail}</p>
+                          </div>
+                          {agencyAdmins.map((admin) => (
+                            <div
+                              key={admin.id}
+                              onClick={() => handleStartConversation(admin.id)}
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
+                            >
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={admin.avatarUrl || ''} />
+                                <AvatarFallback>
+                                  {admin.name?.charAt(0) || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm truncate">
+                                  {admin.name}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">
+                                  {admin.email}
+                                </p>
+                                <Badge variant="outline" className="text-[10px] mt-1">
+                                  {admin.role}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        searchedAgencies.map((agency) => (
+                          <div
+                            key={agency.id}
+                            onClick={() => handleSelectAgency(agency)}
+                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
+                          >
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={agency.agencyLogo || ''} />
+                              <AvatarFallback>
+                                {agency.name?.charAt(0) || 'A'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm truncate">
+                                {agency.name}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {agency.companyEmail}
+                              </p>
+                              {agency.ownerName && (
+                                <p className="text-xs text-blue-600 truncate">
+                                  Owner: {agency.ownerName}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
+            </DialogContent>
+          </Dialog>
+          <Badge variant="secondary" className="px-3 py-1.5">
+            {unreadCount} Unread
+          </Badge>
+          <Badge variant="outline" className="px-3 py-1.5">
+            {starredCount} Starred
+          </Badge>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
+        <ChatSidebar
+          inboxItems={inboxItems.map(item => ({
+            ...item,
+            isOnline: item.participantInfo ? onlineUsers.has(item.participantInfo.id) : false
+          }))}
+          selectedConversationId={selectedConversationId || ''}
+          onSelectConversation={setSelectedConversationId}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onDeleteConversation={handleDeleteConversation}
+        />
+
+        <ChatWindow
+          selectedMsg={selectedMsg}
+          chatMessages={chatMessages}
+          newMessage={newMessage}
+          onNewMessageChange={(val) => {
+            setNewMessage(val)
+            handleTyping()
+          }}
+          onSendMessage={handleSendMessage}
+          onFileUpload={handleFileUpload}
+          isUploading={isUploading}
+          isTyping={typingUsers.size > 0}
+          onInputKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              handleSendMessage()
+            }
+          }}
+        />
       </div>
     </div>
-
-    {/* Main Content */}
-    <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
-      <ChatSidebar
-        inboxItems={inboxItems.map(item => ({
-          ...item,
-          isOnline: item.participantInfo ? onlineUsers.has(item.participantInfo.id) : false
-        }))}
-        selectedConversationId={selectedConversationId || ''}
-        onSelectConversation={setSelectedConversationId}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onDeleteConversation={handleDeleteConversation}
-      />
-
-      <ChatWindow
-        selectedMsg={selectedMsg}
-        chatMessages={chatMessages}
-        newMessage={newMessage}
-        onNewMessageChange={(val) => {
-          setNewMessage(val)
-          handleTyping()
-        }}
-        onSendMessage={handleSendMessage}
-        onFileUpload={handleFileUpload}
-        isUploading={isUploading}
-        isTyping={typingUsers.size > 0}
-        onInputKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            handleSendMessage()
-          }
-        }}
-      />
-    </div>
-  </div>
-)
+  )
 }
 
 export default AgencyMessagesPage
