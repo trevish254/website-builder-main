@@ -64,7 +64,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'inbox' | 'archived'>('inbox')
+  const [activeTab, setActiveTab] = useState<'all' | 'team' | 'personal'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -161,6 +161,13 @@ const AgencyMessagesPage = ({ params }: Props) => {
       }
       return acc
     }, [] as InboxItem[])
+
+    // Sort items by timestamp descending
+    groupedItems.sort((a, b) => {
+      const dateA = new Date(a.timestamp || 0)
+      const dateB = new Date(b.timestamp || 0)
+      return dateB.getTime() - dateA.getTime()
+    })
 
     console.log('[INBOX] Final grouped items:', groupedItems.length)
 
@@ -281,6 +288,14 @@ const AgencyMessagesPage = ({ params }: Props) => {
               attachments: metadata?.attachments || []
             }
           ])
+
+          // Play notification sound for messages from others
+          if (m.senderId !== user?.id) {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE')
+            audio.volume = 0.5
+            audio.play().catch(e => console.log('Audio play failed:', e))
+          }
+
           console.log('[REALTIME] Message added to chat')
         }
       )
@@ -373,6 +388,26 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
       if (response) {
         setNewMessage('')
+
+        // Optimistic update for inbox
+        setInboxItems(prev => {
+          const updatedInbox = [...prev]
+          const currentConvIndex = updatedInbox.findIndex(i => i.id === selectedConversationId)
+
+          if (currentConvIndex !== -1) {
+            const currentConv = { ...updatedInbox[currentConvIndex] }
+            currentConv.preview = newMessage
+            currentConv.timestamp = new Date().toLocaleDateString()
+
+            // Remove from current position
+            updatedInbox.splice(currentConvIndex, 1)
+            // Add to top
+            updatedInbox.unshift(currentConv)
+            return updatedInbox
+          }
+          return prev
+        })
+
         toast({
           title: 'Success',
           description: 'Message sent'
@@ -628,214 +663,63 @@ const AgencyMessagesPage = ({ params }: Props) => {
     setAgencyAdmins(admins)
   }
 
+  // Message action handlers
+  const handleDeleteMessage = (messageId: string) => {
+    console.log('Delete message:', messageId)
+    toast({
+      title: 'Delete Message',
+      description: 'Message deletion coming soon'
+    })
+  }
+
+  const handleReplyMessage = (messageId: string) => {
+    console.log('Reply to message:', messageId)
+    toast({
+      title: 'Reply',
+      description: 'Reply feature coming soon'
+    })
+  }
+
+  const handleEditMessage = (messageId: string) => {
+    console.log('Edit message:', messageId)
+    toast({
+      title: 'Edit Message',
+      description: 'Edit feature coming soon'
+    })
+  }
+
+  const handleForwardMessage = (messageId: string) => {
+    console.log('Forward message:', messageId)
+    toast({
+      title: 'Forward',
+      description: 'Forward feature coming soon'
+    })
+  }
+
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] p-6 gap-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <MessageSquare className="h-10 w-10 text-blue-600" />
-            Messages
-          </h1>
-          <p className="text-muted-foreground text-lg mt-1">
-            Chat with your team and subaccount users
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                New Message
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Start New Conversation</DialogTitle>
-                <DialogDescription>
-                  Select a user to start a conversation with
-                </DialogDescription>
-              </DialogHeader>
-              <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as 'team' | 'agencies')} className="mt-4">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="team">Team</TabsTrigger>
-                  <TabsTrigger value="agencies">Other Agencies</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="team" className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search users by name or email..."
-                      value={searchUserQuery}
-                      onChange={(e) => setSearchUserQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-2">
-                      {filteredUsers.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No users found</p>
-                        </div>
-                      ) : (
-                        filteredUsers.map((agencyUser) => (
-                          <div
-                            key={agencyUser.id}
-                            onClick={() => handleStartConversation(agencyUser.id)}
-                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
-                          >
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={agencyUser.avatarUrl || ''} />
-                              <AvatarFallback>
-                                {agencyUser.name?.charAt(0) || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm truncate">
-                                {agencyUser.name}
-                              </p>
-                              <p className="text-xs text-gray-500 truncate">
-                                {agencyUser.email}
-                              </p>
-                              <Badge variant="outline" className="text-[10px] mt-1">
-                                {agencyUser.role}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="agencies" className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search agencies by email (e.g., owner@agency.com)..."
-                      value={searchAgencyEmail}
-                      onChange={(e) => handleAgencySearch(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-2">
-                      {searchAgencyEmail.length < 3 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p className="text-sm">Type at least 3 characters to search</p>
-                        </div>
-                      ) : searchedAgencies.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No agencies found</p>
-                        </div>
-                      ) : selectedAgency ? (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedAgency(null)
-                              setAgencyAdmins([])
-                            }}
-                            className="mb-2"
-                          >
-                            ← Back to agencies
-                          </Button>
-                          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                            <p className="font-semibold">{selectedAgency.name}</p>
-                            <p className="text-xs text-gray-500">{selectedAgency.companyEmail}</p>
-                          </div>
-                          {agencyAdmins.map((admin) => (
-                            <div
-                              key={admin.id}
-                              onClick={() => handleStartConversation(admin.id)}
-                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
-                            >
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={admin.avatarUrl || ''} />
-                                <AvatarFallback>
-                                  {admin.name?.charAt(0) || 'U'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm truncate">
-                                  {admin.name}
-                                </p>
-                                <p className="text-xs text-gray-500 truncate">
-                                  {admin.email}
-                                </p>
-                                <Badge variant="outline" className="text-[10px] mt-1">
-                                  {admin.role}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
-                        </>
-                      ) : (
-                        searchedAgencies.map((agency) => (
-                          <div
-                            key={agency.id}
-                            onClick={() => handleSelectAgency(agency)}
-                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
-                          >
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={agency.agencyLogo || ''} />
-                              <AvatarFallback>
-                                {agency.name?.charAt(0) || 'A'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm truncate">
-                                {agency.name}
-                              </p>
-                              <p className="text-xs text-gray-500 truncate">
-                                {agency.companyEmail}
-                              </p>
-                              {agency.ownerName && (
-                                <p className="text-xs text-blue-600 truncate">
-                                  Owner: {agency.ownerName}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
-            </DialogContent>
-          </Dialog>
-          <Badge variant="secondary" className="px-3 py-1.5">
-            {unreadCount} Unread
-          </Badge>
-          <Badge variant="outline" className="px-3 py-1.5">
-            {starredCount} Starred
-          </Badge>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
+    <div className="flex h-[calc(100vh-80px)] bg-white dark:bg-background">
+      {/* Sidebar */}
+      <div className="w-[380px] border-r border-gray-200 dark:border-gray-800 h-full">
         <ChatSidebar
-          inboxItems={inboxItems.map(item => ({
-            ...item,
-            isOnline: item.participantInfo ? onlineUsers.has(item.participantInfo.id) : false
-          }))}
+          inboxItems={inboxItems}
           selectedConversationId={selectedConversationId || ''}
-          onSelectConversation={setSelectedConversationId}
+          onSelectConversation={(id) => {
+            setSelectedConversationId(id)
+            setChatMessages([]) // Clear messages while loading new ones
+          }}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onDeleteConversation={handleDeleteConversation}
+          agencyUsers={agencyUsers}
+          onlineUsers={onlineUsers}
+          onNewMessage={() => setShowNewMessageDialog(true)}
         />
+      </div>
 
+      {/* Chat Window */}
+      <div className="flex-1 h-full overflow-hidden">
         <ChatWindow
           selectedMsg={selectedMsg}
           chatMessages={chatMessages}
@@ -847,15 +731,184 @@ const AgencyMessagesPage = ({ params }: Props) => {
           onSendMessage={handleSendMessage}
           onFileUpload={handleFileUpload}
           isUploading={isUploading}
-          isTyping={typingUsers.size > 0}
+          isTyping={typingUsers.has(selectedMsg?.participantInfo?.id || '')}
           onInputKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
               handleSendMessage()
             }
           }}
+          onDeleteMessage={handleDeleteMessage}
+          onReplyMessage={handleReplyMessage}
+          onEditMessage={handleEditMessage}
+          onForwardMessage={handleForwardMessage}
         />
       </div>
+
+      {/* Hidden Dialog for New Message */}
+      <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Start New Conversation</DialogTitle>
+            <DialogDescription>
+              Select a user to start a conversation with
+            </DialogDescription>
+          </DialogHeader>
+          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as 'team' | 'agencies')} className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="team">Team</TabsTrigger>
+              <TabsTrigger value="agencies">Other Agencies</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="team" className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search users by name or email..."
+                  value={searchUserQuery}
+                  onChange={(e) => setSearchUserQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-2">
+                  {filteredUsers.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No users found</p>
+                    </div>
+                  ) : (
+                    filteredUsers.map((agencyUser) => (
+                      <div
+                        key={agencyUser.id}
+                        onClick={() => handleStartConversation(agencyUser.id)}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
+                      >
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={agencyUser.avatarUrl || ''} />
+                          <AvatarFallback>
+                            {agencyUser.name?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">
+                            {agencyUser.name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {agencyUser.email}
+                          </p>
+                          <Badge variant="outline" className="text-[10px] mt-1">
+                            {agencyUser.role}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="agencies" className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search agencies by email (e.g., owner@agency.com)..."
+                  value={searchAgencyEmail}
+                  onChange={(e) => handleAgencySearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-2">
+                  {searchAgencyEmail.length < 3 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-sm">Type at least 3 characters to search</p>
+                    </div>
+                  ) : searchedAgencies.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No agencies found</p>
+                    </div>
+                  ) : selectedAgency ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedAgency(null)
+                          setAgencyAdmins([])
+                        }}
+                        className="mb-2"
+                      >
+                        ← Back to agencies
+                      </Button>
+                      <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <p className="font-semibold">{selectedAgency.name}</p>
+                        <p className="text-xs text-gray-500">{selectedAgency.companyEmail}</p>
+                      </div>
+                      {agencyAdmins.map((admin) => (
+                        <div
+                          key={admin.id}
+                          onClick={() => handleStartConversation(admin.id)}
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
+                        >
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={admin.avatarUrl || ''} />
+                            <AvatarFallback>
+                              {admin.name?.charAt(0) || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm truncate">
+                              {admin.name}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {admin.email}
+                            </p>
+                            <Badge variant="outline" className="text-[10px] mt-1">
+                              {admin.role}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    searchedAgencies.map((agency) => (
+                      <div
+                        key={agency.id}
+                        onClick={() => handleSelectAgency(agency)}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
+                      >
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={agency.agencyLogo || ''} />
+                          <AvatarFallback>
+                            {agency.name?.charAt(0) || 'A'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">
+                            {agency.name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {agency.companyEmail}
+                          </p>
+                          {agency.ownerName && (
+                            <p className="text-xs text-blue-600 truncate">
+                              Owner: {agency.ownerName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

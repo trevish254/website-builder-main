@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Archive, Trash2, MoreVertical, Reply, Forward, Paperclip, Image as ImageIcon, Smile, Send, Loader2 } from 'lucide-react'
+import { Archive, Trash2, MoreVertical, Paperclip, Image as ImageIcon, Smile, Send, Loader2, Phone, Video } from 'lucide-react'
 import MessageBubble from './message-bubble'
 import { InboxItem } from './chat-sidebar'
 
@@ -31,6 +31,10 @@ interface ChatWindowProps {
     isUploading: boolean
     isTyping: boolean
     onInputKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void
+    onDeleteMessage?: (id: string) => void
+    onReplyMessage?: (id: string) => void
+    onEditMessage?: (id: string) => void
+    onForwardMessage?: (id: string) => void
 }
 
 const ChatWindow = ({
@@ -42,7 +46,11 @@ const ChatWindow = ({
     onFileUpload,
     isUploading,
     isTyping,
-    onInputKeyDown
+    onInputKeyDown,
+    onDeleteMessage,
+    onReplyMessage,
+    onEditMessage,
+    onForwardMessage
 }: ChatWindowProps) => {
     const scrollRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -97,15 +105,15 @@ const ChatWindow = ({
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon">
-                            <Archive className="h-4 w-4" />
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <Phone className="h-5 w-5" />
                         </Button>
-                        <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <Video className="h-5 w-5" />
                         </Button>
-                        <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <MoreVertical className="h-5 w-5" />
                         </Button>
                     </div>
                 </div>
@@ -113,30 +121,14 @@ const ChatWindow = ({
 
             {/* Chat Messages */}
             <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
-                <div className="px-6 py-4 border-b bg-gray-50 dark:bg-gray-900">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="font-semibold">{selectedMsg.title}</h3>
-                            <p className="text-sm text-muted-foreground">Last updated {selectedMsg.timestamp}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm">
-                                <Reply className="h-4 w-4 mr-2" />
-                                Reply
-                            </Button>
-                            <Button variant="outline" size="sm">
-                                <Forward className="h-4 w-4 mr-2" />
-                                Forward
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+
 
                 <ScrollArea className="flex-1 px-6" ref={scrollRef}>
                     <div className="space-y-4 py-6">
                         {chatMessages.map((msg) => (
                             <MessageBubble
                                 key={msg.id}
+                                messageId={msg.id}
                                 isSender={msg.sender === 'me'}
                                 content={msg.text}
                                 timestamp={msg.timestamp}
@@ -144,6 +136,10 @@ const ChatWindow = ({
                                 senderAvatar={msg.senderAvatar}
                                 attachments={msg.attachments}
                                 isRead={msg.isRead}
+                                onDelete={onDeleteMessage}
+                                onReply={onReplyMessage}
+                                onEdit={onEditMessage}
+                                onForward={onForwardMessage}
                             />
                         ))}
                         {isTyping && (
@@ -190,10 +186,32 @@ const ChatWindow = ({
                                 >
                                     {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-9 w-9">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    onClick={() => {
+                                        const input = document.createElement('input')
+                                        input.type = 'file'
+                                        input.accept = 'image/*'
+                                        input.multiple = true
+                                        input.onchange = (e: any) => onFileUpload(e)
+                                        input.click()
+                                    }}
+                                    disabled={isUploading}
+                                >
                                     <ImageIcon className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-9 w-9">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    onClick={() => {
+                                        const emojis = ['😀', '😂', '❤️', '👍', '🎉', '🔥', '✨', '💯']
+                                        const emoji = emojis[Math.floor(Math.random() * emojis.length)]
+                                        onNewMessageChange(newMessage + emoji)
+                                    }}
+                                >
                                     <Smile className="h-4 w-4" />
                                 </Button>
                             </div>
