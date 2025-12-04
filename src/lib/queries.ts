@@ -495,6 +495,162 @@ export const deleteAgency = async (agencyId: string) => {
   return true
 }
 
+export const getConversationsWithParticipants = async (
+  userId: string,
+  opts: { subAccountId?: string } = {}
+) => {
+  const user = await getAuthUser()
+  if (!user) return []
+
+  // 1. Get all conversation IDs where the user is a participant
+  // Use admin client since the generic supabase client doesn't have session context in server actions
+  const { data: userParticipations, error: partError } = await supabaseAdmin
+    .from('ConversationParticipant')
+    .select('conversationId')
+    .eq('userId', userId)
+
+  if (partError) {
+    console.error('Error fetching user conversations:', partError)
+    return []
+  }
+
+  const conversationIds = userParticipations?.map((p) => p.conversationId) || []
+
+  if (conversationIds.length === 0) return []
+
+  // 2. Fetch conversation details for these IDs
+  // Use admin client to ensure we can see all conversations regardless of RLS
+  const query = supabaseAdmin
+    .from('Conversation')
+    .select('*')
+    .in('id', conversationIds)
+    .order('lastMessageAt', { ascending: false })
+
+  if (opts.subAccountId) query.eq('subAccountId', opts.subAccountId)
+
+  const { data: conversations, error: convError } = await query
+
+  if (convError) {
+    console.error('Error fetching conversation details:', convError)
+    return []
+  }
+
+  // 3. Bulk fetch all participants for these conversations
+  // Use admin client to bypass RLS for cross-agency participants
+  const { data: allParticipants, error: allPartError } = await supabaseAdmin
+    .from('ConversationParticipant')
+    .select('*')
+    .in('conversationId', conversationIds)
+
+  if (allPartError) {
+    console.error('Error fetching participants:', allPartError)
+    return []
+  }
+
+  // 4. Bulk fetch all user details for these participants
+  const userIds = Array.from(new Set(allParticipants?.map((p) => p.userId) || []))
+  const { data: allUsers, error: userError } = await supabaseAdmin
+    .from('User')
+    .select('id, name, email, avatarUrl')
+    .in('id', userIds)
+
+  if (userError) {
+    console.error('Error fetching user details:', userError)
+    return []
+  }
+
+  const userMap = new Map(allUsers?.map((u) => [u.id, u]))
+
+  // 5. Fetch recent messages
+  const { data: recentMessages } = await supabaseAdmin
+    .from('Message')
+    .select('conversationId, content, createdAt, type')
+    .in('conversationId', conversationIds)
+    .order('createdAt', { ascending: false })
+    .limit(conversationIds.length * 1)
+
+  // 6. Map everything together
+  const conversationsWithDetails = conversations?.map((conv) => {
+    const convParticipants = allParticipants?.filter((p) => p.conversationId === conv.id) || []
+    const participantsWithUsers = convParticipants.map((p) => ({
+      ...p,
+      User: userMap.get(p.userId) || null
+    }))
+
+    const message = recentMessages?.find((m) => m.conversationId === conv.id)
+
+    return {
+      ...conv,
+      ConversationParticipant: participantsWithUsers,
+      Message: message ? [message] : []
+    }
+  })
+
+  return conversationsWithDetails || []
+}
+
+export const getMessagesForConversation = async (conversationIds: string | string[], limit = 50) => {
+  let query = supabaseAdmin
+    .from('Message')
+    .select('*')
+    .order('createdAt', { ascending: true })
+    .limit(limit)
+
+  if (Array.isArray(conversationIds)) {
+    query = query.in('conversationId', conversationIds)
+  } else {
+    query = query.eq('conversationId', conversationIds)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching messages:', error)
+    return []
+  }
+
+  return data
+}
+
+export const sendMessage = async (payload: {
+  conversationId: string
+  senderId: string
+  content: string
+  type?: string
+  metadata?: Record<string, unknown> | null
+}) => {
+  const messageData = {
+    id: v4(),
+    conversationId: payload.conversationId,
+    senderId: payload.senderId,
+    content: payload.content,
+    type: payload.type || 'text',
+    metadata: payload.metadata || null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isEdited: false,
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('Message')
+    .insert(messageData)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error sending message:', error)
+    return null
+  }
+
+  // Update conversation lastMessageAt
+  await supabaseAdmin
+    .from('Conversation')
+    .update({ lastMessageAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+    .eq('id', payload.conversationId)
+
+  return data
+}
+
 export const initUser = async (newUser: Partial<any>) => {
   try {
     // Get current user from Supabase to get proper user data

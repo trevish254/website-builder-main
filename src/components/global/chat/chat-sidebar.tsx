@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Search, MessageSquare, Pin, Star, Circle } from 'lucide-react'
+import { Search, MessageSquare, Pin, Star, Circle, Trash2 } from 'lucide-react'
 
 export interface InboxItem {
     id: string
@@ -35,6 +35,7 @@ interface ChatSidebarProps {
     onSearchChange: (query: string) => void
     activeTab: 'inbox' | 'archived'
     onTabChange: (tab: 'inbox' | 'archived') => void
+    onDeleteConversation?: (id: string) => void
 }
 
 const ChatSidebar = ({
@@ -44,7 +45,8 @@ const ChatSidebar = ({
     searchQuery,
     onSearchChange,
     activeTab,
-    onTabChange
+    onTabChange,
+    onDeleteConversation
 }: ChatSidebarProps) => {
     const filteredMessages = inboxItems.filter(msg => {
         if (searchQuery) {
@@ -100,7 +102,7 @@ const ChatSidebar = ({
                                     key={message.id}
                                     onClick={() => onSelectConversation(message.id)}
                                     className={`
-                    p-4 rounded-lg cursor-pointer transition-all
+                    group relative p-4 rounded-lg cursor-pointer transition-all
                     ${selectedConversationId === message.id
                                             ? 'bg-blue-50 dark:bg-blue-950 border-2 border-blue-500'
                                             : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-2 border-transparent'
@@ -154,6 +156,19 @@ const ChatSidebar = ({
                                             )}
                                         </div>
                                     </div>
+                                    {onDeleteConversation && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                onDeleteConversation(message.id)
+                                            }}
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    )}
                                 </div>
                             ))
                         )}

@@ -12,8 +12,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
-import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getSubaccountUsers, ensureDirectConversation, getConversationWithParticipants, getConversationWithParticipantsManual, uploadChatAttachment } from '@/lib/supabase-queries'
+import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getSubaccountUsers, ensureDirectConversation, getConversationWithParticipants, getConversationWithParticipantsManual } from '@/lib/supabase-queries'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import ChatSidebar, { InboxItem } from '@/components/global/chat/chat-sidebar'
@@ -39,6 +40,26 @@ const SubaccountMessagesPage = ({ params }: Props) => {
     console.log('🎯 SubaccountMessagesPage component loaded')
     const { user } = useSupabaseUser()
     const { toast } = useToast()
+    const browserClient = createClient()
+
+    // Client-side upload function using authenticated browser client
+    const uploadChatAttachment = async (file: File) => {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+        const filePath = `${fileName}`
+
+        const { error: uploadError } = await browserClient.storage
+            .from('chat-attachments')
+            .upload(filePath, file)
+
+        if (uploadError) {
+            console.error('Error uploading file:', uploadError)
+            return null
+        }
+
+        const { data } = browserClient.storage.from('chat-attachments').getPublicUrl(filePath)
+        return data.publicUrl
+    }
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
     const [activeTab, setActiveTab] = useState<'inbox' | 'archived'>('inbox')
     const [searchQuery, setSearchQuery] = useState('')
@@ -66,76 +87,147 @@ const SubaccountMessagesPage = ({ params }: Props) => {
     }, [user?.id, params.subaccountId])
 
     // Fetch conversations for current user with participant info
-    useEffect(() => {
-        const loadConversations = async () => {
-            if (!user?.id) return
-            setLoading(true)
-            const conversations = await getUserConversations(user.id, { subAccountId: params.subaccountId })
+    const loadConversations = React.useCallback(async () => {
+        if (!user?.id) return
+        setLoading(true)
+        const conversations = await getUserConversations(user.id, { subAccountId: params.subaccountId })
 
-            // Load participant info for each conversation
-            const items = await Promise.all(conversations.map(async (c) => {
-                const convWithParticipants = await getConversationWithParticipants(c.id)
-                const participants = (convWithParticipants as any)?.ConversationParticipant || []
-                // Find the other participant (not current user)
-                const otherParticipant = participants.find((p: any) => p.userId !== user.id && p.User)
+        // Map conversations directly to items using the data already fetched by getUserConversations
+        const items = conversations.map((c: any) => {
+            const participants = c.ConversationParticipant || []
+            const otherParticipant = participants.find((p: any) => p.userId !== user.id && p.User)
+            const lastMessage = c.Message?.[0]
 
-                // Get last message for preview
-                const messages = await getConversationMessages(c.id, 1)
-                const lastMessage = messages[0]
+            return {
+                id: c.id,
+                title: c.title || otherParticipant?.User?.name || 'Conversation',
+                preview: lastMessage?.content || '',
+                timestamp: c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleDateString() : '',
+                unread: true, // TODO: Calculate based on lastReadAt
+                starred: false,
+                pinned: false,
+                avatar: otherParticipant?.User?.avatarUrl,
+                email: otherParticipant?.User?.email,
+                participantInfo: otherParticipant?.User ? {
+                    id: otherParticipant.User.id,
+                    name: otherParticipant.User.name,
+                    email: otherParticipant.User.email,
+                    avatarUrl: otherParticipant.User.avatarUrl
+                } : null
+            }
+        })
 
-                return {
-                    id: c.id,
-                    title: c.title || otherParticipant?.User?.name || 'Conversation',
-                    preview: lastMessage?.content || '',
-                    timestamp: c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleDateString() : '',
-                    unread: true, // TODO: Calculate based on lastReadAt
-                    starred: false,
-                    pinned: false,
-                    avatar: otherParticipant?.User?.avatarUrl,
-                    email: otherParticipant?.User?.email,
-                    participantInfo: otherParticipant?.User ? {
-                        id: otherParticipant.User.id,
-                        name: otherParticipant.User.name,
-                        email: otherParticipant.User.email,
-                        avatarUrl: otherParticipant.User.avatarUrl
-                    } : null
+        // Group items by participant ID to merge duplicate conversations
+        const groupedItems = items.reduce((acc, item) => {
+            if (!item.participantInfo?.id) return acc
+
+            const existing = acc.find(i => i.participantInfo?.id === item.participantInfo?.id)
+            if (existing) {
+                // Update existing item if this one is newer
+                const existingDate = new Date(existing.timestamp || 0)
+                const newDate = new Date(item.timestamp || 0)
+                if (newDate > existingDate) {
+                    existing.timestamp = item.timestamp
+                    existing.preview = item.preview
+                    existing.id = item.id // Keep the ID of the most recent conversation as the "primary" one
                 }
-            }))
+            } else {
+                acc.push(item)
+            }
+            return acc
+        }, [] as InboxItem[])
 
-            setInboxItems(items)
-            setLoading(false)
-        }
-        loadConversations()
+        setInboxItems(groupedItems)
+        setLoading(false)
     }, [user?.id, params.subaccountId])
 
-    // Load messages for selected conversation
+    // Initial load
+    useEffect(() => {
+        loadConversations()
+    }, [loadConversations])
+
+    // Realtime subscription for inbox updates
+    useEffect(() => {
+        if (!user?.id) return
+
+        console.log('[REALTIME] Setting up inbox subscription')
+        const channel = supabase
+            .channel('inbox-updates')
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'Conversation' },
+                (payload) => {
+                    console.log('[REALTIME] Conversation updated:', payload)
+                    // Refresh inbox when any conversation is updated (e.g. new message)
+                    loadConversations()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [user?.id, loadConversations])
+
+    // Load messages for selected conversation (merging all conversations with the same user)
     useEffect(() => {
         const loadMessages = async () => {
-            if (!selectedConversationId) return
+            if (!selectedConversationId || !user?.id) return
 
-            console.log('[MESSAGES] Loading messages for conversation:', selectedConversationId)
-            const msgs = await getConversationMessages(selectedConversationId, 200)
+            // Find the selected item to get the participant ID
+            const selectedItem = inboxItems.find(i => i.id === selectedConversationId)
+            if (!selectedItem?.participantInfo?.id) return
+
+            console.log('[MESSAGES] Loading messages for user:', selectedItem.participantInfo.name)
+
+            // 1. Find ALL conversation IDs with this user
+            // We need to re-fetch or keep the raw list. For now, let's fetch all user conversations again to be safe and filter
+            // Optimization: We could store the raw list in a ref or state, but fetching is safer for consistency
+            const allConversations = await getUserConversations(user.id, { subAccountId: params.subaccountId })
+
+            const relevantConversationIds = []
+            for (const conv of allConversations) {
+                // We now have the participants directly in the conversation object
+                const participants = (conv as any).ConversationParticipant || []
+                const hasUser = participants.some((p: any) => p.userId === selectedItem.participantInfo?.id)
+                if (hasUser) {
+                    relevantConversationIds.push(conv.id)
+                }
+            }
+
+            console.log('[MESSAGES] Found relevant conversation IDs:', relevantConversationIds)
+
+            const msgs = await getConversationMessages(relevantConversationIds, 200)
             console.log('[MESSAGES] Fetched messages:', msgs.length, 'messages')
-            console.log('[MESSAGES] Messages:', msgs)
 
             const mapped: ChatMessage[] = msgs.map((m) => {
                 const metadata = m.metadata as any
+                const isMe = m.senderId === user?.id
+
+                let avatarUrl = ''
+                if (isMe) {
+                    avatarUrl = user.avatarUrl || ''
+                } else {
+                    avatarUrl = selectedItem.participantInfo?.avatarUrl || ''
+                }
+
                 return {
                     id: m.id,
-                    sender: m.senderId === user?.id ? 'me' : 'other',
+                    sender: isMe ? 'me' : 'other',
                     text: m.content,
                     timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     attachments: metadata?.attachments || [],
-                    isRead: true // In a real app, check read receipts
+                    isRead: true,
+                    senderName: isMe ? user.name : selectedItem.participantInfo?.name,
+                    senderAvatar: avatarUrl
                 }
             })
 
-            console.log('[MESSAGES] Mapped messages:', mapped)
             setChatMessages(mapped)
             if (user?.id) await markConversationRead(selectedConversationId, user.id)
         }
         loadMessages()
-    }, [selectedConversationId, user?.id])
+    }, [selectedConversationId, user?.id, inboxItems])
 
     // Realtime subscription for new messages in selected conversation
     useEffect(() => {
@@ -333,9 +425,19 @@ const SubaccountMessagesPage = ({ params }: Props) => {
                 content: 'Sent an attachment',
                 metadata: { attachments }
             })
+            toast({
+                title: 'Success',
+                description: 'File sent successfully'
+            })
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to upload file'
+            })
         }
-
         setIsUploading(false)
+        if (e.target) e.target.value = ''
     }
 
     const selectedMsg = useMemo(() => {
@@ -348,6 +450,34 @@ const SubaccountMessagesPage = ({ params }: Props) => {
         }
         return item || null
     }, [inboxItems, selectedConversationId, onlineUsers])
+
+    const handleDeleteConversation = async (conversationId: string) => {
+        if (!user?.id) return
+
+        // Optimistic update
+        setInboxItems(prev => prev.filter(i => i.id !== conversationId))
+        if (selectedConversationId === conversationId) {
+            setSelectedConversationId(null)
+            setChatMessages([])
+        }
+
+        const success = await deleteConversation(conversationId, user.id)
+        if (success) {
+            toast({
+                title: 'Conversation deleted',
+                description: 'The conversation has been removed from your inbox.'
+            })
+        } else {
+            // Revert if failed (optional, but good UX)
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to delete conversation'
+            })
+            // Reload conversations to restore state
+            // loadConversations() 
+        }
+    }
 
     const handleStartConversation = async (selectedUserId: string) => {
         console.log('[CONVERSATION] handleStartConversation called with userId:', selectedUserId)
@@ -582,6 +712,7 @@ const SubaccountMessagesPage = ({ params }: Props) => {
                     onSearchChange={setSearchQuery}
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
+                    onDeleteConversation={handleDeleteConversation}
                 />
 
                 <ChatWindow

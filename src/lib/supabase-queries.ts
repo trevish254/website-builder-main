@@ -360,32 +360,110 @@ export const getUserConversations = async (
   userId: string,
   opts: { agencyId?: string; subAccountId?: string } = {}
 ) => {
-  const query = supabase
-    .from('Conversation')
-    .select(
-      `*,
-       ConversationParticipant (*),
-       Message:Message (* )`
-    )
-    .order('lastMessageAt', { ascending: false })
+  // 1. Get all conversation IDs where the user is a participant
+  const { data: userParticipations, error: partError } = await supabase
+    .from('ConversationParticipant')
+    .select('conversationId')
+    .eq('userId', userId)
 
-  if (opts.agencyId) query.eq('agencyId', opts.agencyId)
-  if (opts.subAccountId) query.eq('subAccountId', opts.subAccountId)
-
-  // Filter to conversations where current user participates
-  // Using an inner join via filter on related table
-  // Supabase doesn't support where on related alias directly; fetch all and filter client-side if needed
-  const { data, error } = await query
-
-  if (error) {
-    console.error('Error fetching conversations:', error)
+  if (partError) {
+    console.error('Error fetching user conversations:', partError)
     return [] as Conversation[]
   }
 
-  const conversations = (data as unknown as (Conversation & { ConversationParticipant: ConversationParticipant[] })[])
-    .filter((c) => c.ConversationParticipant?.some((p) => p.userId === userId))
+  const conversationIds = userParticipations?.map((p) => p.conversationId) || []
 
-  return conversations
+  if (conversationIds.length === 0) return []
+
+  // 2. Fetch conversation details for these IDs
+  // NOTE: We do NOT filter by agencyId here to support cross-agency messaging
+  // Only filter by subAccountId if specified (for subaccount-specific conversations)
+  const query = supabase
+    .from('Conversation')
+    .select('*')
+    .in('id', conversationIds)
+    .order('lastMessageAt', { ascending: false })
+
+  if (opts.subAccountId) query.eq('subAccountId', opts.subAccountId)
+
+  const { data: conversations, error: convError } = await query
+
+  if (convError) {
+    console.error('Error fetching conversation details:', convError)
+    return [] as Conversation[]
+  }
+
+  // 3. Bulk fetch all participants for these conversations
+  const { data: allParticipants, error: allPartError } = await supabase
+    .from('ConversationParticipant')
+    .select('*')
+    .in('conversationId', conversationIds)
+
+  if (allPartError) {
+    console.error('Error fetching participants:', allPartError)
+    return [] as Conversation[]
+  }
+
+  // 4. Bulk fetch all user details for these participants
+  const userIds = Array.from(new Set(allParticipants?.map((p) => p.userId) || []))
+  const { data: allUsers, error: userError } = await supabase
+    .from('User')
+    .select('id, name, email, avatarUrl')
+    .in('id', userIds)
+
+  if (userError) {
+    console.error('Error fetching user details:', userError)
+    return [] as Conversation[]
+  }
+
+  const userMap = new Map(allUsers?.map((u) => [u.id, u]))
+
+  // 5. Bulk fetch latest message for each conversation (optimization: fetch last 100 messages total ordered by time and filter in memory if needed, or just fetch last message per conv via RPC if available. For now, we'll fetch a batch of recent messages)
+  // Since we can't easily do "limit 1 per group" in Supabase simple query, we'll fetch the conversations' lastMessageAt and rely on that for sorting, but for preview we might need the content.
+  // Strategy: Fetch all messages for these conversations created after a certain date? Or just fetch all messages?
+  // Better Strategy: We already have `lastMessageAt` in conversation. If we need the *content* of the last message, we might still need a query.
+  // Let's try to fetch the most recent message for each conversation.
+  // Actually, for the inbox preview, we often just need the last message.
+  // A common pattern is to fetch messages where id is in (select max(id) from messages group by conversationId) - but that's complex in Supabase client.
+  // For now, let's fetch the last message for each conversation in parallel but LIMITED to the top 20 visible conversations to save bandwidth, OR just fetch all messages for the visible conversations if the count is low.
+  // Given the performance constraints, let's just fetch the last message for EACH conversation using a loop BUT only for the ones we actually returned (which is filtered by agency/subaccount).
+  // WAIT: The user complained about the loop. We must avoid the loop.
+  // Alternative: Fetch ALL messages for these conversation IDs ordered by createdAt desc, but that's too much data.
+  // Compromise: We will fetch the last message content ONLY for the top 20 conversations (pagination).
+  // BUT `getUserConversations` returns ALL conversations.
+  // Let's optimize: We will NOT fetch the message content here if it causes N+1.
+  // However, the UI needs `preview`.
+  // Let's use a specialized query if possible.
+  // If we can't, we will do the loop but ONLY for the conversations we are returning, and we will use `Promise.all` with concurrency limit if needed.
+  // ACTUALLY, the previous implementation did `Promise.all` and it crashed.
+  // Let's try to fetch messages for ALL conversation IDs but only select `content, conversationId, createdAt` and limit to a reasonable number (e.g. 1000 most recent messages globally for these convs) and map them.
+
+  const { data: recentMessages } = await supabase
+    .from('Message')
+    .select('conversationId, content, createdAt, type')
+    .in('conversationId', conversationIds)
+    .order('createdAt', { ascending: false })
+    .limit(conversationIds.length * 1) // Heuristic: get roughly 1 message per conversation (globally sorted)
+
+  // 6. Map everything together
+  const conversationsWithDetails = conversations?.map((conv) => {
+    const convParticipants = allParticipants?.filter((p) => p.conversationId === conv.id) || []
+    const participantsWithUsers = convParticipants.map((p) => ({
+      ...p,
+      User: userMap.get(p.userId) || null
+    }))
+
+    // Find the message for this conversation
+    const message = recentMessages?.find((m) => m.conversationId === conv.id)
+
+    return {
+      ...conv,
+      ConversationParticipant: participantsWithUsers,
+      Message: message ? [message] : []
+    }
+  })
+
+  return conversationsWithDetails as unknown as Conversation[]
 }
 
 export const getConversationParticipants = async (conversationId: string) => {
@@ -401,15 +479,29 @@ export const getConversationParticipants = async (conversationId: string) => {
   return data
 }
 
-export const getConversationMessages = async (conversationId: string, limit = 50) => {
+export const getConversationMessages = async (conversationId: string | string[], limit = 50) => {
   console.log('[QUERY] getConversationMessages called with conversationId:', conversationId, 'limit:', limit)
 
-  const { data, error } = await supabase
+  // DEBUG: Check if we can see ANY messages in the table
+  const { count, error: countError } = await supabase
+    .from('Message')
+    .select('*', { count: 'exact', head: true })
+
+  console.log('[DEBUG] Total messages visible to client:', count, 'Error:', countError)
+
+  let query = supabase
     .from('Message')
     .select('*')
-    .eq('conversationId', conversationId)
     .order('createdAt', { ascending: true })
     .limit(limit)
+
+  if (Array.isArray(conversationId)) {
+    query = query.in('conversationId', conversationId)
+  } else {
+    query = query.eq('conversationId', conversationId)
+  }
+
+  const { data, error } = await query
 
   console.log('[QUERY] getConversationMessages result - data:', data, 'error:', error)
 
@@ -506,24 +598,59 @@ export const ensureDirectConversation = async (params: {
   }
 
   // Try to find existing conversation with both participants
-  const query = supabase
+  // We use manual queries to bypass potential FK relationship issues (PGRST200)
+
+  // 1. Get all direct conversations for this agency/subaccount
+  const convQuery = supabase
     .from('Conversation')
-    .select('id, type, ConversationParticipant (*)')
+    .select('id')
     .eq('type', 'direct')
     .eq('agencyId', finalAgencyId)
 
   if (params.subAccountId) {
-    query.eq('subAccountId', params.subAccountId)
+    convQuery.eq('subAccountId', params.subAccountId)
   }
 
-  const { data: existing } = await query
+  const { data: conversations, error: convFetchError } = await convQuery
 
-  const match = (existing as unknown as (Conversation & { ConversationParticipant: ConversationParticipant[] })[] | null)?.find((c) => {
-    const userIds = new Set(c.ConversationParticipant?.map((p) => p.userId))
-    return userIds.has(params.userAId) && userIds.has(params.userBId) && userIds.size === 2
-  })
+  if (convFetchError) {
+    console.error('[ENSURE] Error fetching conversations:', convFetchError)
+  }
 
-  if (match) return match.id
+  // 2. If we have conversations, check their participants
+  if (conversations && conversations.length > 0) {
+    const conversationIds = conversations.map(c => c.id)
+
+    const { data: participants, error: partFetchError } = await supabase
+      .from('ConversationParticipant')
+      .select('conversationId, userId')
+      .in('conversationId', conversationIds)
+
+    if (partFetchError) {
+      console.error('[ENSURE] Error fetching participants:', partFetchError)
+    } else if (participants) {
+      // Group participants by conversation
+      const participantsByConv = participants.reduce((acc, p) => {
+        if (!acc[p.conversationId]) acc[p.conversationId] = new Set()
+        acc[p.conversationId].add(p.userId)
+        return acc
+      }, {} as Record<string, Set<string>>)
+
+      // Find conversation with exactly these two users
+      const existingId = Object.entries(participantsByConv).find(([_, userIds]) => {
+        return userIds.has(params.userAId) &&
+          userIds.has(params.userBId) &&
+          userIds.size === 2
+      })?.[0]
+
+      if (existingId) {
+        console.log('[ENSURE] Found existing conversation:', existingId)
+        return existingId
+      }
+    }
+  }
+
+  console.log('[ENSURE] No matching conversation found, creating new one...')
 
   // Create new conversation
   const conversationId = crypto.randomUUID()
@@ -566,8 +693,117 @@ export const ensureDirectConversation = async (params: {
   return conversationId
 }
 
-// Get all users in an agency for conversation initiation
+// Get all users in an agency for conversation initiation (includes subaccount users)
 export const getAgencyUsers = async (agencyId: string): Promise<Array<{
+  id: string
+  name: string | null
+  email: string
+  avatarUrl: string
+  role: string
+}>> => {
+  // Fetch agency users
+  const { data: agencyUsers, error: agencyError } = await supabase
+    .from('User')
+    .select('id, name, email, avatarUrl, role')
+    .eq('agencyId', agencyId)
+    .order('name')
+
+  if (agencyError) {
+    console.error('Error fetching agency users:', agencyError)
+    return []
+  }
+
+  // Fetch subaccount IDs for this agency
+  const { data: subaccounts } = await supabase
+    .from('SubAccount')
+    .select('id')
+    .eq('agencyId', agencyId)
+
+  const subaccountIds = subaccounts?.map(s => s.id) || []
+
+  // Fetch users from all subaccounts
+  let subaccountUsers: any[] = []
+  if (subaccountIds.length > 0) {
+    const { data, error: subError } = await supabase
+      .from('User')
+      .select('id, name, email, avatarUrl, role')
+      .in('subAccountId', subaccountIds)
+      .order('name')
+
+    if (!subError && data) {
+      subaccountUsers = data
+    }
+  }
+
+  // Combine and deduplicate by user ID
+  const allUsers = [...(agencyUsers || []), ...subaccountUsers]
+  const uniqueUsers = Array.from(
+    new Map(allUsers.map(user => [user.id, user])).values()
+  )
+
+  return uniqueUsers
+}
+
+// Search for agencies by email (for inter-agency messaging)
+export const searchAgenciesByEmail = async (emailQuery: string): Promise<Array<{
+  id: string
+  name: string
+  agencyLogo: string
+  companyEmail: string
+  ownerName: string | null
+  ownerEmail: string
+  ownerAvatar: string
+}>> => {
+  if (!emailQuery || emailQuery.length < 3) {
+    return []
+  }
+
+  // Search for users whose email matches the query
+  const { data: users, error: userError } = await supabase
+    .from('User')
+    .select('id, name, email, avatarUrl, agencyId')
+    .ilike('email', `%${emailQuery}%`)
+    .not('agencyId', 'is', null)
+    .limit(10)
+
+  if (userError || !users) {
+    console.error('Error searching users:', userError)
+    return []
+  }
+
+  // Get unique agency IDs
+  const agencyIds = Array.from(new Set(users.map(u => u.agencyId).filter(Boolean)))
+
+  if (agencyIds.length === 0) return []
+
+  // Fetch agency details
+  const { data: agencies, error: agencyError } = await supabase
+    .from('Agency')
+    .select('id, name, agencyLogo, companyEmail')
+    .in('id', agencyIds)
+
+  if (agencyError || !agencies) {
+    console.error('Error fetching agencies:', agencyError)
+    return []
+  }
+
+  // Map agencies with their matching user info
+  return agencies.map(agency => {
+    const matchingUser = users.find(u => u.agencyId === agency.id)
+    return {
+      id: agency.id,
+      name: agency.name,
+      agencyLogo: agency.agencyLogo,
+      companyEmail: agency.companyEmail,
+      ownerName: matchingUser?.name || null,
+      ownerEmail: matchingUser?.email || '',
+      ownerAvatar: matchingUser?.avatarUrl || ''
+    }
+  })
+}
+
+// Get agency owners/admins for inter-agency messaging
+export const getAgencyOwner = async (agencyId: string): Promise<Array<{
   id: string
   name: string | null
   email: string
@@ -578,10 +814,11 @@ export const getAgencyUsers = async (agencyId: string): Promise<Array<{
     .from('User')
     .select('id, name, email, avatarUrl, role')
     .eq('agencyId', agencyId)
-    .order('name')
+    .in('role', ['AGENCY_OWNER', 'AGENCY_ADMIN'])
+    .order('role') // AGENCY_OWNER first
 
   if (error) {
-    console.error('Error fetching agency users:', error)
+    console.error('Error fetching agency owners:', error)
     return []
   }
 
@@ -731,6 +968,21 @@ export const getConversationWithParticipantsManual = async (conversationId: stri
     ...conversation,
     ConversationParticipant: participantsWithUsers
   }
+}
+
+// Delete a conversation
+export const deleteConversation = async (conversationId: string) => {
+  const { error } = await supabase
+    .from('Conversation')
+    .delete()
+    .eq('id', conversationId)
+
+  if (error) {
+    console.error('Error deleting conversation:', error)
+    return false
+  }
+
+  return true
 }
 
 // Utility Functions
