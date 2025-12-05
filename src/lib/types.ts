@@ -217,6 +217,8 @@ export const CreateTaskFormSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   dueDate: z.date().optional(),
-  assignedUserId: z.string().optional(),
+  assignedUserId: z.string().optional(), // Deprecated, keeping for backward compatibility if needed
+  assignees: z.array(z.string()).optional(), // New field for multiple assignees
   laneId: z.string().min(1),
+  priority: z.string().optional(),
 })

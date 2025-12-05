@@ -19,10 +19,10 @@ type Props = {
     lanes: (TaskLaneType & { Task: Task[] })[]
     agencyId?: string
     subAccountId?: string
-    teamMembers: { id: string; name: string; avatarUrl: string }[]
+    teamMembers?: { id: string; name: string; avatarUrl: string }[]
 }
 
-const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers }: Props) => {
+const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: Props) => {
     const [allLanes, setAllLanes] = useState(lanes)
     const { setOpen } = useModal()
     const router = useRouter()
@@ -99,8 +99,8 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers }: Props)
     const handleAddLane = () => {
         setOpen(
             <CustomModal
-                title="Create a Lane"
-                subheading="Lanes help you organize your tasks."
+                title="Create Section"
+                subheading="Sections help you organize your tasks."
             >
                 <CreateLaneForm boardId={board.id} />
             </CustomModal>
@@ -124,31 +124,75 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers }: Props)
                 title="Create a Task"
                 subheading="Add a new task to your board."
             >
-                <CreateTaskForm laneId={defaultLaneId} subAccountUsers={teamMembers} />
+                <CreateTaskForm laneId={defaultLaneId} subAccountUsers={teamMembers} lanes={allLanes} />
             </CustomModal>
         )
     }
 
     return (
-        <DragDropContext onDragEnd={onDragEnd}>
-            <div className="flex flex-col h-full w-full overflow-hidden">
-                <div className="flex items-center justify-between mb-4 p-4">
-                    <h1 className="text-2xl font-bold">{board.name}</h1>
-                    <div className="flex gap-2">
-                        <Button onClick={handleAddLane}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Lane
-                        </Button>
-                        <Button onClick={handleAddTask} variant="secondary">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Task
-                        </Button>
+        <div className="flex flex-col h-full w-full overflow-hidden bg-white dark:bg-neutral-900">
+            {/* Main Header */}
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800">
+                <h1 className="text-3xl font-bold">Tasks</h1>
+                <div className="flex items-center gap-4">
+                    <Button
+                        onClick={handleAddTask}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Task
+                    </Button>
+                </div>
+            </div>
+
+            {/* Sub Header - View Toggles & Filters */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <button className="flex items-center gap-2 text-blue-600 font-medium">
+                            <div className="w-4 h-4 border-2 border-blue-600 rounded-sm" />
+                            Table
+                        </button>
+                        <button className="flex items-center gap-2 hover:text-foreground transition-colors">
+                            <div className="w-4 h-4 border-2 border-current rounded-sm" />
+                            List View
+                        </button>
+                        <button className="flex items-center gap-2 hover:text-foreground transition-colors">
+                            <div className="w-4 h-4 border-2 border-current rounded-sm" />
+                            Kanban
+                        </button>
                     </div>
                 </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="flex -space-x-2">
+                        {teamMembers.slice(0, 4).map((member) => (
+                            <div key={member.id} className="relative">
+                                <img
+                                    src={member.avatarUrl}
+                                    alt={member.name}
+                                    className="w-8 h-8 rounded-full border-2 border-white dark:border-neutral-900 object-cover"
+                                />
+                            </div>
+                        ))}
+                        {teamMembers.length > 4 && (
+                            <div className="w-8 h-8 rounded-full border-2 border-white dark:border-neutral-900 bg-neutral-100 flex items-center justify-center text-xs font-medium">
+                                {teamMembers.length - 4}+
+                            </div>
+                        )}
+                    </div>
+                    <Button variant="outline" size="icon" className="rounded-full w-8 h-8 ml-2">
+                        <Plus className="w-4 h-4" />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Kanban Board */}
+            <DragDropContext onDragEnd={onDragEnd}>
                 <Droppable droppableId="board" direction="horizontal" type="lane">
                     {(provided) => (
                         <div
-                            className="flex gap-4 overflow-x-auto h-full p-4"
+                            className="flex gap-6 overflow-x-auto h-full p-6 bg-neutral-50 dark:bg-neutral-900/50"
                             ref={provided.innerRef}
                             {...provided.droppableProps}
                         >
@@ -163,11 +207,19 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers }: Props)
                                 />
                             ))}
                             {provided.placeholder}
+                            <Button
+                                onClick={handleAddLane}
+                                variant="outline"
+                                className="min-w-[300px] h-[50px] border-dashed"
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Section
+                            </Button>
                         </div>
                     )}
                 </Droppable>
-            </div>
-        </DragDropContext>
+            </DragDropContext>
+        </div>
     )
 }
 

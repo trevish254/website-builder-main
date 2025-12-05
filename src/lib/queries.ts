@@ -502,91 +502,98 @@ export const getConversationsWithParticipants = async (
   const user = await getAuthUser()
   if (!user) return []
 
-  // 1. Get all conversation IDs where the user is a participant
-  // Use admin client since the generic supabase client doesn't have session context in server actions
-  const { data: userParticipations, error: partError } = await supabaseAdmin
-    .from('ConversationParticipant')
-    .select('conversationId')
-    .eq('userId', userId)
+  try {
+    // 1. Get conversation IDs where user is a participant
+    const { data: userParticipations, error: partError } = await supabaseAdmin
+      .from('ConversationParticipant')
+      .select('conversationId')
+      .eq('userId', userId)
 
-  if (partError) {
-    console.error('Error fetching user conversations:', partError)
-    return []
-  }
-
-  const conversationIds = userParticipations?.map((p) => p.conversationId) || []
-
-  if (conversationIds.length === 0) return []
-
-  // 2. Fetch conversation details for these IDs
-  // Use admin client to ensure we can see all conversations regardless of RLS
-  const query = supabaseAdmin
-    .from('Conversation')
-    .select('*')
-    .in('id', conversationIds)
-    .order('lastMessageAt', { ascending: false })
-
-  if (opts.subAccountId) query.eq('subAccountId', opts.subAccountId)
-
-  const { data: conversations, error: convError } = await query
-
-  if (convError) {
-    console.error('Error fetching conversation details:', convError)
-    return []
-  }
-
-  // 3. Bulk fetch all participants for these conversations
-  // Use admin client to bypass RLS for cross-agency participants
-  const { data: allParticipants, error: allPartError } = await supabaseAdmin
-    .from('ConversationParticipant')
-    .select('*')
-    .in('conversationId', conversationIds)
-
-  if (allPartError) {
-    console.error('Error fetching participants:', allPartError)
-    return []
-  }
-
-  // 4. Bulk fetch all user details for these participants
-  const userIds = Array.from(new Set(allParticipants?.map((p) => p.userId) || []))
-  const { data: allUsers, error: userError } = await supabaseAdmin
-    .from('User')
-    .select('id, name, email, avatarUrl')
-    .in('id', userIds)
-
-  if (userError) {
-    console.error('Error fetching user details:', userError)
-    return []
-  }
-
-  const userMap = new Map(allUsers?.map((u) => [u.id, u]))
-
-  // 5. Fetch recent messages
-  const { data: recentMessages } = await supabaseAdmin
-    .from('Message')
-    .select('conversationId, content, createdAt, type')
-    .in('conversationId', conversationIds)
-    .order('createdAt', { ascending: false })
-    .limit(conversationIds.length * 1)
-
-  // 6. Map everything together
-  const conversationsWithDetails = conversations?.map((conv) => {
-    const convParticipants = allParticipants?.filter((p) => p.conversationId === conv.id) || []
-    const participantsWithUsers = convParticipants.map((p) => ({
-      ...p,
-      User: userMap.get(p.userId) || null
-    }))
-
-    const message = recentMessages?.find((m) => m.conversationId === conv.id)
-
-    return {
-      ...conv,
-      ConversationParticipant: participantsWithUsers,
-      Message: message ? [message] : []
+    if (partError) {
+      console.error('[QUERY] Error fetching user conversations:', partError)
+      return []
     }
-  })
 
-  return conversationsWithDetails || []
+    const conversationIds = userParticipations?.map((p) => p.conversationId) || []
+    if (conversationIds.length === 0) return []
+
+    // 2. Fetch conversations
+    let query = supabaseAdmin
+      .from('Conversation')
+      .select('*')
+      .in('id', conversationIds)
+      .order('lastMessageAt', { ascending: false })
+
+    if (opts.subAccountId) query = query.eq('subAccountId', opts.subAccountId)
+
+    const { data: conversations, error: convError } = await query
+
+    if (convError) {
+      console.error('[QUERY] Error fetching conversations:', convError)
+      return []
+    }
+
+    // 3. Fetch all participants
+    const { data: allParticipants, error: partDetailError } = await supabaseAdmin
+      .from('ConversationParticipant')
+      .select('conversationId, userId, joinedAt, lastReadAt')
+      .in('conversationId', conversationIds)
+
+    if (partDetailError) {
+      console.error('[QUERY] Error fetching participants:', partDetailError)
+      return []
+    }
+
+    // 4. Fetch user details for all participants
+    const userIds = Array.from(new Set(allParticipants?.map((p) => p.userId) || []))
+    const { data: allUsers, error: userError } = await supabaseAdmin
+      .from('User')
+      .select('id, name, email, avatarUrl')
+      .in('id', userIds)
+
+    if (userError) {
+      console.error('[QUERY] Error fetching user details:', userError)
+      return []
+    }
+
+    const userMap = new Map(allUsers?.map((u) => [u.id, u]))
+
+    // 5. Fetch recent messages
+    const { data: recentMessages } = await supabaseAdmin
+      .from('Message')
+      .select('id, conversationId, content, createdAt, type, senderId')
+      .in('conversationId', conversationIds)
+      .order('createdAt', { ascending: false })
+
+    // Group messages by conversation
+    const messagesByConv = new Map()
+    recentMessages?.forEach((msg: any) => {
+      if (!messagesByConv.has(msg.conversationId)) {
+        messagesByConv.set(msg.conversationId, msg)
+      }
+    })
+
+    // Map everything together
+    const result = conversations?.map((conv) => {
+      const participants = allParticipants?.filter((p: any) => p.conversationId === conv.id) || []
+      const participantsWithUsers = participants.map((p: any) => ({
+        ...p,
+        User: userMap.get(p.userId) || null
+      }))
+      const message = messagesByConv.get(conv.id)
+
+      return {
+        ...conv,
+        ConversationParticipant: participantsWithUsers,
+        Message: message ? [message] : []
+      }
+    })
+
+    return result || []
+  } catch (error) {
+    console.error('[QUERY] Error in getConversationsWithParticipants:', error)
+    return []
+  }
 }
 
 export const getMessagesForConversation = async (conversationIds: string | string[], limit = 50) => {
@@ -2776,4 +2783,83 @@ export const upsertContact = async (contact: {
 
   if (error) throw new Error(error.message)
   return data
+}
+
+export const getAgencyTaskBoardDetails = async (agencyId: string) => {
+  console.log('🔍 getAgencyTaskBoardDetails called for agency:', agencyId)
+  const { data: board } = await supabase
+    .from('TaskBoard')
+    .select('*')
+    .eq('agencyId', agencyId)
+    .single()
+
+  if (!board) {
+    console.log('⚠️ No board found, creating default board...')
+    const newBoardId = v4()
+    // Create default board if not exists
+    const { data: newBoard, error: createError } = await supabase
+      .from('TaskBoard')
+      .insert({
+        id: newBoardId,
+        name: 'Agency Tasks',
+        agencyId: agencyId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as AnyRecord)
+      .select()
+      .single()
+
+    if (createError) {
+      console.error('❌ Error creating default board:', createError)
+      return null
+    }
+
+    if (newBoard) {
+      console.log('✅ Default board created:', newBoard.id)
+      // Create default lanes
+      const defaultLanes = [
+        { id: v4(), name: 'To Do', boardId: newBoard.id, order: 0, color: '#3b82f6', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: v4(), name: 'In Progress', boardId: newBoard.id, order: 1, color: '#eab308', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: v4(), name: 'Done', boardId: newBoard.id, order: 2, color: '#22c55e', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      ]
+      const { error: lanesError } = await supabase.from('TaskLane').insert(defaultLanes as AnyRecord[])
+
+      if (lanesError) {
+        console.error('❌ Error creating default lanes:', lanesError)
+      } else {
+        console.log('✅ Default lanes created')
+      }
+
+      // Return new board with lanes
+      return { ...newBoard, TaskLane: defaultLanes }
+    }
+    return null
+  }
+
+  console.log('✅ Board found:', board.id)
+  const { data: lanes } = await supabase
+    .from('TaskLane')
+    .select(`
+      *,
+      Task (
+        *,
+        TaskAssignee (
+          userId,
+          User (
+            name,
+            avatarUrl
+          )
+        )
+      )
+    `)
+    .eq('boardId', board.id)
+    .order('order')
+
+  // Sort tasks by order
+  const lanesWithTasks = lanes?.map(lane => ({
+    ...lane,
+    Task: lane.Task?.sort((a: any, b: any) => a.order - b.order) || []
+  })) || []
+
+  return { ...board, TaskLane: lanesWithTasks }
 }

@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { z } from 'zod'
 import {
     Form,
@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
-import { Task } from '@/lib/database.types'
+import { Task, TaskLane } from '@/lib/database.types'
 import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { Button } from '../ui/button'
@@ -40,20 +40,25 @@ import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { v4 } from 'uuid'
+import FileUpload from '../global/file-upload'
 
 interface CreateTaskFormProps {
     defaultData?: Task
     laneId: string
     subAccountUsers?: { id: string; name: string; avatarUrl: string }[]
+    lanes?: TaskLane[]
 }
 
 const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
     defaultData,
     laneId,
     subAccountUsers = [],
+    lanes = [],
 }) => {
     const { setClose } = useModal()
     const router = useRouter()
+    const [taskImage, setTaskImage] = useState<string>(defaultData?.coverImage || '')
+
     const form = useForm<z.infer<typeof CreateTaskFormSchema>>({
         mode: 'onChange',
         resolver: zodResolver(CreateTaskFormSchema),
@@ -62,7 +67,9 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
             description: defaultData?.description || '',
             dueDate: defaultData?.dueDate ? new Date(defaultData.dueDate) : undefined,
             assignedUserId: defaultData?.assignedUserId || '',
+            assignees: [], // TODO: Load existing assignees
             laneId: laneId,
+            priority: defaultData?.priority || 'Medium',
         },
     })
 
@@ -73,22 +80,27 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
                 description: defaultData.description || '',
                 dueDate: defaultData.dueDate ? new Date(defaultData.dueDate) : undefined,
                 assignedUserId: defaultData.assignedUserId || '',
+                assignees: [], // TODO: Load existing assignees
                 laneId: laneId,
+                priority: defaultData.priority || 'Medium',
             })
+            setTaskImage(defaultData.coverImage || '')
         }
     }, [defaultData, laneId, form])
 
     const isLoading = form.formState.isLoading
 
     const onSubmit = async (values: z.infer<typeof CreateTaskFormSchema>) => {
-        if (!laneId) return
+        if (!values.laneId) return
         try {
             const response = await upsertTask({
                 ...values,
                 id: defaultData?.id || v4(),
+                assignedUserId: values.assignedUserId === '' ? null : values.assignedUserId,
                 laneId: values.laneId,
                 order: defaultData?.order,
                 dueDate: values.dueDate?.toISOString(),
+                coverImage: taskImage,
             })
 
             if (response.error) {
@@ -128,6 +140,17 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="flex flex-col gap-4"
                     >
+                        <FormItem>
+                            <FormLabel>Task Cover Image</FormLabel>
+                            <div className="flex flex-col gap-2">
+                                <FileUpload
+                                    apiEndpoint="media"
+                                    value={taskImage}
+                                    onChange={(url) => setTaskImage(url || '')}
+                                />
+                            </div>
+                        </FormItem>
+
                         <FormField
                             disabled={isLoading}
                             control={form.control}
@@ -210,28 +233,134 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
                         <FormField
                             disabled={isLoading}
                             control={form.control}
-                            name="assignedUserId"
+                            name="assignees"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Assign To</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    className={cn(
+                                                        "w-full justify-between",
+                                                        !field.value?.length && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {field.value && field.value.length > 0
+                                                        ? `${field.value.length} selected`
+                                                        : "Select team members"}
+                                                    <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <div className="p-2 border-b">
+                                                <Input
+                                                    placeholder="Search team members..."
+                                                    className="h-8"
+                                                    onChange={(e) => {
+                                                        // Simple filter implementation if needed, or rely on Command
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="max-h-[200px] overflow-y-auto p-1">
+                                                {subAccountUsers.map((user) => (
+                                                    <div
+                                                        key={user.id}
+                                                        className={cn(
+                                                            "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                                                            field.value?.includes(user.id) ? "bg-accent text-accent-foreground" : ""
+                                                        )}
+                                                        onClick={() => {
+                                                            const current = field.value || []
+                                                            const updated = current.includes(user.id)
+                                                                ? current.filter((id) => id !== user.id)
+                                                                : [...current, user.id]
+                                                            field.onChange(updated)
+                                                        }}
+                                                    >
+                                                        <div className={cn(
+                                                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                            field.value?.includes(user.id)
+                                                                ? "bg-primary text-primary-foreground"
+                                                                : "opacity-50 [&_svg]:invisible"
+                                                        )}>
+                                                            <svg
+                                                                className={cn("h-4 w-4")}
+                                                                fill="none"
+                                                                viewBox="0 0 24 24"
+                                                                stroke="currentColor"
+                                                                strokeWidth={2}
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    d="M5 13l4 4L19 7"
+                                                                />
+                                                            </svg>
+                                                        </div>
+                                                        <span>{user.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            disabled={isLoading}
+                            control={form.control}
+                            name="laneId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Assign To</FormLabel>
+                                    <FormLabel>Lane</FormLabel>
                                     <Select
                                         onValueChange={field.onChange}
                                         defaultValue={field.value}
                                     >
                                         <FormControl>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Select a team member" />
+                                                <SelectValue placeholder="Select a lane" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {subAccountUsers.map((user) => (
-                                                <SelectItem key={user.id} value={user.id}>
-                                                    <div className="flex items-center gap-2">
-                                                        {/* Avatar could go here */}
-                                                        {user.name}
-                                                    </div>
+                                            {lanes.map((lane) => (
+                                                <SelectItem key={lane.id} value={lane.id}>
+                                                    {lane.name}
                                                 </SelectItem>
                                             ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            disabled={isLoading}
+                            control={form.control}
+                            name="priority"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Priority</FormLabel>
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select priority" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Low">Low</SelectItem>
+                                            <SelectItem value="Medium">Medium</SelectItem>
+                                            <SelectItem value="High">High</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />

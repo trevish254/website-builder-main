@@ -6,8 +6,8 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogTitle,
 } from '../ui/dialog'
-import { DialogTitle } from '@radix-ui/react-dialog'
 
 type Props = {
   title: string

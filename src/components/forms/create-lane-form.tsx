@@ -81,7 +81,7 @@ const CreateLaneForm: React.FC<CreateLaneFormProps> = ({
 
             toast({
                 title: 'Success',
-                description: 'Lane saved successfully',
+                description: 'Section saved successfully',
             })
 
             router.refresh()
@@ -91,7 +91,7 @@ const CreateLaneForm: React.FC<CreateLaneFormProps> = ({
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: 'Could not save lane details',
+                description: 'Could not save section details',
             })
         }
     }
@@ -99,7 +99,7 @@ const CreateLaneForm: React.FC<CreateLaneFormProps> = ({
     return (
         <Card className="w-full">
             <CardHeader>
-                <CardTitle>Lane Details</CardTitle>
+                <CardTitle>Section Details</CardTitle>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -113,10 +113,10 @@ const CreateLaneForm: React.FC<CreateLaneFormProps> = ({
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Lane Name</FormLabel>
+                                    <FormLabel>Section Name</FormLabel>
                                     <FormControl>
                                         <Input
-                                            placeholder="Lane Name"
+                                            placeholder="Section Name"
                                             {...field}
                                         />
                                     </FormControl>
@@ -131,7 +131,7 @@ const CreateLaneForm: React.FC<CreateLaneFormProps> = ({
                             name="color"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Lane Color</FormLabel>
+                                    <FormLabel>Section Color</FormLabel>
                                     <FormControl>
                                         <CustomColorPicker
                                             color={field.value || '#000000'}

@@ -35,37 +35,49 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers }: Props) =
 
     return (
         <Draggable draggableId={lane.id} index={index}>
-            {(provided) => (
+            {(provided, snapshot) => (
                 <div
                     {...provided.draggableProps}
                     ref={provided.innerRef}
-                    className="h-full min-w-[300px] max-w-[300px] flex flex-col rounded-lg bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800"
+                    className={`h-full min-w-[300px] max-w-[300px] flex flex-col rounded-lg transition-colors duration-300 ${snapshot.isDragging ? 'opacity-50' : ''}`}
                 >
                     <div
                         {...provided.dragHandleProps}
-                        className="p-4 flex items-center justify-between"
+                        className="flex items-center justify-between mb-4 px-1 cursor-grab active:cursor-grabbing group"
                     >
                         <div className="flex items-center gap-2">
-                            <div
-                                className="w-4 h-4 rounded-full"
-                                style={{ backgroundColor: lane.color || '#000' }}
-                            />
-                            <span className="font-semibold">{lane.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                                {lane.Task.length}
+                            <span className="font-semibold text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                                {lane.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground bg-neutral-200 dark:bg-neutral-800 px-2 py-0.5 rounded-full">
+                                {lane.Task.length.toString().padStart(2, '0')}
                             </span>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                onClick={handleAddTask}
+                            >
+                                <Plus className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                                <MoreVertical className="w-4 h-4" />
+                            </Button>
+                        </div>
                     </div>
 
                     <Droppable droppableId={lane.id} type="task">
-                        {(provided) => (
+                        {(provided, snapshot) => (
                             <div
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
-                                className="flex-1 p-2 flex flex-col gap-2 overflow-y-auto"
+                                className={`
+                                    flex-1 flex flex-col gap-3 overflow-y-auto pb-4 px-1
+                                    transition-colors duration-200 rounded-lg
+                                    ${snapshot.isDraggingOver ? 'bg-neutral-100/50 dark:bg-neutral-800/50' : ''}
+                                `}
                             >
                                 {lane.Task.map((task, index) => (
                                     <TaskCard
@@ -79,17 +91,6 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers }: Props) =
                             </div>
                         )}
                     </Droppable>
-
-                    <div className="p-2">
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={handleAddTask}
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Task
-                        </Button>
-                    </div>
                 </div>
             )}
         </Draggable>

@@ -56,19 +56,51 @@ export const deleteTaskLane = async (laneId: string) => {
     return { data: 'Deleted' }
 }
 
-export const upsertTask = async (task: Partial<Task>) => {
+export const upsertTask = async (task: Partial<Task> & { assignees?: string[] }) => {
     const supabase = createClient()
     if (!task.laneId) return { error: 'Lane ID is required' }
 
+    // Separate assignees from task data
+    const { assignees, ...taskData } = task
+
     const { data, error } = await supabase
         .from('Task')
-        .upsert(task)
+        .upsert(taskData)
         .select()
         .single()
 
     if (error) {
         console.error('Error upserting task:', error)
         return { error: error.message }
+    }
+
+    // Handle assignees if provided
+    if (assignees && data) {
+        // Delete existing assignees
+        const { error: deleteError } = await supabase
+            .from('TaskAssignee')
+            .delete()
+            .eq('taskId', data.id)
+
+        if (deleteError) {
+            console.error('Error deleting task assignees:', deleteError)
+        }
+
+        // Insert new assignees
+        if (assignees.length > 0) {
+            const assigneesData = assignees.map(userId => ({
+                taskId: data.id,
+                userId: userId,
+            }))
+
+            const { error: insertError } = await supabase
+                .from('TaskAssignee')
+                .insert(assigneesData)
+
+            if (insertError) {
+                console.error('Error inserting task assignees:', insertError)
+            }
+        }
     }
 
     // Get subAccountId for revalidation
