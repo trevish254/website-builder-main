@@ -406,6 +406,15 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
           agencyId: id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `sidebar-${id}-client-docs`,
+          name: 'Client Docs',
+          link: `/agency/${id}/client-docs`,
+          icon: 'document',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         }
       ]
       console.log('✅ Created fallback sidebar options:', sidebarOpt)
@@ -456,6 +465,22 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
           updatedAt: new Date().toISOString(),
         })
         console.log('✅ Added Government Services to sidebar options')
+      }
+
+      // Check if Client Docs is missing from existing options
+      const hasClientDocs = sidebarOpt.some((option: any) => option.name === 'Client Docs')
+      if (!hasClientDocs) {
+        console.log('🔧 Adding Client Docs to existing sidebar options')
+        sidebarOpt.push({
+          id: `sidebar-${id}-client-docs`,
+          name: 'Client Docs',
+          link: `/agency/${id}/client-docs`,
+          icon: 'document',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        console.log('✅ Added Client Docs to sidebar options')
       }
     }
   }

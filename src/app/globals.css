@@ -97,3 +97,91 @@
     transform-style: preserve-3d;
   }
 }
+
+/* Editor.js Styles */
+/* Editor.js Styles */
+.codex-editor {
+  @apply w-full;
+}
+
+.codex-editor__redactor {
+  @apply pb-32;
+}
+
+.ce-block__content,
+.ce-toolbar__content {
+  @apply max-w-full;
+}
+
+.ce-toolbar__plus,
+.ce-toolbar__settings-btn {
+  @apply text-gray-600 dark:text-gray-400;
+}
+
+.ce-toolbar__plus:hover,
+.ce-toolbar__settings-btn:hover {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.ce-block {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+.ce-paragraph {
+  @apply text-base leading-relaxed;
+}
+
+.ce-header {
+  @apply font-bold;
+}
+
+.cdx-block {
+  @apply py-2;
+}
+
+.cdx-input {
+  @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded px-3 py-2;
+}
+
+.cdx-settings-button {
+  @apply text-gray-600 dark:text-gray-400;
+}
+
+.cdx-settings-button:hover {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.ce-popover {
+  @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg;
+}
+
+.ce-popover__item {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+.ce-popover__item:hover {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.ce-inline-toolbar {
+  @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg;
+}
+
+.ce-conversion-toolbar {
+  @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg;
+}
+
+.ce-toolbox {
+  @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg;
+}
+
+.ce-toolbox__button {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+.ce-toolbox__button:hover {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+
+/* Force CSS Rebuild */

@@ -67,7 +67,7 @@ const SIDEBAR_GROUPS = [
   },
   {
     label: 'MANAGEMENT',
-    options: ['Sub Accounts', 'Team', 'Tasks', 'Messages'],
+    options: ['Sub Accounts', 'Team', 'Tasks', 'Messages', 'Client Docs', 'Calendar'],
   },
   {
     label: 'OPERATIONS',
@@ -112,11 +112,30 @@ const MenuOptions = ({
 
   // Filter navigation links based on search query
   const filteredSidebarOpt = useMemo(() => {
-    if (!searchQuery) return sidebarOpt
-    return sidebarOpt.filter((option) =>
+    let currentOptions = [...sidebarOpt]
+
+    // Inject Calendar for Agency View if missing
+    if (user?.Agency?.id === id) {
+      const hasCalendar = currentOptions.find((opt) => opt.name === 'Calendar')
+      if (!hasCalendar) {
+        currentOptions.push({
+          id: 'calendar-override',
+          name: 'Calendar',
+          icon: 'calendar',
+          link: `/agency/${id}/calendar`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          agencyId: id,
+        } as any)
+      }
+    }
+
+    if (!searchQuery) return currentOptions
+
+    return currentOptions.filter((option) =>
       option.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  }, [sidebarOpt, searchQuery])
+  }, [sidebarOpt, searchQuery, user, id])
 
   // Group the filtered options
   const groupedSidebarOptions = useMemo(() => {
