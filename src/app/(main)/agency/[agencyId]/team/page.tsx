@@ -22,6 +22,7 @@ import CustomModal from '@/components/global/custom-modal'
 import UserDetails from '@/components/forms/user-details'
 import AgencyTeamTreeChart from '@/components/global/agency-team-tree-chart'
 import { supabase } from '@/lib/supabase'
+import Flowboard from '@/components/flowboard'
 
 
 type Props = {
@@ -35,7 +36,11 @@ const TeamPage = ({ params }: Props) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'invited'>('all')
   const [roleFilter, setRoleFilter] = useState<string>('all')
-  const [activeTab, setActiveTab] = useState<'members' | 'invitations'>('members')
+
+  // Main Tab State
+  const [activeTab, setActiveTab] = useState<'members' | 'teams' | 'roles' | 'flowboard' | 'settings' | 'analytics'>('members')
+  // Sub-tab state for Members tab (to toggle between active members and invitations)
+  const [membersSubTab, setMembersSubTab] = useState<'active' | 'invitations'>('active')
 
   // Data states
   const [teamMembers, setTeamMembers] = useState<User[]>([])
@@ -268,7 +273,7 @@ const TeamPage = ({ params }: Props) => {
 
   const handleExport = () => {
     try {
-      const data = activeTab === 'members' ? teamMembers : invitations
+      const data = membersSubTab === 'active' ? teamMembers : invitations
       const csv = [
         // Header
         Object.keys(data[0] || {}).join(','),
@@ -280,7 +285,7 @@ const TeamPage = ({ params }: Props) => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `team-${activeTab}-${new Date().toISOString()}.csv`
+      a.download = `team-${membersSubTab}-${new Date().toISOString()}.csv`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -353,14 +358,18 @@ const TeamPage = ({ params }: Props) => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleImport}>
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          {activeTab === 'members' && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleImport}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </>
+          )}
           <Button
             size="sm"
             onClick={() => {
@@ -384,228 +393,281 @@ const TeamPage = ({ params }: Props) => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-        <span className="font-semibold text-foreground">
-          Active Members: {activeCount} • Pending Invitations: {pendingInvitationsCount}
-        </span>
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'members' | 'invitations')}>
-        <TabsList>
-          <TabsTrigger value="members">Team Members ({teamMembers.length})</TabsTrigger>
-          <TabsTrigger value="invitations">
-            Invitations ({invitations.length})
-            {pendingInvitationsCount > 0 && (
-              <Badge variant="outline" className="ml-2">
-                {pendingInvitationsCount}
-              </Badge>
-            )}
-          </TabsTrigger>
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsTrigger value="members">Team Members</TabsTrigger>
+          <TabsTrigger value="teams">Teams</TabsTrigger>
+          <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
+          <TabsTrigger value="flowboard">Flowboard</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
-        {/* Team Members Tab */}
+        {/* Team Members Tab Content */}
         <TabsContent value="members" className="space-y-4">
-          {/* Search and Filters */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="All Roles" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="AGENCY_OWNER">Owner</SelectItem>
-                <SelectItem value="AGENCY_ADMIN">Admin</SelectItem>
-                <SelectItem value="SUBACCOUNT_USER">User</SelectItem>
-                <SelectItem value="SUBACCOUNT_GUEST">Guest</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Team Member Grid */}
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading team members...</p>
-            </div>
-          ) : filteredMembers.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No team members found</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredMembers.map((member: User) => (
-                <Card key={member.id} className="relative hover:shadow-lg transition-shadow">
-                  {/* Role Badge */}
-                  <div className="absolute top-3 left-3 z-10">
-                    <Badge variant="default">
-                      {getRoleBadge(member.role)}
+          <Tabs value={membersSubTab} onValueChange={(v) => setMembersSubTab(v as any)}>
+            <div className="flex items-center justify-between mb-4">
+              <TabsList>
+                <TabsTrigger value="active">Active Members ({activeCount})</TabsTrigger>
+                <TabsTrigger value="invitations">
+                  Invitations ({invitations.length})
+                  {pendingInvitationsCount > 0 && (
+                    <Badge variant="outline" className="ml-2">
+                      {pendingInvitationsCount}
                     </Badge>
-                  </div>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-                  {/* More Options */}
-                  <div className="absolute top-3 right-3 z-10">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditDetails(member)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteMember(member.id, member.name)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+            <TabsContent value="active" className="space-y-4">
+              {/* Search and Filters */}
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="relative flex-1 min-w-[200px] max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="All Roles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="AGENCY_OWNER">Owner</SelectItem>
+                    <SelectItem value="AGENCY_ADMIN">Admin</SelectItem>
+                    <SelectItem value="SUBACCOUNT_USER">User</SelectItem>
+                    <SelectItem value="SUBACCOUNT_GUEST">Guest</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  <CardContent className="pt-8 pb-4">
-                    {/* Avatar */}
-                    <div className="flex justify-center mb-4">
-                      <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary">
-                        <Image
-                          src={member.avatarUrl || '/placeholder-logo.png'}
-                          alt={member.name}
-                          width={80}
-                          height={80}
-                          className="object-cover w-full h-full"
-                        />
+              {/* Team Member Grid */}
+              {loading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Loading team members...</p>
+                </div>
+              ) : filteredMembers.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No team members found</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredMembers.map((member: User) => (
+                    <Card key={member.id} className="relative hover:shadow-lg transition-shadow">
+                      {/* Role Badge */}
+                      <div className="absolute top-3 left-3 z-10">
+                        <Badge variant="default">
+                          {getRoleBadge(member.role)}
+                        </Badge>
                       </div>
-                    </div>
 
-                    {/* Name and Email */}
-                    <div className="text-center mb-4">
-                      <h3 className="font-semibold text-lg">{member.name}</h3>
-                      <p className="text-sm text-muted-foreground truncate" title={member.email}>
-                        {member.email}
-                      </p>
-                    </div>
-
-                    {/* Joined Date */}
-                    <div className="text-center text-sm text-muted-foreground">
-                      {member.createdAt && `Joined ${format(new Date(member.createdAt), 'MMM d, yyyy')}`}
-                    </div>
-
-                    {/* View Details Link */}
-                    <div className="mt-4 text-center">
-                      <Button
-                        variant="link"
-                        size="sm"
-                        onClick={() => handleEditDetails(member)}
-                      >
-                        Edit details →
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Invitations Tab */}
-        <TabsContent value="invitations" className="space-y-4">
-          {/* Search and Filters */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="invited">Pending</SelectItem>
-                <SelectItem value="active">Accepted</SelectItem>
-                <SelectItem value="inactive">Revoked</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Invitations List */}
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading invitations...</p>
-            </div>
-          ) : filteredInvitations.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No invitations found</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredInvitations.map((invitation: InvitationType) => (
-                <Card key={invitation.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <Badge variant={getStatusBadgeVariant(invitation.status)}>
-                            {invitation.status}
-                          </Badge>
-                          <div>
-                            <p className="font-semibold">{invitation.email}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Role: {getRoleBadge(invitation.role)}
-                              {invitation.createdAt && (
-                                <> • Sent {format(new Date(invitation.createdAt), 'MMM d, yyyy')}</>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {invitation.status === 'PENDING' && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyInvitationLink(invitation)}
-                            >
-                              <Copy className="h-4 w-4 mr-2" />
-                              Copy Link
+                      {/* More Options */}
+                      <div className="absolute top-3 right-3 z-10">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteInvitation(invitation.id, invitation.email)}
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditDetails(member)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteMember(member.id, member.name)}
                               className="text-red-600"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Revoke
-                            </Button>
-                          </>
-                        )}
+                              Remove
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+
+                      <CardContent className="pt-8 pb-4">
+                        {/* Avatar */}
+                        <div className="flex justify-center mb-4">
+                          <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary">
+                            <Image
+                              src={member.avatarUrl || '/placeholder-logo.png'}
+                              alt={member.name}
+                              width={80}
+                              height={80}
+                              className="object-cover w-full h-full"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Name and Email */}
+                        <div className="text-center mb-4">
+                          <h3 className="font-semibold text-lg">{member.name}</h3>
+                          <p className="text-sm text-muted-foreground truncate" title={member.email}>
+                            {member.email}
+                          </p>
+                        </div>
+
+                        {/* Joined Date */}
+                        <div className="text-center text-sm text-muted-foreground">
+                          {member.createdAt && `Joined ${format(new Date(member.createdAt), 'MMM d, yyyy')}`}
+                        </div>
+
+                        {/* View Details Link */}
+                        <div className="mt-4 text-center">
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => handleEditDetails(member)}
+                          >
+                            Edit details →
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="invitations" className="space-y-4">
+              {/* Search and Filters */}
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="relative flex-1 min-w-[200px] max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="invited">Pending</SelectItem>
+                    <SelectItem value="active">Accepted</SelectItem>
+                    <SelectItem value="inactive">Revoked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Invitations List */}
+              {loading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Loading invitations...</p>
+                </div>
+              ) : filteredInvitations.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No invitations found</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredInvitations.map((invitation: InvitationType) => (
+                    <Card key={invitation.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <Badge variant={getStatusBadgeVariant(invitation.status)}>
+                                {invitation.status}
+                              </Badge>
+                              <div>
+                                <p className="font-semibold">{invitation.email}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Role: {getRoleBadge(invitation.role)}
+                                  {invitation.createdAt && (
+                                    <> • Sent {format(new Date(invitation.createdAt), 'MMM d, yyyy')}</>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {invitation.status === 'PENDING' && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopyInvitationLink(invitation)}
+                                >
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Copy Link
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteInvitation(invitation.id, invitation.email)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Revoke
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </TabsContent>
+
+        {/* Roles & Permissions Tab */}
+        <TabsContent value="roles" className="space-y-4">
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Team Hierarchy & Access Structure</CardTitle>
+              <CardDescription>
+                Organizational structure showing agency, subaccounts, team members, and their access permissions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center h-full min-h-[600px] text-muted-foreground">
+                  <p>Loading team hierarchy...</p>
+                </div>
+              ) : (
+                <AgencyTeamTreeChart
+                  agencyName={agencyDetails?.name || 'Agency'}
+                  subaccounts={subaccounts}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Placeholder Tabs */}
+        <TabsContent value="teams">
+          <div className="flex items-center justify-center h-[400px] border-2 border-dashed rounded-lg text-muted-foreground">
+            Teams Management Coming Soon
+          </div>
+        </TabsContent>
+        <TabsContent value="flowboard">
+          <div className="h-[75vh] w-full border rounded-lg overflow-hidden">
+            <Flowboard />
+          </div>
+        </TabsContent>
+        <TabsContent value="settings">
+          <div className="flex items-center justify-center h-[400px] border-2 border-dashed rounded-lg text-muted-foreground">
+            Team Settings Coming Soon
+          </div>
+        </TabsContent>
+        <TabsContent value="analytics">
+          <div className="flex items-center justify-center h-[400px] border-2 border-dashed rounded-lg text-muted-foreground">
+            Team Analytics Coming Soon
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -644,28 +706,6 @@ const TeamPage = ({ params }: Props) => {
           />
         </DialogContent>
       </Dialog>
-
-      {/* Team Hierarchy & Access Structure */}
-      <Card className="w-full mt-6">
-        <CardHeader>
-          <CardTitle>Team Hierarchy & Access Structure</CardTitle>
-          <CardDescription>
-            Organizational structure showing agency, subaccounts, team members, and their access permissions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center h-full min-h-[600px] text-muted-foreground">
-              <p>Loading team hierarchy...</p>
-            </div>
-          ) : (
-            <AgencyTeamTreeChart
-              agencyName={agencyDetails?.name || 'Agency'}
-              subaccounts={subaccounts}
-            />
-          )}
-        </CardContent>
-      </Card>
     </div>
   )
 }

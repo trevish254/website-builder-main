@@ -290,6 +290,19 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
         updatedAt: new Date(),
       } as any)
     }
+
+    // Add Websites option if not present
+    if (!sidebarOpt.find((opt) => opt.name === 'Websites')) {
+      sidebarOpt.push({
+        id: `sidebar-${details?.id}-websites`,
+        name: 'Websites',
+        icon: 'globe',
+        link: `/subaccount/${details?.id}/websites`,
+        subAccountId: details?.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+    }
   }
 
   if (!details) return

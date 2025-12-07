@@ -1,0 +1,393 @@
+/* GrapeJS Custom Styles - Improved Visibility */
+
+/* ===== GENERAL OVERRIDES ===== */
+.gjs-one-bg {
+    background-color: hsl(var(--background)) !important;
+}
+
+.gjs-two-color,
+.gjs-four-color {
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-three-bg {
+    background-color: hsl(var(--muted)) !important;
+}
+
+/* ===== STYLE MANAGER ===== */
+.gjs-style-manager-container .gjs-sm-sector {
+    margin-bottom: 16px;
+    border-bottom: 1px solid hsl(var(--border));
+    padding-bottom: 12px;
+}
+
+.gjs-style-manager-container .gjs-sm-sector-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 10px 0;
+    color: hsl(var(--foreground)) !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer;
+}
+
+.gjs-style-manager-container .gjs-sm-properties {
+    padding: 8px 0;
+}
+
+.gjs-style-manager-container .gjs-sm-property {
+    margin-bottom: 12px;
+}
+
+.gjs-style-manager-container .gjs-sm-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: hsl(var(--foreground)) !important;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.gjs-style-manager-container input[type="text"],
+.gjs-style-manager-container input[type="number"],
+.gjs-style-manager-container select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 6px;
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    font-size: 0.875rem;
+}
+
+.gjs-style-manager-container input:focus,
+.gjs-style-manager-container select:focus {
+    outline: none !important;
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2) !important;
+}
+
+.gjs-style-manager-container .gjs-field-color {
+    border: 1px solid hsl(var(--border)) !important;
+    background: hsl(var(--background)) !important;
+}
+
+.gjs-style-manager-container .gjs-field-units {
+    background: hsl(var(--muted)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-style-manager-container .gjs-field-units select {
+    background: transparent !important;
+    color: hsl(var(--foreground)) !important;
+    border: none !important;
+}
+
+/* Radio buttons */
+.gjs-style-manager-container .gjs-radio-item {
+    background: hsl(var(--muted)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    color: hsl(var(--muted-foreground)) !important;
+    padding: 6px 12px;
+    margin: 2px;
+    border-radius: 4px;
+}
+
+.gjs-style-manager-container .gjs-radio-item.gjs-radio-item-active,
+.gjs-style-manager-container .gjs-radio-item:hover {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border-color: hsl(var(--primary)) !important;
+}
+
+/* Slider */
+.gjs-style-manager-container .gjs-field-range {
+    background: hsl(var(--muted)) !important;
+}
+
+.gjs-style-manager-container input[type="range"] {
+    background: hsl(var(--muted)) !important;
+}
+
+/* ===== LAYER MANAGER ===== */
+.gjs-layer-manager-container {
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer {
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: hsl(var(--foreground)) !important;
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+.gjs-layer-manager-container .gjs-layer:hover {
+    background: hsl(var(--accent)) !important;
+    border-color: hsl(var(--border));
+}
+
+.gjs-layer-manager-container .gjs-layer.gjs-selected {
+    background: hsl(var(--primary) / 0.15) !important;
+    border-color: hsl(var(--primary)) !important;
+    border-left: 3px solid hsl(var(--primary)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer-title {
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer-count {
+    color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer-vis {
+    color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer-caret {
+    color: hsl(var(--muted-foreground)) !important;
+}
+
+/* ===== TRAIT MANAGER ===== */
+.gjs-trait-manager-container {
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-trait-manager-container .gjs-trt-trait {
+    margin-bottom: 16px;
+}
+
+.gjs-trait-manager-container .gjs-label-wrp {
+    margin-bottom: 6px;
+}
+
+.gjs-trait-manager-container .gjs-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-trait-manager-container input,
+.gjs-trait-manager-container select,
+.gjs-trait-manager-container textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 6px;
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    font-size: 0.875rem;
+}
+
+.gjs-trait-manager-container input:focus,
+.gjs-trait-manager-container select:focus,
+.gjs-trait-manager-container textarea:focus {
+    outline: none !important;
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2) !important;
+}
+
+.gjs-trait-manager-container .gjs-trt-trait__wrp-input {
+    background: hsl(var(--background)) !important;
+}
+
+/* ===== BUTTONS ===== */
+.gjs-btn-prim {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border: none !important;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.gjs-btn-prim:hover {
+    opacity: 0.9;
+}
+
+/* ===== COMPOSITE FIELDS ===== */
+.gjs-style-manager-container .gjs-sm-composite {
+    background: hsl(var(--muted) / 0.3) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.gjs-style-manager-container .gjs-sm-composite .gjs-sm-property {
+    margin-bottom: 8px;
+}
+
+/* ===== STACK FIELDS ===== */
+.gjs-style-manager-container .gjs-sm-stack {
+    background: hsl(var(--muted) / 0.3) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+/* ===== FIX TEXT VISIBILITY ===== */
+.gjs-style-manager-container *,
+.gjs-layer-manager-container *,
+.gjs-trait-manager-container * {
+    color: inherit !important;
+}
+
+.gjs-style-manager-container input::placeholder,
+.gjs-trait-manager-container input::placeholder,
+.gjs-trait-manager-container textarea::placeholder {
+    color: hsl(var(--muted-foreground)) !important;
+    opacity: 0.6;
+}
+
+
+/* ===== BLOCKS CONTAINER ===== */
+.gjs-blocks-container {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 12px !important;
+}
+
+.gjs-blocks-container .gjs-block {
+    width: 100% !important;
+    min-height: 90px !important;
+    padding: 12px !important;
+    margin: 0 !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 8px !important;
+    background: hsl(var(--card)) !important;
+    cursor: move !important;
+    transition: all 0.2s !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 8px !important;
+}
+
+.gjs-blocks-container .gjs-block:hover {
+    background: hsl(var(--accent)) !important;
+    border-color: hsl(var(--primary)) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.gjs-blocks-container .gjs-block__media {
+    width: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: hsl(var(--primary) / 0.1) !important;
+    border-radius: 6px !important;
+    margin-bottom: 4px !important;
+}
+
+.gjs-blocks-container .gjs-block__media svg,
+.gjs-blocks-container .gjs-block__media i {
+    color: hsl(var(--primary)) !important;
+    font-size: 20px !important;
+}
+
+.gjs-blocks-container .gjs-block__label {
+    color: hsl(var(--foreground)) !important;
+    font-weight: 500 !important;
+    font-size: 0.75rem !important;
+    line-height: 1.2 !important;
+    word-break: break-word !important;
+}
+
+.gjs-blocks-container .gjs-block.gjs-bdrag {
+    opacity: 0.5 !important;
+    transform: scale(0.95) !important;
+}
+
+/* Category styling */
+.gjs-blocks-container .gjs-block-category {
+    grid-column: 1 / -1 !important;
+    margin-top: 12px !important;
+    margin-bottom: 4px !important;
+}
+
+.gjs-blocks-container .gjs-block-category .gjs-title {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    color: hsl(var(--muted-foreground)) !important;
+    letter-spacing: 0.5px !important;
+    padding: 4px 0 !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+/* ===== CANVAS CENTERING & DEVICE FRAMES ===== */
+/* Center the canvas in edit mode */
+.gjs-cv-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: hsl(var(--muted) / 0.3) !important;
+}
+
+/* This container holds the frames */
+.gjs-cv-canvas__frames {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+}
+
+/* Device frame styling */
+.gjs-frame-wrapper {
+    margin: 0 auto !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
+    background: white !important;
+    transition: width 0.3s ease, height 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+/* Desktop mode - full width and height */
+.gjs-frame-wrapper[data-device="desktop"] {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+}
+
+/* Tablet mode - centered fixed width */
+.gjs-frame-wrapper[data-device="tablet"] {
+    width: 768px !important;
+    height: calc(100% - 32px) !important;
+    max-width: 95% !important;
+}
+
+/* Mobile mode - centered fixed width */
+.gjs-frame-wrapper[data-device="mobile"] {
+    width: 375px !important;
+    height: calc(100% - 32px) !important;
+    max-width: 95% !important;
+}
+
+/* Frame iframe styling */
+.gjs-frame {
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    background: white !important;
+}

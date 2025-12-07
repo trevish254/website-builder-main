@@ -18,6 +18,7 @@ type Props = {
 
 import { SidebarProvider } from '@/providers/sidebar-provider'
 import MainLayoutWrapper from '@/components/sidebar/main-layout-wrapper'
+import SubaccountLayoutClient from './layout-client'
 
 const SubaccountLayout = async ({ children, params }: Props) => {
   const user = await getUser()
@@ -50,24 +51,13 @@ const SubaccountLayout = async ({ children, params }: Props) => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="h-screen overflow-hidden">
-        <Sidebar
-          id={params.subaccountId}
-          type="subaccount"
-          defaultUser={userDetails}
-        />
-
-        <MainLayoutWrapper>
-          <InfoBar
-            notifications={notifications}
-            role={((userDetails as any).role || 'AGENCY_OWNER') as Role}
-            subAccountId={params.subaccountId as string}
-          />
-          <div className="relative flex-1 overflow-hidden">{children}</div>
-        </MainLayoutWrapper>
-      </div>
-    </SidebarProvider>
+    <SubaccountLayoutClient
+      subaccountId={params.subaccountId}
+      userDetails={userDetails}
+      notifications={notifications}
+    >
+      {children}
+    </SubaccountLayoutClient>
   )
 }
 

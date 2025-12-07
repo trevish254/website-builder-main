@@ -1,0 +1,64 @@
+import React from 'react'
+import GrapeJsEditor from '@/components/global/grapejs-editor'
+import { FunnelPage } from '@prisma/client'
+import { templates } from '@/components/global/grapejs-editor/templates'
+import { redirect } from 'next/navigation'
+import { upsertWebsite, getWebsite, getWebsitePages } from '@/lib/website-queries'
+
+type Props = {
+    params: {
+        subaccountId: string
+        websiteId: string
+    }
+    searchParams: {
+        template?: string
+    }
+}
+
+const WebsiteEditorPage = async ({ params, searchParams }: Props) => {
+    // Fetch real data
+    const website = await getWebsite(params.websiteId)
+    const websitePages = await getWebsitePages(params.websiteId)
+
+    if (!website) {
+        return <div className="p-20 text-center">Website not found</div>
+    }
+
+    // Determine which page to load
+    // 1. If we have pages, try finding 'Home' or '/'
+    // 2. Fallback to the first ordered page
+    // 3. If no pages exist (edge case), create a default one (or handle gracefully)
+
+    // For now, let's assume we always create a home page on creation.
+    let pageToLoad = websitePages.find(page => page.pathName === '/' || page.name === 'Home') || websitePages[0]
+
+    // If still no page, we might want to create one on the fly or show error?
+    // But our create flow ensures a page. 
+    // If somehow empty, we could pass a partial mock or redirect.
+    if (!pageToLoad) {
+        // Fallback mock if completely empty
+        pageToLoad = {
+            id: 'new', // Logic in editor might need adjustment if id is new but website exists
+            websiteId: website.id,
+            name: 'Home',
+            pathName: 'index',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            content: null,
+            order: 0,
+            previewImage: null,
+        } as any
+    }
+
+    return (
+        <div className="fixed inset-0 z-[100] bg-background font-sans">
+            <GrapeJsEditor
+                subaccountId={params.subaccountId}
+                funnelId={website.id}
+                pageDetails={pageToLoad}
+            />
+        </div>
+    )
+}
+
+export default WebsiteEditorPage

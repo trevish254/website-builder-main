@@ -60,6 +60,33 @@ type Props = {
   id: string
 }
 
+const SIDEBAR_GROUPS = [
+  {
+    label: 'MENU',
+    options: ['Dashboard', 'Launchpad', 'Overview'],
+  },
+  {
+    label: 'MANAGEMENT',
+    options: ['Sub Accounts', 'Team', 'Tasks', 'Messages'],
+  },
+  {
+    label: 'OPERATIONS',
+    options: ['Funnels', 'Websites', 'Pipelines', 'Media', 'Automations', 'Contacts'],
+  },
+  {
+    label: 'FINANCE',
+    options: ['Billing'],
+  },
+  {
+    label: 'GOV FINANCE',
+    options: ['Government Services'],
+  },
+  {
+    label: 'SETTINGS',
+    options: ['Settings'],
+  },
+]
+
 const MenuOptions = ({
   details,
   id,
@@ -90,6 +117,45 @@ const MenuOptions = ({
       option.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
   }, [sidebarOpt, searchQuery])
+
+  // Group the filtered options
+  const groupedSidebarOptions = useMemo(() => {
+    const groups: { label: string; options: typeof filteredSidebarOpt }[] = []
+    const usedIds = new Set<string>()
+
+    // Process defined groups
+    SIDEBAR_GROUPS.forEach((groupDef) => {
+      const groupOptions = filteredSidebarOpt.filter((opt) =>
+        groupDef.options.includes(opt.name)
+      )
+      if (groupOptions.length > 0) {
+        groups.push({
+          label: groupDef.label,
+          options: groupOptions,
+        })
+        groupOptions.forEach((opt) => usedIds.add(opt.id))
+      }
+    })
+
+    // Catch-all for remaining items (e.g. plugins or unknowns)
+    const remainingOptions = filteredSidebarOpt.filter(
+      (opt) => !usedIds.has(opt.id)
+    )
+    if (remainingOptions.length > 0) {
+      // If "MENU" group exists, append to it, otherwise create "OTHERS"
+      const menuGroup = groups.find((g) => g.label === 'MENU')
+      if (menuGroup) {
+        menuGroup.options.push(...remainingOptions)
+      } else {
+        groups.unshift({
+          label: 'MENU',
+          options: remainingOptions,
+        })
+      }
+    }
+
+    return groups
+  }, [filteredSidebarOpt])
 
   // Get role display information
   const getRoleInfo = () => {
@@ -448,109 +514,114 @@ const MenuOptions = ({
 
             {/* Scrollable Container */}
             <div className="flex-1 overflow-y-auto">
-              {/* MENU Section */}
+              {/* GROUPS Section */}
               <div className={clsx("pb-4", isCollapsed ? "px-2" : "px-6")}>
-                {!isCollapsed && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-3 flex items-center justify-between mt-4">
-                    <span>MENU</span>
-                    <span className="cursor-pointer">⋯</span>
-                  </p>
-                )}
-                <div className={clsx("space-y-0.5", isCollapsed && "mt-4")}>
-                  {filteredSidebarOpt.length === 0 ? (
-                    <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
-                      No results found
-                    </div>
-                  ) : isCollapsed ? (
-                    <div className="space-y-4">
-                      {filteredSidebarOpt.map((sidebarOptions) => {
-                        let val = null
-                        const result = icons.find(
-                          (icon) => icon.value === sidebarOptions.icon
-                        )
-                        if (result && result.path) {
-                          const IconComponent = result.path
-                          val = <IconComponent className="w-5 h-5" />
-                        } else {
-                          val = <Settings className="w-5 h-5" />
-                        }
-                        const isActive = sidebarOptions.link.includes(id)
+                {groupedSidebarOptions.map((group, groupIdx) => (
+                  <div key={group.label} className={clsx("mb-4", groupIdx > 0 && "mt-6")}>
+                    {!isCollapsed && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span>{group.label}</span>
+                        {groupIdx === 0 && <span className="cursor-pointer">⋯</span>}
+                      </p>
+                    )}
+                    <div className={clsx("space-y-0.5", isCollapsed && "mt-4")}>
+                      {isCollapsed ? (
+                        <div className="space-y-4">
+                          {group.options.map((sidebarOptions) => {
+                            let val = null
+                            const result = icons.find(
+                              (icon) => icon.value === sidebarOptions.icon
+                            )
+                            if (result && result.path) {
+                              const IconComponent = result.path
+                              val = <IconComponent className="w-5 h-5" />
+                            } else {
+                              val = <Settings className="w-5 h-5" />
+                            }
+                            const isActive = sidebarOptions.link.includes(id)
 
-                        const iconLink = (
-                          <Link
-                            href={sidebarOptions.link}
-                            className={clsx(
-                              'flex items-center justify-center transition-all duration-200 hover:scale-110',
-                              isActive && 'text-blue-600 dark:text-blue-400 scale-105'
-                            )}
-                          >
-                            <span className={clsx('text-gray-600 dark:text-gray-400', isActive && 'text-blue-600 dark:text-blue-400')}>
-                              {val}
-                            </span>
-                          </Link>
-                        )
+                            const iconLink = (
+                              <Link
+                                href={sidebarOptions.link}
+                                className={clsx(
+                                  'flex items-center justify-center transition-all duration-200 hover:scale-110',
+                                  isActive && 'text-blue-600 dark:text-blue-400 scale-105'
+                                )}
+                              >
+                                <span className={clsx('text-gray-600 dark:text-gray-400', isActive && 'text-blue-600 dark:text-blue-400')}>
+                                  {val}
+                                </span>
+                              </Link>
+                            )
 
-                        return (
-                          <Tooltip key={sidebarOptions.id}>
-                            <TooltipTrigger asChild>
-                              {defaultOpen ? iconLink : (
-                                <SheetClose asChild>
-                                  {iconLink}
-                                </SheetClose>
+                            return (
+                              <Tooltip key={sidebarOptions.id}>
+                                <TooltipTrigger asChild>
+                                  {defaultOpen ? iconLink : (
+                                    <SheetClose asChild>
+                                      {iconLink}
+                                    </SheetClose>
+                                  )}
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="font-medium">
+                                  {sidebarOptions.name}
+                                </TooltipContent>
+                              </Tooltip>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        group.options.map((sidebarOptions) => {
+                          let val = null
+                          const result = icons.find(
+                            (icon) => icon.value === sidebarOptions.icon
+                          )
+                          if (result && result.path) {
+                            const IconComponent = result.path
+                            val = <IconComponent className="w-4 h-4" />
+                          } else {
+                            // Fallback icon if not found
+                            val = <Settings className="w-4 h-4" />
+                          }
+                          const isActive = sidebarOptions.link.includes(id)
+
+                          const linkContent = (
+                            <Link
+                              key={sidebarOptions.id}
+                              href={sidebarOptions.link}
+                              className={clsx(
+                                'flex items-center gap-3 px-3 py-1.5 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                isActive && 'text-blue-600 dark:text-blue-400',
+                                isCollapsed && 'justify-center px-2'
                               )}
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="font-medium">
-                              {sidebarOptions.name}
-                            </TooltipContent>
-                          </Tooltip>
-                        )
-                      })}
+                            >
+                              <span className={clsx('text-gray-600 dark:text-gray-400', isActive && 'text-blue-600 dark:text-blue-400')}>
+                                {val}
+                              </span>
+                              {!isCollapsed && (
+                                <span className={clsx('text-sm text-gray-700 dark:text-gray-300', isActive && 'text-blue-600 dark:text-blue-400 font-medium')}>
+                                  {sidebarOptions.name}
+                                </span>
+                              )}
+                            </Link>
+                          )
+
+                          // Wrap in SheetClose for mobile to auto-close sidebar
+                          return defaultOpen ? linkContent : (
+                            <SheetClose asChild key={sidebarOptions.id}>
+                              {linkContent}
+                            </SheetClose>
+                          )
+                        })
+                      )}
                     </div>
-                  ) : (
-                    filteredSidebarOpt.map((sidebarOptions) => {
-                      let val = null
-                      const result = icons.find(
-                        (icon) => icon.value === sidebarOptions.icon
-                      )
-                      if (result && result.path) {
-                        const IconComponent = result.path
-                        val = <IconComponent className="w-4 h-4" />
-                      } else {
-                        // Fallback icon if not found
-                        val = <Settings className="w-4 h-4" />
-                      }
-                      const isActive = sidebarOptions.link.includes(id)
-
-                      const linkContent = (
-                        <Link
-                          key={sidebarOptions.id}
-                          href={sidebarOptions.link}
-                          className={clsx(
-                            'flex items-center gap-3 px-3 py-1.5 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                            isActive && 'text-blue-600 dark:text-blue-400',
-                            isCollapsed && 'justify-center px-2'
-                          )}
-                        >
-                          <span className={clsx('text-gray-600 dark:text-gray-400', isActive && 'text-blue-600 dark:text-blue-400')}>
-                            {val}
-                          </span>
-                          {!isCollapsed && (
-                            <span className={clsx('text-sm text-gray-700 dark:text-gray-300', isActive && 'text-blue-600 dark:text-blue-400 font-medium')}>
-                              {sidebarOptions.name}
-                            </span>
-                          )}
-                        </Link>
-                      )
-
-                      // Wrap in SheetClose for mobile to auto-close sidebar
-                      return defaultOpen ? linkContent : (
-                        <SheetClose asChild key={sidebarOptions.id}>
-                          {linkContent}
-                        </SheetClose>
-                      )
-                    })
-                  )}
-                </div>
+                  </div>
+                ))}
+                {groupedSidebarOptions.length === 0 && (
+                  <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+                    No results found
+                  </div>
+                )}
               </div>
 
               {/* ACCOUNT Section */}
