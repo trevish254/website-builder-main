@@ -1,15 +1,23 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 
 type SidebarContextType = {
-    isCollapsed: boolean
-    toggleSidebar: () => void
+    hoveredMenuItem: string | null
+    setHoveredMenuItem: (id: string | null) => void
+    activeCategory: string | null
+    setActiveCategory: (category: string | null) => void
+    isPanelCollapsed: boolean
+    setIsPanelCollapsed: (collapsed: boolean) => void
 }
 
 const SidebarContext = createContext<SidebarContextType>({
-    isCollapsed: false,
-    toggleSidebar: () => { },
+    hoveredMenuItem: null,
+    setHoveredMenuItem: () => { },
+    activeCategory: null,
+    setActiveCategory: () => { },
+    isPanelCollapsed: false,
+    setIsPanelCollapsed: () => { },
 })
 
 export const useSidebar = () => {
@@ -25,27 +33,19 @@ export const SidebarProvider = ({
 }: {
     children: React.ReactNode
 }) => {
-    const [isCollapsed, setIsCollapsed] = useState(false)
-    const [isMounted, setIsMounted] = useState(false)
-
-    useEffect(() => {
-        setIsMounted(true)
-        const saved = localStorage.getItem('sidebar-collapsed')
-        if (saved) {
-            setIsCollapsed(JSON.parse(saved))
-        }
-    }, [])
-
-    const toggleSidebar = () => {
-        setIsCollapsed((prev) => {
-            const newState = !prev
-            localStorage.setItem('sidebar-collapsed', JSON.stringify(newState))
-            return newState
-        })
-    }
+    const [hoveredMenuItem, setHoveredMenuItem] = useState<string | null>(null)
+    const [activeCategory, setActiveCategory] = useState<string | null>(null)
+    const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
 
     return (
-        <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
+        <SidebarContext.Provider value={{
+            hoveredMenuItem,
+            setHoveredMenuItem,
+            activeCategory,
+            setActiveCategory,
+            isPanelCollapsed,
+            setIsPanelCollapsed
+        }}>
             {children}
         </SidebarContext.Provider>
     )

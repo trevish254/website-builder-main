@@ -92,7 +92,7 @@ const BlocksPanel = ({ editor }: Props) => {
     // Show category grid if no category is selected
     if (!selectedCategory) {
         return (
-            <div className="w-[300px] border-r bg-background flex flex-col h-full">
+            <div className="w-[240px] border-r bg-background flex flex-col h-full">
                 {/* Header */}
                 <div className="p-4 border-b">
                     <h2 className="font-semibold text-lg mb-3">Blocks</h2>
@@ -117,7 +117,7 @@ const BlocksPanel = ({ editor }: Props) => {
                                     key={category.id}
                                     onClick={() => handleCategoryClick(category.id)}
                                     className={cn(
-                                        'flex flex-col items-center justify-center gap-3 p-6 rounded-lg border-2',
+                                        'flex flex-col items-center justify-center gap-3 p-4 rounded-lg border-2',
                                         'bg-card hover:bg-accent hover:border-primary transition-all',
                                         'cursor-pointer group'
                                     )}
@@ -141,7 +141,7 @@ const BlocksPanel = ({ editor }: Props) => {
     const currentCategory = blockCategories.find(c => c.id === selectedCategory)
 
     return (
-        <div className="w-[300px] border-r bg-background flex flex-col h-full">
+        <div className="w-[240px] border-r bg-background flex flex-col h-full">
             {/* Header with Back Button */}
             <div className="p-4 border-b">
                 <div className="flex items-center gap-2 mb-3">

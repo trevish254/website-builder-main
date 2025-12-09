@@ -40,6 +40,7 @@ import {
   Award,
   Briefcase,
   Globe,
+  Rocket,
 } from 'lucide-react'
 
 export const pricingCards = [
@@ -286,6 +287,11 @@ export const icons = [
     value: 'users',
     label: 'Users',
     path: Users,
+  },
+  {
+    value: 'rocket',
+    label: 'Rocket',
+    path: Rocket,
   },
 ]
 

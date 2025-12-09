@@ -59,7 +59,7 @@ const StylePanel = ({ editor }: Props) => {
     }, [editor, managersRendered])
 
     return (
-        <div className="w-[320px] border-l bg-background flex flex-col h-full">
+        <div className="w-[280px] border-l bg-background flex flex-col h-full">
             {/* Header */}
             <div className="p-4 border-b">
                 <h2 className="font-semibold text-lg">Properties</h2>

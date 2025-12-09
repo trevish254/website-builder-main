@@ -6,6 +6,8 @@ export async function middleware(request: NextRequest) {
   const searchParams = url.searchParams.toString()
   const hostname = request.headers.get('host')
 
+  console.log(`[Middleware] ${request.method} ${url.pathname}`)
+
   const pathWithSearchParams = `${url.pathname}${searchParams.length > 0 ? `?${searchParams}` : ''
     }`
 
@@ -19,6 +21,7 @@ export async function middleware(request: NextRequest) {
   const isMainDomain = hostname === mainDomain || hostname === 'localhost:3000'
 
   if (!isMainDomain && hostname) {
+    console.log(`[Middleware] Rewriting for custom domain: ${hostname}`)
     // Rewrite to /[domain]/[path] to be handled by src/app/[domain]/page.tsx
     // We pass the full hostname as the 'domain' param
     return NextResponse.rewrite(

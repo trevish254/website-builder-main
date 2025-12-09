@@ -1,7 +1,8 @@
-import { getAuthUserDetails } from '@/lib/queries'
-import { off } from 'process'
+import { getAuthUserDetails, getAgencyTeamMembers } from '@/lib/queries'
 import React from 'react'
-import MenuOptions from './menu-options'
+import IconDock from './icon-dock'
+import FixedSubmenuPanel from './fixed-submenu-panel'
+import MobileMenu from './mobile-menu'
 
 type Props = {
   id: string
@@ -16,10 +17,15 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
   let details = userDetails
   let sideBarLogo = '/assets/plura-logo.svg'
   let subaccounts = []
+  let teamMembers = []
 
   try {
     if (!user) {
       user = await getAuthUserDetails()
+    }
+    // Fetch team members if it's an agency type
+    if (type === 'agency' && id) {
+      teamMembers = await getAgencyTeamMembers(id)
     }
   } catch (error) {
     console.log('Authentication not available, using fallback data:', error)
@@ -118,16 +124,14 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
 
       return (
         <>
-          <MenuOptions
-            defaultOpen={true}
-            details={details}
-            id={id}
-            sidebarLogo={sideBarLogo}
-            sidebarOpt={sidebarOpt}
+          <IconDock sidebarOptions={sidebarOpt} logo={sideBarLogo} />
+          <FixedSubmenuPanel
+            sidebarOptions={sidebarOpt}
             subAccounts={subaccounts}
             user={{ id: 'mock-user', name: 'Test User', role: 'AGENCY_OWNER' }}
+            details={details}
           />
-          <MenuOptions
+          <MobileMenu
             details={details}
             id={id}
             sidebarLogo={sideBarLogo}
@@ -227,16 +231,14 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
 
       return (
         <>
-          <MenuOptions
-            defaultOpen={true}
-            details={details}
-            id={id}
-            sidebarLogo={sideBarLogo}
-            sidebarOpt={sidebarOpt}
+          <IconDock sidebarOptions={sidebarOpt} logo={sideBarLogo} />
+          <FixedSubmenuPanel
+            sidebarOptions={sidebarOpt}
             subAccounts={subaccounts}
             user={{ id: 'mock-user', name: 'Test User', role: 'AGENCY_OWNER' }}
+            details={details}
           />
-          <MenuOptions
+          <MobileMenu
             details={details}
             id={id}
             sidebarLogo={sideBarLogo}
@@ -277,6 +279,8 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
     }
 
     sidebarOpt = details?.SubAccountSidebarOption || []
+    console.log('🔍 Sidebar Options for Subaccount:', sidebarOpt.map(o => ({ name: o.name, link: o.link })))
+
 
     // Add Messages option if not present
     if (!sidebarOpt.find((opt) => opt.name === 'Messages')) {
@@ -573,16 +577,16 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
 
   return (
     <>
-      <MenuOptions
-        defaultOpen={true}
-        details={details}
-        id={id}
-        sidebarLogo={sideBarLogo}
-        sidebarOpt={sidebarOpt}
+      <IconDock sidebarOptions={sidebarOpt} logo={sideBarLogo} />
+      <FixedSubmenuPanel
+        sidebarOptions={sidebarOpt}
         subAccounts={subaccounts}
         user={user}
+        details={details}
+        agencyId={type === 'agency' ? id : undefined}
+        teamMembers={teamMembers}
       />
-      <MenuOptions
+      <MobileMenu
         details={details}
         id={id}
         sidebarLogo={sideBarLogo}

@@ -1,22 +1,22 @@
 'use client'
 
+import React from 'react'
+
 import { useSidebar } from '@/providers/sidebar-provider'
 import { cn } from '@/lib/utils'
-import React from 'react'
 
 type Props = {
     children: React.ReactNode
 }
 
 const MainLayoutWrapper = ({ children }: Props) => {
-    const { isCollapsed } = useSidebar()
+    const { isPanelCollapsed } = useSidebar()
 
     return (
         <div
             className={cn(
-                'transition-all duration-200 ease-out will-change-transform',
-                isCollapsed ? 'md:pl-[70px]' : 'md:pl-[230px]',
-                'flex flex-col h-full'
+                "transition-all duration-200 ease-out flex flex-col h-full",
+                isPanelCollapsed ? "md:pl-[80px]" : "md:pl-[280px]"
             )}
         >
             {children}

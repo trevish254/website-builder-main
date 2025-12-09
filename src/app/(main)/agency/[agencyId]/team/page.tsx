@@ -27,9 +27,10 @@ import Flowboard from '@/components/flowboard'
 
 type Props = {
   params: { agencyId: string }
+  searchParams: { tab?: string }
 }
 
-const TeamPage = ({ params }: Props) => {
+const TeamPage = ({ params, searchParams }: Props) => {
   const router = useRouter()
   const { toast } = useToast()
   const { setOpen } = useModal()
@@ -38,7 +39,16 @@ const TeamPage = ({ params }: Props) => {
   const [roleFilter, setRoleFilter] = useState<string>('all')
 
   // Main Tab State
-  const [activeTab, setActiveTab] = useState<'members' | 'teams' | 'roles' | 'flowboard' | 'settings' | 'analytics'>('members')
+  const [activeTab, setActiveTab] = useState<'members' | 'teams' | 'roles' | 'flowboard' | 'settings' | 'analytics'>(
+    (searchParams.tab as any) || 'members'
+  )
+
+  // Update active tab if searchParams change
+  useEffect(() => {
+    if (searchParams.tab) {
+      setActiveTab(searchParams.tab as any)
+    }
+  }, [searchParams.tab])
   // Sub-tab state for Members tab (to toggle between active members and invitations)
   const [membersSubTab, setMembersSubTab] = useState<'active' | 'invitations'>('active')
 

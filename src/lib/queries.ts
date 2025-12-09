@@ -58,6 +58,8 @@ export const getAuthUserDetails = cache(async () => {
           SubAccount (
             id,
             name,
+            subAccountType,
+            companyName,
             subAccountLogo,
             address,
             companyEmail,
@@ -85,6 +87,8 @@ export const getAuthUserDetails = cache(async () => {
           SubAccount (
             id,
             name,
+            subAccountType,
+            companyName,
             subAccountLogo,
             agencyId,
             SubAccountSidebarOption (*)
@@ -204,6 +208,28 @@ export const getAuthUserDetails = cache(async () => {
             await createDefaultSubAccountSidebarOptions(subAccount.id)
             shouldRefetchSubAccount = true
           } else {
+            // Check for malformed links and fix them
+            const expectedLinks: Record<string, string> = {
+              'Funnels': `/subaccount/${subAccount.id}/funnels`,
+              'Pipelines': `/subaccount/${subAccount.id}/pipelines`,
+              'Contacts': `/subaccount/${subAccount.id}/contacts`,
+              'Media': `/subaccount/${subAccount.id}/media`,
+              'Automations': `/subaccount/${subAccount.id}/automations`,
+              'Settings': `/subaccount/${subAccount.id}/settings`,
+            }
+
+            for (const option of subAccount.SubAccountSidebarOption) {
+              const expectedLink = expectedLinks[option.name]
+              if (expectedLink && option.link !== expectedLink) {
+                console.log(`🔧 Fixing malformed ${option.name} link for subaccount:`, subAccount.id)
+                await supabase
+                  .from('SubAccountSidebarOption')
+                  .update({ link: expectedLink } as AnyRecord)
+                  .eq('id', option.id)
+                shouldRefetchSubAccount = true
+              }
+            }
+
             const hasFinance = subAccount.SubAccountSidebarOption.some(
               (option: any) => option.name === 'Finance'
             )

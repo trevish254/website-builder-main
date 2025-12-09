@@ -21,14 +21,20 @@ type Props = {
 }
 
 const WebsitesPage = async ({ params, searchParams }: Props) => {
+    console.log('🖥️ Rendering WebsitesPage for:', params.subaccountId)
     // Fetch real data
     const existingProjects = await getWebsites(params.subaccountId)
+    console.log('✅ Fetched websites:', existingProjects?.length || 0)
+
 
     const templates = [
         { id: 't1', name: 'Agency Portfolio', description: 'Modern agency landing page', color: 'bg-blue-100 dark:bg-blue-900/20' },
         { id: 't2', name: 'SaaS Startup', description: 'Clean SaaS product showcase', color: 'bg-purple-100 dark:bg-purple-900/20' },
         { id: 't3', name: 'E-commerce Store', description: 'Featured products and cart', color: 'bg-green-100 dark:bg-green-900/20' },
-        { id: 't4', name: 'Restaurant Menu', description: 'Appetizing visual menu', color: 'bg-orange-100 dark:bg-orange-900/20' },
+        { id: 't4', name: 'Restaurant Menu', description: 'Elegant Italian restaurant', color: 'bg-orange-100 dark:bg-orange-900/20' },
+        { id: 't5', name: 'Personal Portfolio', description: 'Designer & developer showcase', color: 'bg-slate-100 dark:bg-slate-900/20' },
+        { id: 't6', name: 'Blog/Magazine', description: 'Article-focused publication', color: 'bg-red-100 dark:bg-red-900/20' },
+        { id: 't7', name: 'Fitness/Gym', description: 'Classes and membership plans', color: 'bg-teal-100 dark:bg-teal-900/20' },
     ]
 
     return (
@@ -61,9 +67,9 @@ const WebsitesPage = async ({ params, searchParams }: Props) => {
                                             const previewImage = homePage?.previewImage || project.previewImage
 
                                             return previewImage ? (
-                                                <img src={previewImage} alt={project.name} className="w-full h-full object-cover" />
+                                                <img src={previewImage} alt={project.name} className="w-full h-full object-cover object-top" />
                                             ) : project.favicon ? (
-                                                <img src={project.favicon} alt={project.name} className="w-full h-full object-cover" />
+                                                <img src={project.favicon} alt={project.name} className="w-full h-full object-cover object-top" />
                                             ) : (
                                                 <Globe className="w-12 h-12 text-muted-foreground/20" />
                                             )

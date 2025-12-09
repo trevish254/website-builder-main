@@ -9,20 +9,22 @@ import { Input } from '@/components/ui/input'
 import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft } from 'lucide-react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { customBlocks, blockCategories } from './blocks-config'
-import BlocksPanel from './blocks-panel'
+import BlocksPanel from './blocks-panel' // Keeping for reference or fallback, but mostly replacing usage
 import StylePanel from './style-panel'
 import './grapejs-custom.css'
 import { FunnelPage } from '@prisma/client'
-import { upsertWebsitePage } from '@/lib/website-queries'
+import { upsertWebsitePage, WebsitePage } from '@/lib/website-queries'
 import { toast } from '@/components/ui/use-toast'
+import EditorSidebar from './editor-sidebar'
 
 type Props = {
     subaccountId: string
     funnelId: string
     pageDetails: FunnelPage
+    websitePages?: WebsitePage[]
 }
 
-const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
+const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages }: Props) => {
     const router = useRouter()
     const editorRef = useRef<HTMLDivElement>(null)
     const editorInstanceRef = useRef<any>(null)
@@ -30,6 +32,10 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
     const [activeDevice, setActiveDevice] = useState('desktop')
     const [editorReady, setEditorReady] = useState(false)
     const [showBlocks, setShowBlocks] = useState(true)
+
+    // Sidebar State
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+    const [activeSidebarTab, setActiveSidebarTab] = useState('blocks')
 
     useEffect(() => {
         if (!editorRef.current) return
@@ -45,7 +51,23 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
                 styles: [
                     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
                 ],
-                scripts: [],
+                scripts: [
+                    // Navigation handler for page links
+                    `(function() {
+                        document.addEventListener('click', function(e) {
+                            let target = e.target;
+                            while (target && target !== document) {
+                                const navigateTo = target.getAttribute('data-navigate-page');
+                                if (navigateTo && navigateTo !== '') {
+                                    e.preventDefault();
+                                    window.location.href = '/' + navigateTo;
+                                    return;
+                                }
+                                target = target.parentElement;
+                            }
+                        });
+                    })();`
+                ],
             },
             blockManager: {
                 appendTo: '#blocks',
@@ -60,47 +82,20 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
                     { name: 'mobile', width: '320px', widthMedia: '480px' },
                 ]
             },
+            // Preserve inline styles when loading HTML
+            parser: {
+                optionsHtml: {
+                    allowScripts: true,
+                },
+            },
+            // Keep inline styles in components
+            avoidInlineStyle: false,
         })
 
-        // Initial Content Load
-        if (pageDetails.content) {
-            try {
-                // If content is project data (JSON object), use loadProjectData (setComponents handles it?)
-                // GrapesJS setComponents accepts array/object.
-                // If it is JSON string, parse it.
-                // Since we store JSONB, pageDetails.content is logically an Object in JS?
-                // Step 528 sql said JSONB.
-                // Prisma type is Json?
-                // If prisma, it is object.
-                // If we get it from Supabase, it is object.
-                // We'll handle both.
-                const content = typeof pageDetails.content === 'string'
-                    ? JSON.parse(pageDetails.content)
-                    : pageDetails.content
+        // Reactive Content Load
 
-                // Check if it's full project data (usually has pages, styles, assets)
-                if (content.pages || content.styles || content.assets) {
-                    editor.loadProjectData(content)
-                } else {
-                    // Legacy/Simple content
-                    editor.setComponents(content.components || content)
-                    if (content.styles) editor.setStyle(content.styles)
-                }
-            } catch {
-                // Fallback
-                console.warn('Failed to parse content, using raw')
-                editor.setComponents([])
-            }
-        } else if (!editor.getComponents().length) {
-            editor.addComponents(`
-                <div data-gjs-type="text" style="padding: 40px; text-align: center; color: #999; border: 2px dashed #ddd; border-radius: 8px; margin: 20px auto; max-width: 800px;">
-                    <h2 style="margin: 0 0 10px 0; color: #666;">Start Building Your Page</h2>
-                    <p style="margin: 0;">Drag and drop blocks from the left panel to add content here</p>
-                </div>
-            `)
-        }
 
-        // Register Custom Blocks with Icons
+        // Register Custom Blocks
         customBlocks.forEach((block) => {
             try {
                 const categoryLabel = blockCategories.find(c => c.id === block.category)?.label || block.category
@@ -122,7 +117,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
             }
         })
 
-        // Configure Style Manager Sectors (Simplified for brevity, assuming standard config)
+        // Style Manager Configuration
         editor.StyleManager.addSector('general', {
             name: 'General',
             open: false,
@@ -131,7 +126,6 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
                 { property: 'position', type: 'select', list: [{ value: 'static', name: 'Static' }, { value: 'relative', name: 'Relative' }, { value: 'absolute', name: 'Absolute' }, { value: 'fixed', name: 'Fixed' }] },
             ]
         })
-        // ... (Adding minimal sectors to ensure functionality, full list from previous view assumed known or simplified)
         editor.StyleManager.addSector('dimension', {
             name: 'Dimension',
             open: false,
@@ -167,6 +161,27 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
             properties: [{ property: 'flex-direction' }, { property: 'justify-content' }, { property: 'align-items' }, { property: 'gap' }]
         })
 
+        // Add custom trait for page navigation to all components
+        editor.on('component:add', (component: any) => {
+            const existingTraits = component.get('traits')
+            const hasNavigateTrait = existingTraits.some((t: any) => t.name === 'data-navigate-page')
+
+            if (!hasNavigateTrait) {
+                component.addTrait({
+                    type: 'select',
+                    label: 'Navigate to Page',
+                    name: 'data-navigate-page',
+                    options: [
+                        { id: '', name: 'None' },
+                        ...(websitePages?.map(page => ({
+                            id: page.pathName,
+                            name: page.name
+                        })) || [])
+                    ]
+                })
+            }
+        })
+
         editorInstanceRef.current = editor
         setEditorReady(true)
 
@@ -174,6 +189,93 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
             editor.destroy()
         }
     }, [])
+
+    // Reactive Content Load
+    useEffect(() => {
+        if (!editorReady || !editorInstanceRef.current || !pageDetails) return
+
+        const editor = editorInstanceRef.current
+
+        setPageName(pageDetails.name || 'Untitled Page')
+
+        try {
+            const content = typeof pageDetails.content === 'string'
+                ? JSON.parse(pageDetails.content)
+                : pageDetails.content
+
+            if (content && (content.pages || content.styles || content.assets)) {
+                // Full GrapeJS project data
+                editor.loadProjectData(content)
+            } else if (content && typeof content.components === 'string') {
+                // HTML string template wrapped in { components: htmlString }
+                editor.runCommand('core:canvas-clear')
+
+                // Extract CSS from <style> tags and inject separately
+                const styleRegex = /<style>([\s\S]*?)<\/style>/gi
+                let css = ''
+                let htmlWithoutStyles = content.components
+
+                // Extract all CSS from style tags
+                let match
+                while ((match = styleRegex.exec(content.components)) !== null) {
+                    css += match[1] + '\n'
+                }
+
+                // Remove style tags from HTML
+                htmlWithoutStyles = htmlWithoutStyles.replace(styleRegex, '')
+
+                // Set components and styles separately
+                editor.setComponents(htmlWithoutStyles.trim())
+                if (css) {
+                    editor.setStyle(css)
+                }
+            } else if (content && content.components) {
+                // GrapeJS components array
+                editor.loadProjectData(content)
+            } else {
+                // Fallback for empty/new pages
+                editor.runCommand('core:canvas-clear') // Clear previous content
+                editor.setComponents(`
+                <div data-gjs-type="text" style="padding: 40px; text-align: center; color: #999; border: 2px dashed #ddd; border-radius: 8px; margin: 20px auto; max-width: 800px;">
+                    <h2 style="margin: 0 0 10px 0; color: #666;">Start Building Your Page</h2>
+                    <p style="margin: 0;">Drag and drop blocks from the left panel to add content here</p>
+                </div>
+            `)
+                editor.setStyle({})
+            }
+        } catch {
+            console.warn('Failed to parse content, using raw')
+        }
+    }, [pageDetails, editorReady])
+
+    // Update navigation trait options when pages change
+    useEffect(() => {
+        if (!editorReady || !editorInstanceRef.current || !websitePages) return
+
+        const editor = editorInstanceRef.current
+
+        // Update trait options for all existing components
+        const updateNavigationTraits = () => {
+            const wrapper = editor.getWrapper()
+            if (!wrapper) return
+
+            const allComponents = wrapper.find('*')
+            allComponents.forEach((component: any) => {
+                const trait = component.getTrait('data-navigate-page')
+                if (trait) {
+                    trait.set('options', [
+                        { id: '', name: 'None' },
+                        ...websitePages.map(page => ({
+                            id: page.pathName,
+                            name: page.name
+                        }))
+                    ])
+                }
+            })
+        }
+
+        updateNavigationTraits()
+    }, [websitePages, editorReady])
 
     const handleDeviceChange = (device: string) => {
         if (!editorInstanceRef.current) return
@@ -193,24 +295,25 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
             const html = editorInstanceRef.current.getHtml()
             const css = editorInstanceRef.current.getCss()
 
-            // Capture Thumbnail
             let previewImage = pageDetails.previewImage
             try {
                 const require = (window as any).require;
-                // Dynamically import html2canvas if not available or use if installed via npm
-                // Since this is a client component, we can use the imported html2canvas
                 const html2canvas = (await import('html2canvas')).default
 
                 const iframe = editorRef.current.querySelector('iframe')
                 if (iframe && iframe.contentWindow && iframe.contentDocument) {
+                    iframe.contentWindow.scrollTo(0, 0)
+
                     const canvas = await html2canvas(iframe.contentDocument.body, {
                         useCORS: true,
                         allowTaint: true,
-                        scale: 0.5, // Reduce size
-                        logging: false
+                        scale: 0.5,
+                        logging: false,
+                        height: 1200,
+                        windowHeight: 1200,
+                        y: 0
                     })
 
-                    // Resize to max width 400px to save space
                     const MAX_WIDTH = 400
                     let width = canvas.width
                     let height = canvas.height
@@ -218,25 +321,58 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
                     if (width > MAX_WIDTH) {
                         height = height * (MAX_WIDTH / width)
                         width = MAX_WIDTH
+                    }
 
-                        const resizedCanvas = document.createElement('canvas')
-                        resizedCanvas.width = width
-                        resizedCanvas.height = height
-                        const ctx = resizedCanvas.getContext('2d')
-                        if (ctx) {
-                            ctx.drawImage(canvas, 0, 0, width, height)
-                            previewImage = resizedCanvas.toDataURL('image/jpeg', 0.6)
-                        } else {
-                            previewImage = canvas.toDataURL('image/jpeg', 0.6)
-                        }
+                    const resizedCanvas = document.createElement('canvas')
+                    resizedCanvas.width = width
+                    resizedCanvas.height = height
+                    const ctx = resizedCanvas.getContext('2d')
+                    if (ctx) {
+                        ctx.drawImage(canvas, 0, 0, width, height)
+                        previewImage = resizedCanvas.toDataURL('image/jpeg', 0.6)
                     } else {
                         previewImage = canvas.toDataURL('image/jpeg', 0.6)
                     }
                 }
             } catch (err) {
                 console.error('Failed to generate thumbnail:', err)
-                // Don't block save if thumbnail fails
             }
+
+            // Inject navigation script into HTML for preview/published pages
+            const navigationScript = `
+<script>
+(function() {
+    document.addEventListener('click', function(e) {
+        let target = e.target;
+        while (target && target !== document) {
+            const navigateTo = target.getAttribute('data-navigate-page');
+            if (navigateTo && navigateTo !== '') {
+                e.preventDefault();
+                
+                // Check if we're in preview mode
+                const currentPath = window.location.pathname;
+                const isPreview = currentPath.includes('/site-preview/');
+                
+                if (isPreview) {
+                    // Extract websiteId from current URL
+                    const match = currentPath.match(/\\/site-preview\\/([^\\/]+)/);
+                    if (match) {
+                        const websiteId = match[1];
+                        window.location.href = '/site-preview/' + websiteId + '/' + navigateTo;
+                    }
+                } else {
+                    // Published site - use root path
+                    window.location.href = '/' + navigateTo;
+                }
+                return;
+            }
+            target = target.parentElement;
+        }
+    });
+})();
+</script>`
+
+            const htmlWithScript = html + navigationScript
 
             await upsertWebsitePage({
                 id: pageDetails.id,
@@ -244,7 +380,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
                 pathName: pageDetails.pathName,
                 websiteId: funnelId,
                 content: projectData,
-                htmlContent: html,
+                htmlContent: htmlWithScript,
                 cssContent: css,
                 order: pageDetails.order,
                 previewImage: previewImage,
@@ -269,9 +405,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
     }
 
     const handleFullPreview = async () => {
-        // Save first to ensure latest content
         await handleSave()
-        // Open preview in new tab
         window.open(`/site-preview/${funnelId}`, '_blank')
     }
 
@@ -284,9 +418,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
                         <span className="hidden sm:inline">Back</span>
                     </Button>
                     <div className="h-6 w-px bg-border" />
-                    <Button variant={showBlocks ? "secondary" : "ghost"} size="sm" onClick={() => setShowBlocks(!showBlocks)} className="gap-2">
-                        <PanelLeft className="w-4 h-4" />
-                    </Button>
+                    {/* Note: Sidebar toggle is now internal, but keeping state here in case we want external control */}
                     <Input value={pageName} onChange={(e) => setPageName(e.target.value)} className="max-w-xs" placeholder="Page name" />
                 </div>
                 <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
@@ -311,7 +443,19 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails }: Props) => {
                 </div>
             </div>
             <div className="flex-1 flex overflow-hidden">
-                {editorReady && showBlocks && editorInstanceRef.current && <BlocksPanel editor={editorInstanceRef.current} />}
+                {editorReady && editorInstanceRef.current && (
+                    <EditorSidebar
+                        editor={editorInstanceRef.current}
+                        activeTab={activeSidebarTab}
+                        setActiveTab={setActiveSidebarTab}
+                        collapsed={sidebarCollapsed}
+                        setCollapsed={setSidebarCollapsed}
+                        pages={websitePages || []}
+                        subaccountId={subaccountId}
+                        funnelId={funnelId}
+                        activePageId={pageDetails.id}
+                    />
+                )}
                 <div className="flex-1 relative">
                     <div id="gjs" ref={editorRef} className="h-full w-full"></div>
                 </div>

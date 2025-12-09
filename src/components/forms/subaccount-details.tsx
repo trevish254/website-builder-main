@@ -24,6 +24,13 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 import FileUpload from '../global/file-upload'
 import { Agency, SubAccount } from '@prisma/client'
@@ -43,6 +50,8 @@ const formSchema = z.object({
   zipCode: z.string().min(1, { message: 'Zip code is required.' }),
   state: z.string().min(1, { message: 'State is required.' }),
   country: z.string().min(1, { message: 'Country is required.' }),
+  subAccountType: z.enum(['AGENCY', 'TEAM', 'INDIVIDUAL', 'ORGANIZATION']).default('AGENCY'),
+  companyName: z.string().optional(),
 })
 
 //CHALLENGE Give access for Subaccount Guest they should see a different view maybe a form that allows them to create tickets
@@ -78,6 +87,8 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
       state: details?.state || '',
       country: details?.country || '',
       subAccountLogo: details?.subAccountLogo || '',
+      subAccountType: (details as any)?.subAccountType || 'AGENCY',
+      companyName: (details as any)?.companyName || '',
     },
   })
 
@@ -87,10 +98,10 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
       const formValues = form.getValues()
       console.log('📥 Form submitted with values param:', values)
       console.log('📥 Form getValues():', formValues)
-      
+
       // Use form.getValues() if values param seems empty
-      const actualValues = (values.name && values.name.trim() !== '' && values.companyEmail && values.companyEmail.trim() !== '') 
-        ? values 
+      const actualValues = (values.name && values.name.trim() !== '' && values.companyEmail && values.companyEmail.trim() !== '')
+        ? values
         : formValues
 
       console.log('📊 Using actual values:', actualValues)
@@ -98,13 +109,13 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
         isValid: form.formState.isValid,
         errors: form.formState.errors,
       })
-      
+
       // Validate required fields
       if (!actualValues.companyEmail || actualValues.companyEmail.trim() === '') {
-        console.error('❌ Email is empty!', { 
-          valuesParam: values.companyEmail, 
+        console.error('❌ Email is empty!', {
+          valuesParam: values.companyEmail,
           formValues: formValues.companyEmail,
-          actualValues: actualValues.companyEmail 
+          actualValues: actualValues.companyEmail
         })
         toast({
           variant: 'destructive',
@@ -116,10 +127,10 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
       }
 
       if (!actualValues.name || actualValues.name.trim() === '') {
-        console.error('❌ Name is empty!', { 
-          valuesParam: values.name, 
+        console.error('❌ Name is empty!', {
+          valuesParam: values.name,
           formValues: formValues.name,
-          actualValues: actualValues.name 
+          actualValues: actualValues.name
         })
         toast({
           variant: 'destructive',
@@ -152,6 +163,8 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
         agencyId: agencyDetails.id,
         connectAccountId: '',
         goal: 5000,
+        subAccountType: actualValues.subAccountType,
+        companyName: actualValues.companyName,
       }
 
       console.log('🏢 Attempting to save subaccount to database...')
@@ -162,7 +175,7 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
       })
 
       const response = await upsertSubAccount(subAccountData)
-      
+
       if (!response) {
         console.error('❌ Subaccount creation returned null')
         toast({
@@ -174,7 +187,7 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
       }
 
       console.log('✅ Subaccount saved successfully:', response)
-      
+
       const responseData = response as any
       await saveActivityLogsNotification({
         agencyId: responseData.agencyId,
@@ -189,7 +202,7 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
 
       // Close modal if open
       setClose()
-      
+
       // Redirect to the subaccount page
       if (responseData.id) {
         console.log('🔄 Redirecting to subaccount page:', `/subaccount/${responseData.id}`)
@@ -216,6 +229,7 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
   }, [details])
 
   const isLoading = form.formState.isSubmitting
+  const subAccountType = form.watch('subAccountType')
   //CHALLENGE Create this form.
   return (
     <Card className="w-full">
@@ -247,6 +261,52 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 </FormItem>
               )}
             />
+            <FormField
+              disabled={isLoading}
+              control={form.control}
+              name="subAccountType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subaccount Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a subaccount type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="AGENCY">Agency</SelectItem>
+                      <SelectItem value="TEAM">Team</SelectItem>
+                      <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                      <SelectItem value="ORGANIZATION">Organization</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {['AGENCY', 'ORGANIZATION'].includes(subAccountType) && (
+              <FormField
+                disabled={isLoading}
+                control={form.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Company Name"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <div className="flex md:flex-row gap-4">
               <FormField
                 disabled={isLoading}
@@ -254,7 +314,9 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 name="name"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>Account Name</FormLabel>
+                    <FormLabel>
+                      {subAccountType === 'TEAM' ? 'Team Name' : 'Account Name'}
+                    </FormLabel>
                     <FormControl>
                       <Input
                         required

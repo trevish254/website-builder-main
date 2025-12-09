@@ -12,6 +12,7 @@ type Props = {
     }
     searchParams: {
         template?: string
+        pageId?: string
     }
 }
 
@@ -25,12 +26,13 @@ const WebsiteEditorPage = async ({ params, searchParams }: Props) => {
     }
 
     // Determine which page to load
-    // 1. If we have pages, try finding 'Home' or '/'
-    // 2. Fallback to the first ordered page
-    // 3. If no pages exist (edge case), create a default one (or handle gracefully)
+    // 1. Check searchParams for specific pageId
+    // 2. If we have pages, try finding 'Home' or '/'
+    // 3. Fallback to the first ordered page
 
-    // For now, let's assume we always create a home page on creation.
-    let pageToLoad = websitePages.find(page => page.pathName === '/' || page.name === 'Home') || websitePages[0]
+    let pageToLoad = searchParams.pageId
+        ? websitePages.find(page => page.id === searchParams.pageId)
+        : websitePages.find(page => page.pathName === '/' || page.name === 'Home') || websitePages[0]
 
     // If still no page, we might want to create one on the fly or show error?
     // But our create flow ensures a page. 
@@ -56,6 +58,7 @@ const WebsiteEditorPage = async ({ params, searchParams }: Props) => {
                 subaccountId={params.subaccountId}
                 funnelId={website.id}
                 pageDetails={pageToLoad}
+                websitePages={websitePages}
             />
         </div>
     )
