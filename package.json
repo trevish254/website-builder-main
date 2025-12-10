@@ -86,11 +86,13 @@
     "cmdk": "^0.2.0",
     "date-fns": "^3.0.6",
     "embla-carousel-react": "^8.0.0-rc17",
+    "file-saver": "^2.0.5",
     "framer-motion": "^12.23.24",
     "grapesjs": "^0.22.14",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.12.1",
     "interactjs": "^1.10.27",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.303.0",
     "mailersend": "^2.6.0",
     "next": "^14.2.25",
@@ -117,6 +119,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.3",
     "@types/react": "^18",

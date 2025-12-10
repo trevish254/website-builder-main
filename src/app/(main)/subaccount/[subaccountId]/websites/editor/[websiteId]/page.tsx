@@ -4,6 +4,7 @@ import { FunnelPage } from '@prisma/client'
 import { templates } from '@/components/global/grapejs-editor/templates'
 import { redirect } from 'next/navigation'
 import { upsertWebsite, getWebsite, getWebsitePages } from '@/lib/website-queries'
+import { getUser } from '@/lib/supabase/server'
 
 type Props = {
     params: {
@@ -17,6 +18,12 @@ type Props = {
 }
 
 const WebsiteEditorPage = async ({ params, searchParams }: Props) => {
+    // Get authenticated user
+    const user = await getUser()
+    if (!user) {
+        redirect('/sign-in')
+    }
+
     // Fetch real data
     const website = await getWebsite(params.websiteId)
     const websitePages = await getWebsitePages(params.websiteId)
@@ -59,6 +66,9 @@ const WebsiteEditorPage = async ({ params, searchParams }: Props) => {
                 funnelId={website.id}
                 pageDetails={pageToLoad}
                 websitePages={websitePages}
+                userId={user.id}
+                websiteName={website.name}
+                currentDomain={website.domain || undefined}
             />
         </div>
     )

@@ -307,6 +307,32 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
         updatedAt: new Date(),
       } as any)
     }
+
+    // Add Funnels option if not present
+    if (!sidebarOpt.find((opt) => opt.name === 'Funnels')) {
+      sidebarOpt.push({
+        id: `sidebar-${details?.id}-funnels`,
+        name: 'Funnels',
+        icon: 'pipelines',
+        link: `/subaccount/${details?.id}/funnels`,
+        subAccountId: details?.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+    }
+
+    // Add Pipelines option if not present
+    if (!sidebarOpt.find((opt) => opt.name === 'Pipelines')) {
+      sidebarOpt.push({
+        id: `sidebar-${details?.id}-pipelines`,
+        name: 'Pipelines',
+        icon: 'kanban',
+        link: `/subaccount/${details?.id}/pipelines`,
+        subAccountId: details?.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+    }
   }
 
   if (!details) return
@@ -577,7 +603,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
 
   return (
     <>
-      <IconDock sidebarOptions={sidebarOpt} logo={sideBarLogo} />
+      <IconDock sidebarOptions={sidebarOpt} logo={sideBarLogo} user={user} />
       <FixedSubmenuPanel
         sidebarOptions={sidebarOpt}
         subAccounts={subaccounts}

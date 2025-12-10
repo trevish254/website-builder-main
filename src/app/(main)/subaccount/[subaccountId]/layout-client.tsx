@@ -1,7 +1,6 @@
 'use client'
 
 import InfoBar from '@/components/global/infobar'
-import Sidebar from '@/components/sidebar'
 import MainLayoutWrapper from '@/components/sidebar/main-layout-wrapper'
 import { SidebarProvider } from '@/providers/sidebar-provider'
 import { usePathname } from 'next/navigation'
@@ -9,6 +8,7 @@ import React from 'react'
 
 type Props = {
     children: React.ReactNode
+    sidebar: React.ReactNode
     subaccountId: string
     userDetails: any
     notifications: any[]
@@ -16,6 +16,7 @@ type Props = {
 
 const SubaccountLayoutClient = ({
     children,
+    sidebar,
     subaccountId,
     userDetails,
     notifications,
@@ -31,11 +32,7 @@ const SubaccountLayoutClient = ({
     return (
         <SidebarProvider>
             <div className="h-screen overflow-hidden">
-                <Sidebar
-                    id={subaccountId}
-                    type="subaccount"
-                    defaultUser={userDetails}
-                />
+                {sidebar}
 
                 <MainLayoutWrapper>
                     <InfoBar

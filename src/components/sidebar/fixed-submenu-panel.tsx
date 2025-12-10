@@ -68,14 +68,24 @@ const MENU_CATEGORIES = [
         matchNames: ['Messages']
     },
     {
-        id: 'tasks',
-        label: 'Tasks',
-        matchNames: ['Tasks', 'Pipelines', 'Flowboard']
+        id: 'funnels',
+        label: 'Funnels',
+        matchNames: ['Funnels']
+    },
+    {
+        id: 'pipelines',
+        label: 'Pipelines',
+        matchNames: ['Pipelines', 'Flowboard', 'Tasks']
+    },
+    {
+        id: 'websites',
+        label: 'Websites',
+        matchNames: ['Websites']
     },
     {
         id: 'content',
         label: 'Content',
-        matchNames: ['Client Docs', 'Funnels', 'Websites', 'Media']
+        matchNames: ['Client Docs', 'Media']
     },
     {
         id: 'automation',
@@ -120,25 +130,24 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
     // Get options for the current category
     const getCurrentCategoryOptions = () => {
         if (!displayCategory) {
-            // Show most used items when nothing is hovered
             return sidebarOptions.slice(0, 8)
         }
-        if (displayCategory === 'home') {
-            const homeCategory = MENU_CATEGORIES.find(c => c.id === 'home')
+
+        const category = MENU_CATEGORIES.find(c => c.id === displayCategory)
+
+        if (category) {
+            console.log('FixedSubmenuPanel Debug:', {
+                displayCategory,
+                matchNames: category.matchNames,
+                sidebarOptions: sidebarOptions.map(o => o.name),
+                filtered: sidebarOptions.filter(opt => category.matchNames.includes(opt.name))
+            })
             return sidebarOptions.filter(opt =>
-                homeCategory?.matchNames.includes(opt.name)
+                category.matchNames.some(n => n.toLowerCase() === opt.name.toLowerCase())
             )
         }
 
-        // Handle special categories that map to specific items
-        if (displayCategory === 'settings') {
-            return sidebarOptions.filter(opt => opt.name === 'Settings')
-        }
-
-        // Default behavior: filter by category
-        return sidebarOptions.filter(
-            (option) => option.category === displayCategory
-        )
+        return []
     }
 
     const filteredOptions = getCurrentCategoryOptions().filter(
@@ -174,8 +183,8 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                 className={cn(
                     "fixed top-0 bottom-0 z-20 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
                     isPanelCollapsed
-                        ? (hoveredMenuItem ? "w-[200px] left-[80px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800" : "w-0 opacity-0 pointer-events-none")
-                        : "w-[200px] left-[80px]"
+                        ? (hoveredMenuItem ? "w-[200px] left-[60px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800" : "w-0 opacity-0 pointer-events-none")
+                        : "w-[200px] left-[60px]"
                 )}
             >
                 {/* Search Header */}
@@ -605,7 +614,8 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
                             </div>
                         </div>
-                    ) : displayCategory === 'tasks' ? (
+                    ) : displayCategory === 'pipelines' ? (
+                        /* Custom Tasks Panel */
                         /* Custom Tasks Panel */
                         <div className="space-y-3">
                             {/* Add Task Button */}
@@ -614,53 +624,96 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 size="sm"
                             >
                                 <PlusCircleIcon className="w-4 h-4" />
-                                <span className="text-sm font-medium">Add Task</span>
+                                <span className="text-sm font-medium">Create Task</span>
                             </Button>
 
-                            {/* Task Categories */}
-                            <div className="space-y-0.5 pl-1">
-                                <Link
-                                    href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                >
-                                    <CheckCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">My Tasks</span>
-                                </Link>
+                            {/* My Tasks Section */}
+                            <div className="space-y-1">
+                                {getCurrentCategoryOptions().length > 0 && (
+                                    <div className="mb-2">
+                                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Apps
+                                        </div>
+                                        <div className="space-y-0.5 pl-1">
+                                            {getCurrentCategoryOptions().map((option) => {
+                                                const iconResult = icons.find(icon => icon.value === option.icon)
+                                                const IconComponent = iconResult?.path || Settings
+                                                return (
+                                                    <Link
+                                                        key={option.id}
+                                                        href={option.link}
+                                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                                    >
+                                                        <IconComponent className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                                        <span className="text-sm">{option.name}</span>
+                                                    </Link>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    My Tasks
+                                </div>
+                                <div className="space-y-0.5 pl-1">
+                                    <Link
+                                        href={`/agency/${agencyId}/tasks`}
+                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    >
+                                        <CheckCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                        <span className="text-sm">All tasks</span>
+                                    </Link>
 
-                                <Link
-                                    href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                >
-                                    <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Assigned to me</span>
-                                </Link>
+                                    <Link
+                                        href={`/agency/${agencyId}/tasks?filter=assigned`}
+                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                            <span className="text-sm">Assigned to me</span>
+                                        </div>
+                                        <span className="text-xs text-gray-400 font-medium">12</span>
+                                    </Link>
 
-                                <Link
-                                    href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                >
-                                    <AlertCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Today & Overdue</span>
-                                </Link>
+                                    <Link
+                                        href={`/agency/${agencyId}/tasks?filter=overdue`}
+                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <AlertCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                            <span className="text-sm">Today & Overdue</span>
+                                        </div>
+                                        <span className="text-xs text-gray-400 font-medium">3</span>
+                                    </Link>
 
-                                <Link
-                                    href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                >
-                                    <List className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Personal List</span>
-                                </Link>
+                                    <Link
+                                        href={`/agency/${agencyId}/tasks?filter=personal`}
+                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <List className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                            <span className="text-sm">Personal List</span>
+                                        </div>
+                                        <span className="text-xs text-gray-400 font-medium">5</span>
+                                    </Link>
 
-                                <Link
-                                    href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                >
-                                    <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Priority</span>
-                                </Link>
+                                    <Link
+                                        href={`/agency/${agencyId}/tasks?filter=priority`}
+                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                            <span className="text-sm">Priority</span>
+                                        </div>
+                                        <span className="text-xs text-gray-400 font-medium">8</span>
+                                    </Link>
+                                </div>
+                            </div>
 
+                            {/* Other Links */}
+                            <div className="space-y-0.5 pl-1 border-t border-gray-200 dark:border-gray-800 pt-2">
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/tasks/pool`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <LayoutGrid className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -668,7 +721,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/team?tab=calendar`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Calendar className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -677,6 +730,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             </div>
                         </div>
                     ) : displayCategory === 'content' ? (
+                        /* Custom Content Panel */
                         /* Custom Content Panel */
                         <div className="space-y-3">
                             {/* Create Docs Button */}
@@ -690,8 +744,31 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
 
                             {/* Document Categories */}
                             <div className="space-y-0.5 pl-1">
+                                {getCurrentCategoryOptions().length > 0 && (
+                                    <div className="mb-2">
+                                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Apps
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            {getCurrentCategoryOptions().map((option) => {
+                                                const iconResult = icons.find(icon => icon.value === option.icon)
+                                                const IconComponent = iconResult?.path || Settings
+                                                return (
+                                                    <Link
+                                                        key={option.id}
+                                                        href={option.link}
+                                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                                    >
+                                                        <IconComponent className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                                        <span className="text-sm">{option.name}</span>
+                                                    </Link>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/client-docs`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -700,70 +777,97 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
 
                                 <Link
                                     href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
-                                    <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">My Docs</span>
+                                    <div className="flex items-center gap-2">
+                                        <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                        <span className="text-sm">My Docs</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-medium">4</span>
                                 </Link>
 
                                 <Link
                                     href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
-                                    <Globe className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Portal Docs</span>
+                                    <div className="flex items-center gap-2">
+                                        <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                        <span className="text-sm">Shared with me</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-medium">2</span>
                                 </Link>
 
                                 <Link
                                     href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
-                                    <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Shared with me</span>
+                                    <div className="flex items-center gap-2">
+                                        <EyeOff className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                        <span className="text-sm">Private</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-medium">1</span>
                                 </Link>
 
                                 <Link
                                     href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
-                                    <EyeOff className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Private</span>
+                                    <div className="flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                        <span className="text-sm">Meeting Notes</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-medium">7</span>
                                 </Link>
 
                                 <Link
                                     href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
-                                    <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Meeting Notes</span>
+                                    <div className="flex items-center gap-2">
+                                        <Archive className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                        <span className="text-sm">Archived</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-medium">12</span>
                                 </Link>
 
                                 <Link
                                     href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
-                                    <Archive className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Archived</span>
+                                    <div className="flex items-center gap-2">
+                                        <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                        <span className="text-sm">Favourite</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-medium">3</span>
                                 </Link>
 
-                                <Link
-                                    href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                >
-                                    <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Favourite</span>
-                                </Link>
-
-                                <Link
-                                    href="#"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                >
-                                    <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                    <span className="text-sm">Recent</span>
-                                </Link>
+                                {/* Recent Section */}
+                                <div className="space-y-1 pt-2 border-t border-gray-200 dark:border-gray-800 mt-2">
+                                    <div className="px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Recent
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        {/* Placeholder Recent Docs */}
+                                        <Link
+                                            href="#"
+                                            className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                        >
+                                            <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                            <span className="text-sm truncate">Project Proposal</span>
+                                        </Link>
+                                        <Link
+                                            href="#"
+                                            className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                        >
+                                            <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                            <span className="text-sm truncate">Q4 Marketing Plan</span>
+                                        </Link>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ) : displayCategory === 'finance' ? (
+                        /* Custom Finance Panel */
                         /* Custom Finance Panel */
                         <div className="space-y-3">
                             {/* Add Payment Button */}
@@ -778,7 +882,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             {/* Finance Categories */}
                             <div className="space-y-0.5 pl-1">
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/finance`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <DollarSign className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -786,7 +890,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/finance`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -794,7 +898,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/finance`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -802,7 +906,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/finance`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -810,7 +914,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/finance`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <CreditCard className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -818,7 +922,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/finance`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -827,6 +931,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             </div>
                         </div>
                     ) : displayCategory === 'upgrade' ? (
+                        /* Custom Upgrade Panel */
                         /* Custom Upgrade Panel */
                         <div className="space-y-3">
                             {/* Upgrade Plan Button */}
@@ -841,7 +946,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             {/* Subscription Categories */}
                             <div className="space-y-0.5 pl-1">
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/billing`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -849,7 +954,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/billing`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -857,7 +962,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/billing`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <CreditCard className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -865,7 +970,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/billing`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -873,7 +978,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/billing`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Wallet className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -881,7 +986,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/billing`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Award className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -896,6 +1001,9 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             <Button
                                 className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                                 size="sm"
+                                onClick={() => {
+                                    window.location.href = `/agency/${agencyId}/government-services/file-returns`
+                                }}
                             >
                                 <PlusCircleIcon className="w-4 h-4" />
                                 <span className="text-sm font-medium">File Return</span>
@@ -904,7 +1012,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             {/* KRA/Government Services Categories */}
                             <div className="space-y-0.5 pl-1">
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/government-services/file-returns`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -912,7 +1020,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/government-services`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Building2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -920,7 +1028,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/government-services/generate-prns`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -928,7 +1036,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/government-services/verify-documents`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Shield className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -936,7 +1044,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/government-services`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Calendar className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -944,7 +1052,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/government-services`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />

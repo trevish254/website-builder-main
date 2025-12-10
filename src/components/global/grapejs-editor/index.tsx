@@ -16,15 +16,19 @@ import { FunnelPage } from '@prisma/client'
 import { upsertWebsitePage, WebsitePage } from '@/lib/website-queries'
 import { toast } from '@/components/ui/use-toast'
 import EditorSidebar from './editor-sidebar'
+import PublishDialog from './publish-dialog'
 
 type Props = {
     subaccountId: string
     funnelId: string
     pageDetails: FunnelPage
     websitePages?: WebsitePage[]
+    userId?: string
+    websiteName?: string
+    currentDomain?: string
 }
 
-const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages }: Props) => {
+const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, userId, websiteName, currentDomain }: Props) => {
     const router = useRouter()
     const editorRef = useRef<HTMLDivElement>(null)
     const editorInstanceRef = useRef<any>(null)
@@ -36,6 +40,9 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages }: Pr
     // Sidebar State
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
     const [activeSidebarTab, setActiveSidebarTab] = useState('blocks')
+
+    // Publish Dialog State
+    const [publishDialogOpen, setPublishDialogOpen] = useState(false)
 
     useEffect(() => {
         if (!editorRef.current) return
@@ -400,8 +407,12 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages }: Pr
         }
     }
 
-    const handlePublish = () => {
-        console.log('Publish clicked')
+    const handlePublish = async () => {
+        console.log('Publish button clicked - saving first...')
+        // Save before opening publish dialog
+        await handleSave()
+        console.log('Save complete - opening publish dialog')
+        setPublishDialogOpen(true)
     }
 
     const handleFullPreview = async () => {
@@ -461,6 +472,19 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages }: Pr
                 </div>
                 {editorReady && editorInstanceRef.current && <StylePanel editor={editorInstanceRef.current} />}
             </div>
+
+            {/* Publish Dialog */}
+            {editorReady && editorInstanceRef.current && (
+                <PublishDialog
+                    open={publishDialogOpen}
+                    onOpenChange={setPublishDialogOpen}
+                    editorInstance={editorInstanceRef.current}
+                    websiteId={funnelId}
+                    websiteName={websiteName || 'Untitled Website'}
+                    userId={userId || ''}
+                    currentDomain={currentDomain}
+                />
+            )}
         </div>
     )
 }

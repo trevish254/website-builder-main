@@ -18,6 +18,7 @@ type SidebarOption = {
 type Props = {
     sidebarOptions: SidebarOption[]
     logo: string
+    user?: any
 }
 
 // Define menu categories with their icons and associated menu items
@@ -53,16 +54,28 @@ const MENU_CATEGORIES = [
         matchNames: ['Messages']
     },
     {
-        id: 'tasks',
-        icon: 'check',
-        label: 'Tasks',
-        matchNames: ['Tasks', 'Pipelines', 'Flowboard']
+        id: 'funnels',
+        icon: 'pipelines',
+        label: 'Funnels',
+        matchNames: ['Funnels']
+    },
+    {
+        id: 'pipelines',
+        icon: 'kanban',
+        label: 'Pipelines',
+        matchNames: ['Pipelines', 'Flowboard', 'Tasks']
+    },
+    {
+        id: 'websites',
+        icon: 'globe',
+        label: 'Websites',
+        matchNames: ['Websites']
     },
     {
         id: 'content',
         icon: 'document',
         label: 'Content',
-        matchNames: ['Client Docs', 'Funnels', 'Websites', 'Media']
+        matchNames: ['Client Docs', 'Media']
     },
     {
         id: 'automation',
@@ -102,7 +115,8 @@ const MENU_CATEGORIES = [
     }
 ]
 
-const IconDock = ({ sidebarOptions, logo }: Props) => {
+
+const IconDock = ({ sidebarOptions, logo, user }: Props) => {
     const { setHoveredMenuItem, activeCategory, setActiveCategory } = useSidebar()
     const pathname = usePathname()
 
@@ -138,7 +152,7 @@ const IconDock = ({ sidebarOptions, logo }: Props) => {
     return (
         <TooltipProvider delayDuration={0}>
             <div
-                className="fixed left-0 top-0 h-screen w-[80px] bg-gray-900 dark:bg-gray-950 border-r border-gray-800 dark:border-gray-900 flex flex-col items-center py-4 z-50"
+                className="fixed left-0 top-0 h-screen w-[60px] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 z-50 transition-all duration-300"
                 onMouseLeave={handleMouseLeave}
             >
                 {/* Logo */}
@@ -151,7 +165,7 @@ const IconDock = ({ sidebarOptions, logo }: Props) => {
                 </div>
 
                 {/* Category Icons */}
-                <div className="flex-1 flex flex-col gap-1 w-full px-2 overflow-y-auto">
+                <div className="flex-1 flex flex-col gap-1 w-full px-2 overflow-y-auto example-scrollbar-hide">
                     {categorizedOptions.map((category) => {
                         const result = icons.find(icon => icon.value === category.icon)
                         const IconComponent = result?.path || Settings
@@ -162,23 +176,28 @@ const IconDock = ({ sidebarOptions, logo }: Props) => {
                                 key={category.id}
                                 onMouseEnter={() => handleCategoryHover(category.id)}
                                 className={cn(
-                                    'w-full flex flex-col items-center justify-center rounded-lg transition-all duration-200 py-2 px-1',
-                                    'hover:bg-gray-800 dark:hover:bg-gray-800',
-                                    activeCategory === category.id && 'bg-gray-800 dark:bg-gray-800',
-                                    isActive && 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700'
+                                    'w-12 h-12 flex flex-col items-center justify-center rounded-xl transition-all duration-200 mb-2 group relative',
+                                    'hover:bg-gray-100 dark:hover:bg-gray-800', // Hover state
+                                    // Open submenu state (not active)
+                                    activeCategory === category.id && !isActive && 'bg-gray-100 dark:bg-gray-800',
+                                    // Active state
+                                    isActive && 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 scale-105'
                                 )}
                             >
                                 <IconComponent
                                     className={cn(
-                                        'w-5 h-5 transition-colors mb-1',
-                                        isActive ? 'text-white' : 'text-gray-400',
-                                        activeCategory === category.id && !isActive && 'text-white'
+                                        'w-5 h-5 transition-all duration-200 mb-0.5',
+                                        // Active: White
+                                        isActive ? 'text-white' :
+                                            // Inactive: Gray-500 (light) / Gray-400 (dark), Hover/Open: Gray-700 / Gray-200
+                                            'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200',
+                                        activeCategory === category.id && !isActive && 'text-gray-700 dark:text-gray-200'
                                     )}
                                 />
                                 <span className={cn(
-                                    'text-[9px] font-medium text-center leading-tight transition-colors',
-                                    isActive ? 'text-white' : 'text-gray-400',
-                                    activeCategory === category.id && !isActive && 'text-white'
+                                    'text-[9px] font-medium text-center leading-none transition-all duration-200 opacity-100', // Always visible
+                                    isActive ? 'text-white font-bold' : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300',
+                                    activeCategory === category.id && !isActive && 'text-gray-600 dark:text-gray-400'
                                 )}>
                                     {category.label}
                                 </span>
@@ -187,10 +206,18 @@ const IconDock = ({ sidebarOptions, logo }: Props) => {
                     })}
                 </div>
 
-                {/* User Avatar Placeholder at Bottom */}
-                <div className="mt-auto pt-3 border-t border-gray-800 dark:border-gray-900 w-full px-2">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold mx-auto">
-                        U
+                {/* User Avatar at Bottom */}
+                <div className="mt-auto pt-3 border-t border-gray-200 dark:border-gray-800 w-full px-2">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold mx-auto overflow-hidden">
+                        {user?.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" />
+                        ) : user ? (
+                            // Initials or placeholder
+                            user.name?.slice(0, 2).toUpperCase() || 'U'
+                        ) : (
+                            // Fallback to logo or 'U' if no user
+                            'U'
+                        )}
                     </div>
                 </div>
             </div>
