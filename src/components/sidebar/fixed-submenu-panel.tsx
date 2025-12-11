@@ -536,7 +536,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             {/* Inbox Categories */}
                             <div className="space-y-0.5 pl-1">
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/messages`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Mail className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -544,7 +544,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/messages?filter=me`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -552,7 +552,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/messages?filter=team`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -560,7 +560,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/messages?filter=agency`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Building2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -568,7 +568,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/messages?filter=personal`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -576,7 +576,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/messages?filter=groups`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -584,7 +584,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/messages?filter=channels`}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <Hash className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -592,7 +592,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/messages?filter=read`}
                                     className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <div className="flex items-center gap-2">
@@ -603,7 +603,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 </Link>
 
                                 <Link
-                                    href="#"
+                                    href={`/agency/${agencyId}/messages?filter=unread`}
                                     className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                 >
                                     <div className="flex items-center gap-2">
@@ -1153,6 +1153,33 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                     </div>
                                                 </Link>
                                             </CommandItem>
+                                        </CommandGroup>
+                                    )}
+                                    {user?.InvitedAgencies && user.InvitedAgencies.length > 0 && (
+                                        <CommandGroup heading="Invited Agencies">
+                                            {user.InvitedAgencies.map((agency: any) => (
+                                                <CommandItem key={agency.id}>
+                                                    <Link
+                                                        href={`/agency/${agency.id}`}
+                                                        className="flex gap-3 w-full"
+                                                    >
+                                                        <div className="relative w-10 h-10">
+                                                            <Image
+                                                                src={agency.agencyLogo || '/assets/plura-logo.svg'}
+                                                                alt="Agency Logo"
+                                                                fill
+                                                                className="rounded-md object-contain"
+                                                            />
+                                                        </div>
+                                                        <div className="flex flex-col flex-1 min-w-0">
+                                                            <span className="truncate">{agency.name}</span>
+                                                            <span className="text-xs text-muted-foreground truncate">
+                                                                {agency.role || 'Team Member'}
+                                                            </span>
+                                                        </div>
+                                                    </Link>
+                                                </CommandItem>
+                                            ))}
                                         </CommandGroup>
                                     )}
                                     {subAccounts && subAccounts.length > 0 && (

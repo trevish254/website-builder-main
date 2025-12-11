@@ -59,10 +59,10 @@ const StylePanel = ({ editor }: Props) => {
     }, [editor, managersRendered])
 
     return (
-        <div className="w-[280px] border-l bg-background flex flex-col h-full">
+        <div className="w-[240px] border-l bg-background flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 border-b">
-                <h2 className="font-semibold text-lg">Properties</h2>
+            <div className="p-3 border-b">
+                <h2 className="font-semibold text-base">Properties</h2>
             </div>
 
             {/* Tabs */}
@@ -74,13 +74,6 @@ const StylePanel = ({ editor }: Props) => {
                     >
                         <Paintbrush className="w-4 h-4" />
                         Styles
-                    </TabsTrigger>
-                    <TabsTrigger
-                        value="layers"
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2"
-                    >
-                        <Layers className="w-4 h-4" />
-                        Layers
                     </TabsTrigger>
                     <TabsTrigger
                         value="settings"
@@ -95,19 +88,13 @@ const StylePanel = ({ editor }: Props) => {
                     {/* All panels are always mounted, but only the active one is visible */}
                     <div
                         ref={styleManagerRef}
-                        className="gjs-style-manager-container p-4"
+                        className="gjs-style-manager-container p-3"
                         style={{ display: activeTab === 'styles' ? 'block' : 'none' }}
                     ></div>
 
                     <div
-                        ref={layerManagerRef}
-                        className="gjs-layer-manager-container p-4"
-                        style={{ display: activeTab === 'layers' ? 'block' : 'none' }}
-                    ></div>
-
-                    <div
                         ref={traitManagerRef}
-                        className="gjs-trait-manager-container p-4"
+                        className="gjs-trait-manager-container p-3"
                         style={{ display: activeTab === 'settings' ? 'block' : 'none' }}
                     ></div>
                 </div>

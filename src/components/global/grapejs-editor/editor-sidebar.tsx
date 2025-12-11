@@ -57,8 +57,10 @@ const EditorSidebar = ({
     activePageId
 }: Props) => {
     const blocksContainerRef = useRef<HTMLDivElement>(null)
+    const layerManagerRef = useRef<HTMLDivElement>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+    const [layerManagerRendered, setLayerManagerRendered] = useState(false)
 
     // Blocks Logic (Adapted from BlocksPanel)
     useEffect(() => {
@@ -93,6 +95,25 @@ const EditorSidebar = ({
         editor.on('block:add block:remove', updateBlocks)
         return () => { editor.off('block:add block:remove', updateBlocks) }
     }, [editor, activeTab, collapsed, searchQuery, selectedCategory])
+
+    // Layers Logic
+    useEffect(() => {
+        if (!editor || !layerManagerRef.current || activeTab !== 'layers' || collapsed || layerManagerRendered) return
+
+        const timer = setTimeout(() => {
+            if (layerManagerRef.current && layerManagerRef.current.children.length === 0) {
+                try {
+                    const layerManager = editor.LayerManager.render()
+                    layerManagerRef.current.appendChild(layerManager)
+                    setLayerManagerRendered(true)
+                } catch (error) {
+                    console.error('Error rendering LayerManager:', error)
+                }
+            }
+        }, 100)
+
+        return () => clearTimeout(timer)
+    }, [editor, activeTab, collapsed, layerManagerRendered])
 
 
     const menuItems = [
@@ -173,6 +194,16 @@ const EditorSidebar = ({
                         </div>
                     )
                 }
+
+            case 'layers':
+                return (
+                    <div className="flex flex-col h-full">
+                        <div className="p-4 border-b">
+                            <h3 className="font-semibold">Layers</h3>
+                        </div>
+                        <div ref={layerManagerRef} className="flex-1 overflow-y-auto p-4 gjs-layer-manager-container"></div>
+                    </div>
+                )
 
             default:
                 return (

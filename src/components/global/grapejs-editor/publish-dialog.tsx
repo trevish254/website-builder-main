@@ -66,6 +66,8 @@ export default function PublishDialog({
     userId,
     currentDomain,
 }: PublishDialogProps) {
+    console.log('PublishDialog component rendered with open:', open)
+
     const [activeTab, setActiveTab] = useState('template')
     const [loading, setLoading] = useState(false)
 

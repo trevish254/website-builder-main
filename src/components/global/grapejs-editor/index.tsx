@@ -6,7 +6,7 @@ import grapesjs from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft } from 'lucide-react'
+import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft, Code } from 'lucide-react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { customBlocks, blockCategories } from './blocks-config'
 import BlocksPanel from './blocks-panel' // Keeping for reference or fallback, but mostly replacing usage
@@ -44,6 +44,26 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
     // Publish Dialog State
     const [publishDialogOpen, setPublishDialogOpen] = useState(false)
 
+    // Debug: Log when publishDialogOpen changes
+    useEffect(() => {
+        console.log('publishDialogOpen changed to:', publishDialogOpen)
+    }, [publishDialogOpen])
+
+    // Helper function to update box-shadow from individual properties
+    const updateBoxShadow = (editor: any) => {
+        const selected = editor.getSelected()
+        if (!selected) return
+
+        const h = selected.getStyle()['box-shadow-h'] || '0px'
+        const v = selected.getStyle()['box-shadow-v'] || '0px'
+        const blur = selected.getStyle()['box-shadow-blur'] || '0px'
+        const spread = selected.getStyle()['box-shadow-spread'] || '0px'
+        const color = selected.getStyle()['box-shadow-color'] || 'rgba(0,0,0,0.5)'
+
+        const boxShadow = `${h} ${v} ${blur} ${spread} ${color}`
+        selected.addStyle({ 'box-shadow': boxShadow })
+    }
+
     useEffect(() => {
         if (!editorRef.current) return
 
@@ -77,10 +97,10 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                 ],
             },
             blockManager: {
-                appendTo: '#blocks',
+                // Blocks are rendered manually in EditorSidebar
             },
             styleManager: {
-                appendTo: '#styles',
+                // Styles are rendered manually in StylePanel
             },
             deviceManager: {
                 devices: [
@@ -158,8 +178,160 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             open: false,
             properties: [
                 { property: 'background-color', type: 'color' },
-                { property: 'border-radius', type: 'integer', units: ['px'] },
-                { property: 'border', type: 'composite', properties: [{ property: 'border-width' }, { property: 'border-style' }, { property: 'border-color' }] },
+                {
+                    property: 'border-radius',
+                    type: 'slider',
+                    defaults: '0',
+                    min: 0,
+                    max: 100,
+                    step: 1,
+                    units: ['px', '%', 'rem'],
+                    unit: 'px'
+                },
+                {
+                    property: 'border',
+                    type: 'composite',
+                    properties: [
+                        { property: 'border-width', type: 'slider', min: 0, max: 20, step: 1, units: ['px'], unit: 'px' },
+                        { property: 'border-style' },
+                        { property: 'border-color', type: 'color' }
+                    ]
+                },
+                {
+                    property: 'box-shadow',
+                    type: 'stack',
+                    properties: [
+                        {
+                            property: 'box-shadow-h',
+                            type: 'slider',
+                            label: 'Shadow X',
+                            min: -50,
+                            max: 50,
+                            step: 1,
+                            units: ['px'],
+                            unit: 'px',
+                            defaults: '0px',
+                            onChange: ({ property, to }: any) => {
+                                updateBoxShadow(editor)
+                            }
+                        },
+                        {
+                            property: 'box-shadow-v',
+                            type: 'slider',
+                            label: 'Shadow Y',
+                            min: -50,
+                            max: 50,
+                            step: 1,
+                            units: ['px'],
+                            unit: 'px',
+                            defaults: '0px',
+                            onChange: ({ property, to }: any) => {
+                                updateBoxShadow(editor)
+                            }
+                        },
+                        {
+                            property: 'box-shadow-blur',
+                            type: 'slider',
+                            label: 'Blur',
+                            min: 0,
+                            max: 100,
+                            step: 1,
+                            units: ['px'],
+                            unit: 'px',
+                            defaults: '0px',
+                            onChange: ({ property, to }: any) => {
+                                updateBoxShadow(editor)
+                            }
+                        },
+                        {
+                            property: 'box-shadow-spread',
+                            type: 'slider',
+                            label: 'Spread',
+                            min: -50,
+                            max: 50,
+                            step: 1,
+                            units: ['px'],
+                            unit: 'px',
+                            defaults: '0px',
+                            onChange: ({ property, to }: any) => {
+                                updateBoxShadow(editor)
+                            }
+                        },
+                        {
+                            property: 'box-shadow-color',
+                            type: 'color',
+                            label: 'Shadow Color',
+                            defaults: 'rgba(0,0,0,0.5)',
+                            onChange: ({ property, to }: any) => {
+                                updateBoxShadow(editor)
+                            }
+                        }
+                    ]
+                }
+            ]
+        })
+        editor.StyleManager.addSector('transform', {
+            name: 'Transform',
+            open: false,
+            properties: [
+                {
+                    property: 'rotate',
+                    type: 'slider',
+                    min: 0,
+                    max: 360,
+                    step: 1,
+                    units: ['deg'],
+                    unit: 'deg',
+                    defaults: '0deg',
+                    toStyle: (value: string) => `rotate(${value})`,
+                    fromStyle: (value: string) => {
+                        const match = value.match(/rotate\(([^)]+)\)/)
+                        return match ? match[1] : '0deg'
+                    }
+                },
+                {
+                    property: 'scale',
+                    type: 'slider',
+                    min: 0,
+                    max: 3,
+                    step: 0.1,
+                    defaults: '1',
+                    toStyle: (value: string) => `scale(${value})`,
+                    fromStyle: (value: string) => {
+                        const match = value.match(/scale\(([^)]+)\)/)
+                        return match ? match[1] : '1'
+                    }
+                },
+                {
+                    property: 'translateX',
+                    type: 'slider',
+                    min: -200,
+                    max: 200,
+                    step: 1,
+                    units: ['px', '%'],
+                    unit: 'px',
+                    defaults: '0px',
+                    toStyle: (value: string) => `translateX(${value})`,
+                    fromStyle: (value: string) => {
+                        const match = value.match(/translateX\(([^)]+)\)/)
+                        return match ? match[1] : '0px'
+                    }
+                },
+                {
+                    property: 'translateY',
+                    type: 'slider',
+                    min: -200,
+                    max: 200,
+                    step: 1,
+                    units: ['px', '%'],
+                    unit: 'px',
+                    defaults: '0px',
+                    toStyle: (value: string) => `translateY(${value})`,
+                    fromStyle: (value: string) => {
+                        const match = value.match(/translateY\(([^)]+)\)/)
+                        return match ? match[1] : '0px'
+                    }
+                }
             ]
         })
         editor.StyleManager.addSector('flex', {
@@ -408,16 +580,30 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
     }
 
     const handlePublish = async () => {
-        console.log('Publish button clicked - saving first...')
+        console.log('=== PUBLISH BUTTON CLICKED ===')
+        console.log('Current publishDialogOpen state:', publishDialogOpen)
+        console.log('Editor ready:', editorReady)
+        console.log('Editor instance:', !!editorInstanceRef.current)
+        console.log('UserId:', userId)
+        console.log('WebsiteName:', websiteName)
+
         // Save before opening publish dialog
         await handleSave()
-        console.log('Save complete - opening publish dialog')
+
+        console.log('Setting publishDialogOpen to true')
         setPublishDialogOpen(true)
+        console.log('publishDialogOpen set to true')
     }
 
     const handleFullPreview = async () => {
         await handleSave()
         window.open(`/site-preview/${funnelId}`, '_blank')
+    }
+
+    const handleViewCode = () => {
+        if (!editorInstanceRef.current) return
+        // Use GrapeJS's built-in code viewer
+        editorInstanceRef.current.runCommand('core:open-code')
     }
 
     return (
@@ -432,16 +618,22 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                     {/* Note: Sidebar toggle is now internal, but keeping state here in case we want external control */}
                     <Input value={pageName} onChange={(e) => setPageName(e.target.value)} className="max-w-xs" placeholder="Page name" />
                 </div>
-                <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
-                    <Button variant={activeDevice === 'desktop' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('desktop')} className="gap-2">
-                        <Monitor className="w-4 h-4" /> <span className="hidden sm:inline">Desktop</span>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleViewCode} className="gap-2">
+                        <Code className="w-4 h-4" />
+                        <span className="hidden sm:inline">View Code</span>
                     </Button>
-                    <Button variant={activeDevice === 'tablet' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('tablet')} className="gap-2">
-                        <Tablet className="w-4 h-4" /> <span className="hidden sm:inline">Tablet</span>
-                    </Button>
-                    <Button variant={activeDevice === 'mobile' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('mobile')} className="gap-2">
-                        <Smartphone className="w-4 h-4" /> <span className="hidden sm:inline">Mobile</span>
-                    </Button>
+                    <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+                        <Button variant={activeDevice === 'desktop' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('desktop')} className="gap-2">
+                            <Monitor className="w-4 h-4" /> <span className="hidden sm:inline">Desktop</span>
+                        </Button>
+                        <Button variant={activeDevice === 'tablet' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('tablet')} className="gap-2">
+                            <Tablet className="w-4 h-4" /> <span className="hidden sm:inline">Tablet</span>
+                        </Button>
+                        <Button variant={activeDevice === 'mobile' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('mobile')} className="gap-2">
+                            <Smartphone className="w-4 h-4" /> <span className="hidden sm:inline">Mobile</span>
+                        </Button>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="ghost" size="sm" onClick={handleUndo}><Undo className="w-4 h-4" /></Button>

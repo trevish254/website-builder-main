@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -54,12 +54,58 @@ const ChatWindow = ({
 }: ChatWindowProps) => {
     const scrollRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const [showScrollButton, setShowScrollButton] = useState(false)
 
-    useEffect(() => {
+    // Scroll to bottom function that works with ScrollArea
+    const scrollToBottom = () => {
         if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+            // ScrollArea wraps content in a viewport div, we need to find it
+            const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]')
+            if (viewport) {
+                viewport.scrollTop = viewport.scrollHeight
+            }
         }
+    }
+
+    // Detect if user has scrolled up
+    useEffect(() => {
+        if (!scrollRef.current) return
+
+        const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]')
+        if (!viewport) return
+
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = viewport
+            // Show button if user is more than 100px from bottom
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+            setShowScrollButton(!isNearBottom)
+        }
+
+        viewport.addEventListener('scroll', handleScroll)
+        return () => viewport.removeEventListener('scroll', handleScroll)
+    }, [scrollRef.current, selectedMsg])
+
+    // Auto-scroll to bottom when messages change
+    useEffect(() => {
+        // Use setTimeout to ensure DOM has fully updated
+        const timer = setTimeout(() => {
+            scrollToBottom()
+        }, 50)
+        return () => clearTimeout(timer)
     }, [chatMessages, isTyping])
+
+    // Scroll to bottom immediately when conversation is selected
+    useEffect(() => {
+        if (selectedMsg) {
+            // Immediate scroll
+            scrollToBottom()
+            // Also scroll after a delay to catch late-loading messages
+            const timer = setTimeout(() => {
+                scrollToBottom()
+            }, 200)
+            return () => clearTimeout(timer)
+        }
+    }, [selectedMsg?.id])
 
     if (!selectedMsg) {
         return (
@@ -120,41 +166,67 @@ const ChatWindow = ({
             </CardHeader>
 
             {/* Chat Messages */}
-            <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
+            <CardContent className="flex-1 overflow-hidden p-0 flex flex-col relative">
 
 
                 <ScrollArea className="flex-1 px-6" ref={scrollRef}>
-                    <div className="space-y-4 py-6">
-                        {chatMessages.map((msg) => (
-                            <MessageBubble
-                                key={msg.id}
-                                messageId={msg.id}
-                                isSender={msg.sender === 'me'}
-                                content={msg.text}
-                                timestamp={msg.timestamp}
-                                senderName={msg.senderName}
-                                senderAvatar={msg.senderAvatar}
-                                attachments={msg.attachments}
-                                isRead={msg.isRead}
-                                onDelete={onDeleteMessage}
-                                onReply={onReplyMessage}
-                                onEdit={onEditMessage}
-                                onForward={onForwardMessage}
-                            />
-                        ))}
-                        {isTyping && (
-                            <div className="flex justify-start mb-4">
-                                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-bl-none px-4 py-3">
-                                    <div className="flex gap-1">
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                    <div className="min-h-full flex flex-col justify-end">
+                        <div className="space-y-4 py-6">
+                            {chatMessages.map((msg) => (
+                                <MessageBubble
+                                    key={msg.id}
+                                    messageId={msg.id}
+                                    isSender={msg.sender === 'me'}
+                                    content={msg.text}
+                                    timestamp={msg.timestamp}
+                                    senderName={msg.senderName}
+                                    senderAvatar={msg.senderAvatar}
+                                    attachments={msg.attachments}
+                                    isRead={msg.isRead}
+                                    onDelete={onDeleteMessage}
+                                    onReply={onReplyMessage}
+                                    onEdit={onEditMessage}
+                                    onForward={onForwardMessage}
+                                />
+                            ))}
+                            {isTyping && (
+                                <div className="flex justify-start mb-4">
+                                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-bl-none px-4 py-3">
+                                        <div className="flex gap-1">
+                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </ScrollArea>
+
+                {/* Scroll to Bottom Button */}
+                {showScrollButton && (
+                    <Button
+                        onClick={scrollToBottom}
+                        className="absolute bottom-20 right-8 rounded-full w-12 h-12 shadow-lg bg-blue-600 hover:bg-blue-700 text-white z-10 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
+                        size="icon"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="m18 15-6 6-6-6" />
+                            <path d="M12 3v18" />
+                        </svg>
+                    </Button>
+                )}
 
                 {/* Message Input */}
                 <div className="p-4 border-t bg-gray-50 dark:bg-gray-900">

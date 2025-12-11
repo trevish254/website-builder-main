@@ -16,15 +16,15 @@
 
 /* ===== STYLE MANAGER ===== */
 .gjs-style-manager-container .gjs-sm-sector {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     border-bottom: 1px solid hsl(var(--border));
-    padding-bottom: 12px;
+    padding-bottom: 8px;
 }
 
 .gjs-style-manager-container .gjs-sm-sector-title {
     font-weight: 600;
-    font-size: 0.875rem;
-    padding: 10px 0;
+    font-size: 0.8125rem;
+    padding: 8px 0;
     color: hsl(var(--foreground)) !important;
     background: transparent !important;
     border: none !important;
@@ -32,18 +32,18 @@
 }
 
 .gjs-style-manager-container .gjs-sm-properties {
-    padding: 8px 0;
+    padding: 6px 0;
 }
 
 .gjs-style-manager-container .gjs-sm-property {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .gjs-style-manager-container .gjs-sm-label {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: hsl(var(--foreground)) !important;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     display: block;
 }
 
@@ -51,12 +51,12 @@
 .gjs-style-manager-container input[type="number"],
 .gjs-style-manager-container select {
     width: 100%;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border: 1px solid hsl(var(--border)) !important;
-    border-radius: 6px;
+    border-radius: 4px;
     background: hsl(var(--background)) !important;
     color: hsl(var(--foreground)) !important;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
 }
 
 .gjs-style-manager-container input:focus,
@@ -88,9 +88,10 @@
     background: hsl(var(--muted)) !important;
     border: 1px solid hsl(var(--border)) !important;
     color: hsl(var(--muted-foreground)) !important;
-    padding: 6px 12px;
+    padding: 4px 10px;
     margin: 2px;
     border-radius: 4px;
+    font-size: 0.75rem;
 }
 
 .gjs-style-manager-container .gjs-radio-item.gjs-radio-item-active,
@@ -158,15 +159,15 @@
 }
 
 .gjs-trait-manager-container .gjs-trt-trait {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 .gjs-trait-manager-container .gjs-label-wrp {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .gjs-trait-manager-container .gjs-label {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: hsl(var(--foreground)) !important;
 }
@@ -175,12 +176,12 @@
 .gjs-trait-manager-container select,
 .gjs-trait-manager-container textarea {
     width: 100%;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border: 1px solid hsl(var(--border)) !important;
-    border-radius: 6px;
+    border-radius: 4px;
     background: hsl(var(--background)) !important;
     color: hsl(var(--foreground)) !important;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
 }
 
 .gjs-trait-manager-container input:focus,
@@ -200,9 +201,10 @@
     background: hsl(var(--primary)) !important;
     color: hsl(var(--primary-foreground)) !important;
     border: none !important;
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 6px 12px;
+    border-radius: 4px;
     font-weight: 500;
+    font-size: 0.8125rem;
 }
 
 .gjs-btn-prim:hover {
@@ -213,21 +215,21 @@
 .gjs-style-manager-container .gjs-sm-composite {
     background: hsl(var(--muted) / 0.3) !important;
     border: 1px solid hsl(var(--border)) !important;
-    border-radius: 6px;
-    padding: 12px;
+    border-radius: 4px;
+    padding: 10px;
 }
 
 .gjs-style-manager-container .gjs-sm-composite .gjs-sm-property {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 /* ===== STACK FIELDS ===== */
 .gjs-style-manager-container .gjs-sm-stack {
     background: hsl(var(--muted) / 0.3) !important;
     border: 1px solid hsl(var(--border)) !important;
-    border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 8px;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 6px;
 }
 
 /* ===== FIX TEXT VISIBILITY ===== */
