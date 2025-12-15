@@ -182,6 +182,3 @@
 .ce-toolbox__button:hover {
   @apply bg-gray-100 dark:bg-gray-800;
 }
-
-
-/* Force CSS Rebuild */

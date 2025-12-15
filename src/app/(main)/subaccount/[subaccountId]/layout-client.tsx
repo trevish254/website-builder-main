@@ -11,7 +11,7 @@ type Props = {
     sidebar: React.ReactNode
     subaccountId: string
     userDetails: any
-    notifications: any[]
+    subaccountDetails: any
 }
 
 const SubaccountLayoutClient = ({
@@ -20,6 +20,7 @@ const SubaccountLayoutClient = ({
     subaccountId,
     userDetails,
     notifications,
+    subaccountDetails,
 }: Props) => {
     const pathname = usePathname()
     // Check for both legacy grapejs route and new editor route
@@ -29,17 +30,23 @@ const SubaccountLayoutClient = ({
         return <div className="h-screen w-full relative overflow-hidden">{children}</div>
     }
 
+    // Determine logo to show (Subaccount logo or Agency logo fallback)
+    const logo = subaccountDetails?.subAccountLogo || userDetails?.Agency?.agencyLogo || '/assets/plura-logo.svg'
+    const name = subaccountDetails?.name || 'Subaccount'
+
     return (
         <SidebarProvider>
             <div className="h-screen overflow-hidden">
+                <InfoBar
+                    notifications={notifications}
+                    role={(userDetails?.role || 'AGENCY_OWNER') as any}
+                    subAccountId={subaccountId}
+                    agencyLogo={logo}
+                    agencyName={name}
+                />
                 {sidebar}
 
                 <MainLayoutWrapper>
-                    <InfoBar
-                        notifications={notifications}
-                        role={(userDetails?.role || 'AGENCY_OWNER') as Role}
-                        subAccountId={subaccountId}
-                    />
                     <div className="relative flex-1 overflow-hidden">{children}</div>
                 </MainLayoutWrapper>
             </div>

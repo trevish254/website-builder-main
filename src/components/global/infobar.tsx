@@ -31,9 +31,11 @@ type Props = {
   role?: Role
   className?: string
   subAccountId?: string
+  agencyLogo?: string
+  agencyName?: string
 }
 
-const InfoBar = ({ notifications, subAccountId, className, role }: Props) => {
+const InfoBar = ({ notifications, subAccountId, className, role, agencyLogo, agencyName }: Props) => {
   // Ensure notifications is always an array
   const safeNotifications = Array.isArray(notifications) ? notifications : []
   const [allNotifications, setAllNotifications] = useState(safeNotifications)
@@ -431,12 +433,27 @@ const InfoBar = ({ notifications, subAccountId, className, role }: Props) => {
     <>
       <div
         className={twMerge(
-          'fixed z-[20] left-0 right-0 top-0 p-4 bg-background/80 backdrop-blur-md flex  gap-4 items-center border-b-[1px] ',
-          isCollapsed ? 'md:left-[70px]' : 'md:left-[300px]',
+          'fixed z-[20] top-0 left-0 right-0 h-[50px] p-4 bg-background/80 backdrop-blur-md flex gap-4 items-center border-b-[1px]',
           className
         )}
       >
-        <div className="flex-1 max-w-md relative" ref={searchRef}>
+        <div className="flex items-center gap-2 pl-4">
+          {agencyLogo && (
+            <div className="relative w-8 h-8">
+              <img
+                src={agencyLogo}
+                alt="Agency Logo"
+                className="w-full h-full object-cover rounded-md"
+              />
+            </div>
+          )}
+          {agencyName && (
+            <span className="font-bold text-xl hidden md:block">
+              {agencyName}
+            </span>
+          )}
+        </div>
+        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md hidden md:block" ref={searchRef}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <input

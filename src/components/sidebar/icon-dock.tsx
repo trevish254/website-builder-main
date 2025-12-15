@@ -3,8 +3,14 @@
 import React from 'react'
 import { useSidebar } from '@/providers/sidebar-provider'
 import { icons } from '@/lib/constants'
-import { Settings } from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+    Compass,
+    Settings,
+    User,
+    ChevronsLeft,
+    ChevronsRight
+} from 'lucide-react'
+
 import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 
@@ -117,7 +123,7 @@ const MENU_CATEGORIES = [
 
 
 const IconDock = ({ sidebarOptions, logo, user }: Props) => {
-    const { setHoveredMenuItem, activeCategory, setActiveCategory } = useSidebar()
+    const { setHoveredMenuItem, activeCategory, setActiveCategory, isPanelCollapsed, setIsPanelCollapsed, setPanelTop } = useSidebar()
     const pathname = usePathname()
 
     // Group sidebar options by category
@@ -137,9 +143,11 @@ const IconDock = ({ sidebarOptions, logo, user }: Props) => {
         return category.options.some(opt => pathname.includes(opt.link))
     }
 
-    const handleCategoryHover = (categoryId: string) => {
+    const handleCategoryHover = (categoryId: string, event: React.MouseEvent<HTMLButtonElement>) => {
         setActiveCategory(categoryId)
         setHoveredMenuItem(categoryId)
+        const rect = event.currentTarget.getBoundingClientRect()
+        setPanelTop(rect.top)
     }
 
     const handleMouseLeave = () => {
@@ -150,78 +158,78 @@ const IconDock = ({ sidebarOptions, logo, user }: Props) => {
     }
 
     return (
-        <TooltipProvider delayDuration={0}>
-            <div
-                className="fixed left-0 top-0 h-screen w-[60px] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 z-50 transition-all duration-300"
-                onMouseLeave={handleMouseLeave}
-            >
-                {/* Logo */}
-                <div className="mb-6 w-10 h-10 relative flex-shrink-0">
-                    <img
-                        src={logo}
-                        alt="Logo"
-                        className="rounded-lg object-cover w-full h-full"
-                    />
-                </div>
 
-                {/* Category Icons */}
-                <div className="flex-1 flex flex-col gap-1 w-full px-2 overflow-y-auto example-scrollbar-hide">
-                    {categorizedOptions.map((category) => {
-                        const result = icons.find(icon => icon.value === category.icon)
-                        const IconComponent = result?.path || Settings
-                        const isActive = isCategoryActive(category)
+        <div
+            className="fixed left-0 top-[50px] h-[calc(100vh-50px)] w-[50px] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 z-50 transition-all duration-300"
+            onMouseLeave={handleMouseLeave}
+        >
 
-                        return (
-                            <button
-                                key={category.id}
-                                onMouseEnter={() => handleCategoryHover(category.id)}
+
+            {/* Expand Toggle (Visible only when collapsed) */}
+            {/* Sidebar Toggle (Always visible) */}
+            <div className="w-full flex justify-center mb-4">
+                <button
+                    onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+                    className="h-6 w-6 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+                >
+                    {isPanelCollapsed ? (
+                        <ChevronsRight size={14} />
+                    ) : (
+                        <ChevronsLeft size={14} />
+                    )}
+                </button>
+            </div>
+
+            {/* Category Icons */}
+            <div className="flex-1 flex flex-col gap-4 w-full px-2 overflow-y-auto example-scrollbar-hide">
+                {categorizedOptions.map((category) => {
+                    const result = icons.find(icon => icon.value === category.icon)
+                    const IconComponent = result?.path || Settings
+                    const isActive = isCategoryActive(category)
+
+                    return (
+                        <button
+                            key={category.id}
+                            onMouseEnter={(e) => handleCategoryHover(category.id, e)}
+                            className={cn(
+                                'w-10 h-10 flex flex-col items-center justify-center rounded-xl transition-all duration-200 mb-2 group relative',
+                                'hover:bg-gray-100 dark:hover:bg-gray-800', // Hover state
+                                // Open submenu state (not active)
+                                activeCategory === category.id && !isActive && 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                                // Active state - Glow Effect
+                                isActive && 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10 shadow-[0_0_15px_rgba(37,99,235,0.4)] dark:shadow-[0_0_15px_rgba(59,130,246,0.4)] ring-1 ring-blue-200 dark:ring-blue-800'
+                            )}
+                        >
+                            <IconComponent
                                 className={cn(
-                                    'w-12 h-12 flex flex-col items-center justify-center rounded-xl transition-all duration-200 mb-2 group relative',
-                                    'hover:bg-gray-100 dark:hover:bg-gray-800', // Hover state
-                                    // Open submenu state (not active)
-                                    activeCategory === category.id && !isActive && 'bg-gray-100 dark:bg-gray-800',
-                                    // Active state
-                                    isActive && 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 scale-105'
+                                    'w-[18px] h-[18px] transition-all duration-200 mb-0.5',
+                                    // Icon color logic
+                                    !isActive && 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200',
+                                    isActive && 'text-currentColor'
                                 )}
-                            >
-                                <IconComponent
-                                    className={cn(
-                                        'w-5 h-5 transition-all duration-200 mb-0.5',
-                                        // Active: White
-                                        isActive ? 'text-white' :
-                                            // Inactive: Gray-500 (light) / Gray-400 (dark), Hover/Open: Gray-700 / Gray-200
-                                            'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200',
-                                        activeCategory === category.id && !isActive && 'text-gray-700 dark:text-gray-200'
-                                    )}
-                                />
-                                <span className={cn(
-                                    'text-[9px] font-medium text-center leading-none transition-all duration-200 opacity-100', // Always visible
-                                    isActive ? 'text-white font-bold' : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300',
-                                    activeCategory === category.id && !isActive && 'text-gray-600 dark:text-gray-400'
-                                )}>
-                                    {category.label}
-                                </span>
-                            </button>
-                        )
-                    })}
-                </div>
+                            />
+                        </button>
+                    )
+                })}
+            </div>
 
-                {/* User Avatar at Bottom */}
-                <div className="mt-auto pt-3 border-t border-gray-200 dark:border-gray-800 w-full px-2">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold mx-auto overflow-hidden">
-                        {user?.avatarUrl ? (
-                            <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" />
-                        ) : user ? (
-                            // Initials or placeholder
-                            user.name?.slice(0, 2).toUpperCase() || 'U'
-                        ) : (
-                            // Fallback to logo or 'U' if no user
-                            'U'
-                        )}
-                    </div>
+
+
+            {/* User Avatar at Bottom */}
+            <div className="pt-3 border-t border-gray-200 dark:border-gray-800 w-full px-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold mx-auto overflow-hidden">
+                    {user?.avatarUrl ? (
+                        <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" />
+                    ) : user ? (
+                        // Initials or placeholder
+                        user.name?.slice(0, 2).toUpperCase() || 'U'
+                    ) : (
+                        // Fallback to logo or 'U' if no user
+                        'U'
+                    )}
                 </div>
             </div>
-        </TooltipProvider>
+        </div>
     )
 }
 

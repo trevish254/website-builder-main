@@ -50,7 +50,7 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers }: Props) =
                                 {lane.name}
                             </span>
                             <span className="text-xs text-muted-foreground bg-neutral-200 dark:bg-neutral-800 px-2 py-0.5 rounded-full">
-                                {lane.Task.length.toString().padStart(2, '0')}
+                                {(lane.Task || []).length.toString().padStart(2, '0')}
                             </span>
                         </div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -79,7 +79,7 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers }: Props) =
                                     ${snapshot.isDraggingOver ? 'bg-neutral-100/50 dark:bg-neutral-800/50' : ''}
                                 `}
                             >
-                                {lane.Task.map((task, index) => (
+                                {(lane.Task || []).map((task, index) => (
                                     <TaskCard
                                         key={task.id}
                                         task={task}

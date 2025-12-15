@@ -46,6 +46,14 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'pefchyjzvnfavwaylidh.supabase.co',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ui.aceternity.com',
+      },
     ],
   },
   reactStrictMode: false,

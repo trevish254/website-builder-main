@@ -56,20 +56,20 @@ export const pricingCards = [
   {
     title: 'Unlimited Saas',
     description: 'The ultimate agency kit',
-    price: '$199',
+    price: 'KSh 15,000',
     duration: 'month',
     highlight: 'Key features',
     features: ['Rebilling', '24/7 Support team'],
-    priceId: 'price_1OYxkqFj9oKEERu1KfJGWxgN',
+    priceId: 'price_1OYxkqFj9oKEERu1KfJGWxgN', // TODO: Update this ID in Stripe Dashboard to match KSh 15,000
   },
   {
     title: 'Basic',
     description: 'For serious agency owners',
-    price: '$49',
+    price: 'KSh 5,000',
     duration: 'month',
     highlight: 'Everything in Starter, plus',
     features: ['Unlimited Sub accounts', 'Unlimited Team members'],
-    priceId: 'price_1OYxkqFj9oKEERu1NbKUxXxN',
+    priceId: 'price_1OYxkqFj9oKEERu1NbKUxXxN', // TODO: Update this ID in Stripe Dashboard to match KSh 5,000
   },
 ]
 

@@ -9,6 +9,8 @@ type SidebarContextType = {
     setActiveCategory: (category: string | null) => void
     isPanelCollapsed: boolean
     setIsPanelCollapsed: (collapsed: boolean) => void
+    panelTop: number | null
+    setPanelTop: (top: number | null) => void
 }
 
 const SidebarContext = createContext<SidebarContextType>({
@@ -18,6 +20,8 @@ const SidebarContext = createContext<SidebarContextType>({
     setActiveCategory: () => { },
     isPanelCollapsed: false,
     setIsPanelCollapsed: () => { },
+    panelTop: null,
+    setPanelTop: () => { }
 })
 
 export const useSidebar = () => {
@@ -36,6 +40,7 @@ export const SidebarProvider = ({
     const [hoveredMenuItem, setHoveredMenuItem] = useState<string | null>(null)
     const [activeCategory, setActiveCategory] = useState<string | null>(null)
     const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
+    const [panelTop, setPanelTop] = useState<number | null>(null)
 
     return (
         <SidebarContext.Provider value={{
@@ -44,7 +49,9 @@ export const SidebarProvider = ({
             activeCategory,
             setActiveCategory,
             isPanelCollapsed,
-            setIsPanelCollapsed
+            setIsPanelCollapsed,
+            panelTop,
+            setPanelTop
         }}>
             {children}
         </SidebarContext.Provider>

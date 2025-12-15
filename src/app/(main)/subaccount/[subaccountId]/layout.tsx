@@ -55,6 +55,7 @@ const SubaccountLayout = async ({ children, params }: Props) => {
       subaccountId={params.subaccountId}
       userDetails={userDetails}
       notifications={notifications}
+      subaccountDetails={subaccount}
       sidebar={
         <Sidebar
           id={params.subaccountId}

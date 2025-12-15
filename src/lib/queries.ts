@@ -2772,7 +2772,7 @@ export const getTaskBoardDetails = async (subAccountId: string) => {
       }
 
       // Return new board with lanes (need to refetch to get structure right or just return board and let page fetch lanes)
-      return { ...newBoard, TaskLane: defaultLanes }
+      return { ...newBoard, TaskLane: defaultLanes.map(lane => ({ ...lane, Task: [] })) }
     }
     return null
   }
@@ -2857,7 +2857,7 @@ export const getAgencyTaskBoardDetails = async (agencyId: string) => {
       }
 
       // Return new board with lanes
-      return { ...newBoard, TaskLane: defaultLanes }
+      return { ...newBoard, TaskLane: defaultLanes.map(lane => ({ ...lane, Task: [] })) }
     }
     return null
   }

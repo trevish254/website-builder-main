@@ -14,6 +14,10 @@ import Link from 'next/link'
 import { ThreeDMarqueeDemo } from '@/components/site/three-d-marquee-demo'
 import { HeroParallaxDemo } from '@/components/site/hero-parallax-demo'
 import { Footer } from '@/components/ui/footer-section'
+import { HeroScrollDemo } from '@/components/site/hero-scroll-demo'
+import { ZoomParallaxDemo } from '@/components/site/zoom-parallax-demo'
+import { FullScreenScrollDemo } from '@/components/site/full-screen-scroll-demo'
+import { ThreeDPhotoCarouselDemo } from '@/components/site/3d-carousel-demo'
 
 export default async function Home() {
   // Stripe is disabled, using static pricing
@@ -75,6 +79,18 @@ export default async function Home() {
             </CardContent>
           </Card>
         </div>
+      </section>
+      <section className="flex justify-center items-center flex-col gap-4 md:!mt-20 mt-[-60px]">
+        <HeroScrollDemo />
+      </section>
+      <section className="mt-[-60px]">
+        <ZoomParallaxDemo />
+      </section>
+      <section className="mt-[-60px] relative z-[20]">
+        <FullScreenScrollDemo />
+      </section>
+      <section className="mt-20">
+        <ThreeDPhotoCarouselDemo />
       </section>
       <section id="about" className="flex justify-center items-center flex-col gap-4 md:!mt-20">
         <h2 className="text-4xl text-center">About Plura</h2>

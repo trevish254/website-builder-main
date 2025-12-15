@@ -115,19 +115,33 @@ const layout = async ({ children, params }: Props) => {
   // Get role from userDetails
   const userRole = (userDetails as any)?.role || undefined
 
+  // Get agency details for Navbar
+  let agencyDetails: any = null
+  if (invitedAgency) {
+    agencyDetails = invitedAgency
+  } else if (userDetails.Agency && userDetails.Agency.id === params.agencyId) {
+    agencyDetails = userDetails.Agency
+  }
+
+  const agencyLogo = agencyDetails?.agencyLogo || '/assets/plura-logo.svg'
+  const agencyName = agencyDetails?.name || 'Agency'
+
   return (
     <SidebarProvider>
       <div className="h-screen overflow-hidden">
+        <InfoBar
+          notifications={allNoti}
+          role={userRole}
+          subAccountId={params.agencyId} // Assuming we want search context here
+          agencyLogo={agencyLogo}
+          agencyName={agencyName}
+        />
         <Sidebar
           id={params.agencyId}
           type="agency"
           defaultUser={userDetails}
         />
         <MainLayoutWrapper>
-          <InfoBar
-            notifications={allNoti}
-            role={userRole}
-          />
           <div className="relative">
             <BlurPage>{children}</BlurPage>
           </div>

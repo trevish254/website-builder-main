@@ -1,10 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useLayoutEffect, useRef, useState } from 'react'
 import { useSidebar } from '@/providers/sidebar-provider'
 import { icons } from '@/lib/constants'
 
-import { Settings, Search, Compass, ChevronDown, PlusCircleIcon, Users, LayoutGrid, Share2, EyeOff, Star, Clock, Building2, Briefcase, TrendingUp, UserPlus, Shield, Mail, User, Hash, CheckCircle, Circle, Calendar, AlertCircle, List, FileText, Globe, Archive, CreditCard, DollarSign, Receipt, Wallet, Zap, Package, Award, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+    Settings, Search, Compass, ChevronDown, PlusCircleIcon, Users, LayoutGrid, Share2, EyeOff, Star, Clock, Building2, Briefcase, TrendingUp, UserPlus, Shield, Mail, User, Hash, CheckCircle, Circle, Calendar, AlertCircle, List, FileText, Globe, Archive, CreditCard, DollarSign, Receipt, Wallet, Zap, Package, Award, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+} from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
@@ -120,9 +122,41 @@ const MENU_CATEGORIES = [
 ]
 
 const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyId, teamMembers }: Props) => {
-    const { hoveredMenuItem, activeCategory, setHoveredMenuItem, isPanelCollapsed, setIsPanelCollapsed } = useSidebar()
+    const { hoveredMenuItem, activeCategory, setHoveredMenuItem, isPanelCollapsed, setIsPanelCollapsed, panelTop } = useSidebar()
     const pathname = usePathname()
-    const [searchQuery, setSearchQuery] = React.useState('')
+    const [searchQuery, setSearchQuery] = useState('')
+
+    // Ref for the panel to measure its height
+    const panelRef = useRef<HTMLDivElement>(null)
+    // State to hold the final adjusted top position
+    const [adjustedTop, setAdjustedTop] = useState<number | null>(null)
+
+    // Calculate smart positioning
+    useLayoutEffect(() => {
+        if (!isPanelCollapsed || !panelTop || !panelRef.current) {
+            setAdjustedTop(null) // Reset when not in tooltip mode
+            return
+        }
+
+        const panelHeight = panelRef.current.offsetHeight
+        const viewportHeight = window.innerHeight
+        const margin = 20
+        const headerSpace = 60 // 50px header + 10px buffer
+
+        let newTop = panelTop
+
+        // Check if it overflows bottom
+        if (panelTop + panelHeight + margin > viewportHeight) {
+            newTop = viewportHeight - panelHeight - margin
+        }
+
+        // Check if it overflows top (overlaps header)
+        if (newTop < headerSpace) {
+            newTop = headerSpace
+        }
+
+        setAdjustedTop(newTop)
+    }, [isPanelCollapsed, panelTop, hoveredMenuItem])
 
     // Get the active category or use the hovered one
     const displayCategory = hoveredMenuItem || activeCategory
@@ -168,6 +202,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
     return (
         <>
             <div
+                ref={panelRef}
                 onMouseEnter={() => {
                     if (isPanelCollapsed && hoveredMenuItem) {
                         setHoveredMenuItem(hoveredMenuItem)
@@ -181,30 +216,54 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                     }
                 }}
                 className={cn(
-                    "fixed top-0 bottom-0 z-20 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
+                    "fixed z-20 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
                     isPanelCollapsed
-                        ? (hoveredMenuItem ? "w-[200px] left-[60px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800" : "w-0 opacity-0 pointer-events-none")
-                        : "w-[200px] left-[60px]"
+                        ? (hoveredMenuItem ? "w-[200px] left-[50px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800 h-auto max-h-[80vh] rounded-[4px] border-b border-b-gray-200 dark:border-b-gray-800" : "w-0 opacity-0 pointer-events-none bottom-0")
+                        : "w-[200px] left-[50px] bottom-0 top-[50px]"
                 )}
+                style={isPanelCollapsed && (adjustedTop || panelTop) ? { top: `${adjustedTop || panelTop}px` } : (!isPanelCollapsed ? {} : { top: '50px' })}
             >
-                {/* Search Header */}
-                <div className="p-3 border-b border-gray-200 dark:border-gray-800 space-y-3">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md text-gray-700 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
+                {/* Search Header - Only show when NOT collapsed, or show simple title when collapsed */
+                    !isPanelCollapsed ? (
+                        <div className="p-3 border-b border-gray-200 dark:border-gray-800 space-y-3">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md text-gray-700 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
 
-                    {/* Category Label */}
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">
-                        {getCategoryLabel()}
-                    </p>
-                </div>
+                            {/* Category Label & Collapse Toggle */}
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">
+                                    {getCategoryLabel()}
+                                </p>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                    onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+                                >
+                                    {isPanelCollapsed ? (
+                                        <ChevronsRight className="w-4 h-4" />
+                                    ) : (
+                                        <ChevronsLeft className="w-4 h-4" />
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">
+                                {getCategoryLabel()}
+                            </p>
+                        </div>
+                    )
+                }
 
                 {/* Scrollable Menu Items */}
                 <div className="flex-1 overflow-y-auto px-3 py-2">
@@ -1215,28 +1274,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                     </Popover>
                 </div >
             </div >
-            {/* Collapse Toggle Button */}
-            < div
-                className={
-                    cn(
-                        "fixed top-6 z-30 transition-all duration-300 ease-out",
-                        isPanelCollapsed ? "left-[90px]" : "left-[270px]"
-                    )
-                }
-            >
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="w-6 h-6 rounded-full bg-white dark:bg-gray-900 shadow-md border-gray-200 dark:border-gray-800 hover:bg-gray-100 flex items-center justify-center p-0"
-                    onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-                >
-                    {isPanelCollapsed ? (
-                        <ChevronRight className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-                    ) : (
-                        <ChevronLeft className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-                    )}
-                </Button>
-            </div >
+
         </>
     )
 }

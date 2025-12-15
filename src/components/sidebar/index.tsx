@@ -612,14 +612,14 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
         agencyId={type === 'agency' ? id : undefined}
         teamMembers={teamMembers}
       />
-      <MobileMenu
+      {/* <MobileMenu
         details={details}
         id={id}
         sidebarLogo={sideBarLogo}
         sidebarOpt={sidebarOpt}
         subAccounts={subaccounts}
         user={user}
-      />
+      /> */}
     </>
   )
 }
