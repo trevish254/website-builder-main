@@ -81,6 +81,7 @@
         "file-saver": "^2.0.5",
         "framer-motion": "^12.23.26",
         "grapesjs": "^0.22.14",
+        "gridstack": "^12.4.1",
         "gsap": "^3.14.1",
         "html2canvas": "^1.4.1",
         "html2pdf.js": "^0.12.1",
@@ -1216,6 +1217,8 @@
     "grapesjs": ["grapesjs@0.22.14", "", { "dependencies": { "@types/backbone": "1.4.15", "backbone": "1.4.1", "backbone-undo": "0.2.6", "codemirror": "5.63.0", "codemirror-formatting": "1.0.0", "html-entities": "~1.4.0", "promise-polyfill": "8.3.0", "underscore": "1.13.1" } }, "sha512-UyHKGtB9YOQ4bmvhmwY3H7J6SO30qgIH4qRp1ucUlblS21btMxY90xwQuAVIi+EFGl0wi8v1NBEYvA52eIEfyg=="],
 
     "graphemer": ["graphemer@1.4.0", "", {}, "sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag=="],
+
+    "gridstack": ["gridstack@12.4.1", "", {}, "sha512-dYBNVEDw2zwnz0bCDouHk8rMclrMoMn4r6rtNyyWSeYsV3RF8QV2KFRTj4c86T2FsZPr3iQv+/LD/ae29FcpHQ=="],
 
     "gsap": ["gsap@3.14.1", "", {}, "sha512-nOFRJpVu+U0IPgKzfC5MEdZrJ1iVidGaOuxK0+Un+7vMOHa5rw/SKOaMaRRyHZiJKaeAEALTBwnj6R3gifyGBw=="],
 
