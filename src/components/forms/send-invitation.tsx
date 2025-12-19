@@ -180,7 +180,7 @@ const SendInvitation: React.FC<SendInvitationProps> = ({ agencyId }) => {
                   <FormLabel>User Role</FormLabel>
                   <Select
                     onValueChange={(value) => field.onChange(value)}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger className="bg-background">

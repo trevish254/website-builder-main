@@ -132,7 +132,8 @@ const layout = async ({ children, params }: Props) => {
         <InfoBar
           notifications={allNoti}
           role={userRole}
-          subAccountId={params.agencyId} // Assuming we want search context here
+          subAccountId={params.agencyId}
+          agencyId={params.agencyId}
           agencyLogo={agencyLogo}
           agencyName={agencyName}
         />

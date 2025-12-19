@@ -894,9 +894,157 @@ TaskLane: {
     InvitationStatus: 'ACCEPTED' | 'REVOKED' | 'PENDING'
     Plan: 'price_1OYxkqFj9oKEERu1NbKUxXxN' | 'price_1OYxkqFj9oKEERu1KfJGWxgN'
   }
-  CompositeTypes: {
-    [_ in never]: never
+  [_ in never]: never
+}
+}
+Dashboard: {
+  Row: {
+    id: string
+    userId: string
+    agencyId: string | null
+    subAccountId: string | null
+    name: string
+    description: string | null
+    isDefault: boolean
+    isPrivate: boolean
+    isFavorite: boolean
+    lastAccessedAt: string
+    createdAt: string
+    updatedAt: string
   }
+  Insert: {
+    id ?: string
+    userId: string
+    agencyId ?: string | null
+    subAccountId ?: string | null
+    name: string
+    description ?: string | null
+    isDefault ?: boolean
+    isPrivate ?: boolean
+    isFavorite ?: boolean
+    lastAccessedAt ?: string
+    createdAt ?: string
+    updatedAt ?: string
+  }
+  Update: {
+    id ?: string
+    userId ?: string
+    agencyId ?: string | null
+    subAccountId ?: string | null
+    name ?: string
+    description ?: string | null
+    isDefault ?: boolean
+    isPrivate ?: boolean
+    isFavorite ?: boolean
+    lastAccessedAt ?: string
+    createdAt ?: string
+    updatedAt ?: string
+  }
+}
+DashboardCard: {
+  Row: {
+    id: string
+    dashboardId: string
+    cardType: string
+    positionX: number
+    positionY: number
+    width: number
+    height: number
+    config: Json
+    order: number
+    createdAt: string
+    updatedAt: string
+  }
+  Insert: {
+    id ?: string
+    dashboardId: string
+    cardType: string
+    positionX ?: number
+    positionY ?: number
+    width ?: number
+    height ?: number
+    config ?: Json
+    order ?: number
+    createdAt ?: string
+    updatedAt ?: string
+  }
+  Update: {
+    id ?: string
+    dashboardId ?: string
+    cardType ?: string
+    positionX ?: number
+    positionY ?: number
+    width ?: number
+    height ?: number
+    config ?: Json
+    order ?: number
+    createdAt ?: string
+    updatedAt ?: string
+  }
+}
+DashboardShare: {
+  Row: {
+    id: string
+    dashboardId: string
+    sharedWithUserId: string
+    permission: string
+    createdAt: string
+  }
+  Insert: {
+    id ?: string
+    dashboardId: string
+    sharedWithUserId: string
+    permission ?: string
+    createdAt ?: string
+  }
+  Update: {
+    id ?: string
+    dashboardId ?: string
+    sharedWithUserId ?: string
+    permission ?: string
+    createdAt ?: string
+  }
+}
+DashboardTemplate: {
+  Row: {
+    id: string
+    name: string
+    description: string | null
+    category: string
+    layout: Json
+    isPublic: boolean
+    createdAt: string
+  }
+  Insert: {
+    id ?: string
+    name: string
+    description ?: string | null
+    category: string
+    layout ?: Json
+    isPublic ?: boolean
+    createdAt ?: string
+  }
+  Update: {
+    id ?: string
+    name ?: string
+    description ?: string | null
+    category ?: string
+    layout ?: Json
+    isPublic ?: boolean
+    createdAt ?: string
+  }
+}
+Enums: {
+  Role: 'AGENCY_OWNER' | 'AGENCY_ADMIN' | 'SUBACCOUNT_USER' | 'SUBACCOUNT_GUEST'
+  Icon: 'settings' | 'chart' | 'calendar' | 'check' | 'chip' | 'compass' | 'database' | 'flag' | 'home' | 'info' | 'link' | 'lock' | 'messages' | 'notification' | 'payment' | 'power' | 'receipt' | 'shield' | 'star' | 'tune' | 'videorecorder' | 'wallet' | 'warning' | 'headphone' | 'send' | 'pipelines' | 'person' | 'category' | 'contact' | 'clipboardIcon'
+  TriggerTypes: 'CONTACT_FORM'
+  ActionType: 'CREATE_CONTACT'
+  InvitationStatus: 'ACCEPTED' | 'REVOKED' | 'PENDING'
+  Plan: 'price_1OYxkqFj9oKEERu1NbKUxXxN' | 'price_1OYxkqFj9oKEERu1KfJGWxgN'
+}
+CompositeTypes: {
+  [_ in never]: never
+}
 }
     }
 
@@ -926,6 +1074,10 @@ export type TaskBoard = Database['public']['Tables']['TaskBoard']['Row']
 export type TaskLane = Database['public']['Tables']['TaskLane']['Row']
 export type Task = Database['public']['Tables']['Task']['Row']
 export type TaskComment = Database['public']['Tables']['TaskComment']['Row']
+export type Dashboard = Database['public']['Tables']['Dashboard']['Row']
+export type DashboardCard = Database['public']['Tables']['DashboardCard']['Row']
+export type DashboardShare = Database['public']['Tables']['DashboardShare']['Row']
+export type DashboardTemplate = Database['public']['Tables']['DashboardTemplate']['Row']
 
 // Role type
 export type Role = 'AGENCY_OWNER' | 'AGENCY_ADMIN' | 'SUBACCOUNT_USER' | 'SUBACCOUNT_GUEST'

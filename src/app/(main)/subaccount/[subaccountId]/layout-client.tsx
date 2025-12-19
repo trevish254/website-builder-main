@@ -41,6 +41,7 @@ const SubaccountLayoutClient = ({
                     notifications={notifications}
                     role={(userDetails?.role || 'AGENCY_OWNER') as any}
                     subAccountId={subaccountId}
+                    agencyId={subaccountDetails?.agencyId}
                     agencyLogo={logo}
                     agencyName={name}
                 />

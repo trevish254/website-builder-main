@@ -25,17 +25,19 @@ import { supabase } from '@/lib/supabase'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
 import { useToast } from '../ui/use-toast'
+import QuickInvite from './quick-invite'
 
 type Props = {
   notifications: NotificationWithUser | []
   role?: Role
   className?: string
   subAccountId?: string
+  agencyId?: string
   agencyLogo?: string
   agencyName?: string
 }
 
-const InfoBar = ({ notifications, subAccountId, className, role, agencyLogo, agencyName }: Props) => {
+const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agencyLogo, agencyName }: Props) => {
   // Ensure notifications is always an array
   const safeNotifications = Array.isArray(notifications) ? notifications : []
   const [allNotifications, setAllNotifications] = useState(safeNotifications)
@@ -736,6 +738,11 @@ const InfoBar = ({ notifications, subAccountId, className, role, agencyLogo, age
               </div>
             </SheetContent>
           </Sheet>
+
+          {/* Quick Invite */}
+          {(role === 'AGENCY_ADMIN' || role === 'AGENCY_OWNER') && (
+            <QuickInvite agencyId={agencyId || (subAccountId as string)} />
+          )}
 
           {/* Account */}
           <UserButton />

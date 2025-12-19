@@ -98,6 +98,14 @@
   }
 }
 
+/* GridStack Spacing - Set CSS Variables Explicitly */
+.grid-stack {
+  --gs-item-margin-top: 12px;
+  --gs-item-margin-right: 12px;
+  --gs-item-margin-bottom: 12px;
+  --gs-item-margin-left: 12px;
+}
+
 /* Editor.js Styles */
 /* Editor.js Styles */
 .codex-editor {

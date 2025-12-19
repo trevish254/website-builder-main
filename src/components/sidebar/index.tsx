@@ -9,9 +9,10 @@ type Props = {
   type: 'agency' | 'subaccount'
   defaultUser?: any
   userDetails?: any
+  dashboards?: any[]
 }
 
-const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
+const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props) => {
   let user = defaultUser
   let sidebarOpt = []
   let details = userDetails
@@ -601,6 +602,20 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
     )
   )
 
+  // Inject Dashboards link if missing
+  if (sidebarOpt && !sidebarOpt.find((opt: any) => opt.name === 'Dashboards')) {
+    sidebarOpt.splice(1, 0, {
+      id: `sidebar-dashboards-${type}`,
+      name: 'Dashboards',
+      icon: 'chart',
+      link: '/dashboards',
+      agencyId: type === 'agency' ? id : undefined,
+      subAccountId: type === 'subaccount' ? id : undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any)
+  }
+
   return (
     <>
       <IconDock sidebarOptions={sidebarOpt} logo={sideBarLogo} user={user} />
@@ -611,6 +626,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails }: Props) => {
         details={details}
         agencyId={type === 'agency' ? id : undefined}
         teamMembers={teamMembers}
+        dashboards={dashboards}
       />
       {/* <MobileMenu
         details={details}

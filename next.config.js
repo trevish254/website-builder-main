@@ -62,6 +62,15 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  async redirects() {
+    return [
+      {
+        source: '/dashboard',
+        destination: '/dashboards',
+        permanent: true,
+      },
+    ]
+  },
 
 }
 
