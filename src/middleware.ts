@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   const searchParams = url.searchParams.toString()
   const hostname = request.headers.get('host')
 
-  console.log(`[Middleware] ${request.method} ${url.pathname}`)
+  console.log(`[Middleware] ${request.method} ${url.pathname} | Host: ${hostname}`)
 
   const pathWithSearchParams = `${url.pathname}${searchParams.length > 0 ? `?${searchParams}` : ''
     }`

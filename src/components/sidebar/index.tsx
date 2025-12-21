@@ -197,9 +197,27 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           },
           {
             id: `sidebar-${id}-5`,
-            name: 'Billing',
+            name: 'Current Plan',
             link: `/agency/${id}/billing`,
+            icon: 'rocket',
+            agencyId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sidebar-${id}-billing-available`,
+            name: 'Available Plans',
+            link: `/agency/${id}/billing/available-plans`,
             icon: 'payment',
+            agencyId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sidebar-${id}-billing-history`,
+            name: 'Billing History',
+            link: `/agency/${id}/billing/history`,
+            icon: 'receipt',
             agencyId: id,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -395,9 +413,27 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         },
         {
           id: `sidebar-${id}-5`,
-          name: 'Billing',
+          name: 'Current Plan',
           link: `/agency/${id}/billing`,
+          icon: 'rocket',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `sidebar-${id}-billing-available`,
+          name: 'Available Plans',
+          link: `/agency/${id}/billing/available-plans`,
           icon: 'payment',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `sidebar-${id}-billing-history`,
+          name: 'Billing History',
+          link: `/agency/${id}/billing/history`,
+          icon: 'receipt',
           agencyId: id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -450,21 +486,95 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
       ]
       console.log('✅ Created fallback sidebar options:', sidebarOpt)
     } else {
-      // Check if Messages is missing from existing options
-      const hasMessages = sidebarOpt.some((option: any) => option.name === 'Messages')
-      if (!hasMessages) {
-        console.log('🔧 Adding Messages to existing sidebar options')
+      // Check for billing subpages
+      const hasCurrentPlan = sidebarOpt.some((option: any) => option.name === 'Current Plan')
+      if (!hasCurrentPlan) {
+        console.log('🔧 Adding Current Plan to existing sidebar options')
+        // Replace old Billing if it exists
+        const billingIndex = sidebarOpt.findIndex((option: any) => option.name === 'Billing')
+        const newOpt = {
+          id: `sidebar-${id}-billing-current`,
+          name: 'Current Plan',
+          link: `/agency/${id}/billing`,
+          icon: 'rocket',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        if (billingIndex !== -1) {
+          sidebarOpt[billingIndex] = newOpt
+        } else {
+          sidebarOpt.push(newOpt)
+        }
+        console.log('✅ Added Current Plan to sidebar options')
+      }
+
+      const hasAvailablePlans = sidebarOpt.some((option: any) => option.name === 'Available Plans')
+      if (!hasAvailablePlans) {
         sidebarOpt.push({
-          id: `sidebar-${id}-messages`,
-          name: 'Messages',
-          link: `/agency/${id}/messages`,
-          icon: 'messages',
+          id: `sidebar-${id}-billing-available`,
+          name: 'Available Plans',
+          link: `/agency/${id}/billing/available-plans`,
+          icon: 'payment',
           agencyId: id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
-        console.log('✅ Added Messages to sidebar options')
       }
+
+      const hasBillingHistory = sidebarOpt.some((option: any) => option.name === 'Billing History')
+      if (!hasBillingHistory) {
+        sidebarOpt.push({
+          id: `sidebar-${id}-billing-history`,
+          name: 'Billing History',
+          link: `/agency/${id}/billing/history`,
+          icon: 'receipt',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+
+      const hasInvoices = sidebarOpt.some((option: any) => option.name === 'Invoices')
+      if (!hasInvoices) {
+        sidebarOpt.push({
+          id: `sidebar-${id}-billing-invoices`,
+          name: 'Invoices',
+          link: `/agency/${id}/billing/invoices`,
+          icon: 'receipt',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+
+      const hasPaymentMethods = sidebarOpt.some((option: any) => option.name === 'Payment Methods')
+      if (!hasPaymentMethods) {
+        sidebarOpt.push({
+          id: `sidebar-${id}-billing-payment-methods`,
+          name: 'Payment Methods',
+          link: `/agency/${id}/billing/payment-methods`,
+          icon: 'payment',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+
+      const hasAddons = sidebarOpt.some((option: any) => option.name === 'Add-ons')
+      if (!hasAddons) {
+        sidebarOpt.push({
+          id: `sidebar-${id}-billing-addons`,
+          name: 'Add-ons',
+          link: `/agency/${id}/billing/add-ons`,
+          icon: 'rocket',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+
+      // Check if Messages is missing from existing options
 
       // Check if Tasks is missing from existing options
       const hasTasks = sidebarOpt.some((option: any) => option.name === 'Tasks')

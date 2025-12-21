@@ -10,9 +10,11 @@ type Props = {
   prices: PricesList['data']
   customerId: string
   planExists: boolean
+  user: any
+  agency: any
 }
 
-const SubscriptionHelper = ({ customerId, planExists, prices }: Props) => {
+const SubscriptionHelper = ({ customerId, planExists, prices, agency, user }: Props) => {
   const { setOpen } = useModal()
   const searchParams = useSearchParams()
   const plan = searchParams.get('plan')
@@ -34,6 +36,8 @@ const SubscriptionHelper = ({ customerId, planExists, prices }: Props) => {
             defaultPriceId: plan ? plan : '',
             plans: prices,
           },
+          user,
+          agency,
         })
       )
   }, [plan])

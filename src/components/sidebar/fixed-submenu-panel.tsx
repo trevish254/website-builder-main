@@ -103,7 +103,7 @@ const MENU_CATEGORIES = [
     {
         id: 'upgrade',
         label: 'Upgrade',
-        matchNames: ['Billing']
+        matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing']
     },
     {
         id: 'kra',
@@ -123,6 +123,7 @@ const MENU_CATEGORIES = [
 ]
 
 const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyId, teamMembers, dashboards }: Props) => {
+    const currentAgencyId = agencyId || (details as any)?.agencyId
     const { hoveredMenuItem, activeCategory, setHoveredMenuItem, isPanelCollapsed, setIsPanelCollapsed, panelTop } = useSidebar()
     const pathname = usePathname()
     const [searchQuery, setSearchQuery] = useState('')
@@ -218,9 +219,10 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                 }}
                 className={cn(
                     "fixed z-20 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
-                    isPanelCollapsed
-                        ? (hoveredMenuItem ? "w-[200px] left-[50px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800 h-auto max-h-[80vh] rounded-[4px] border-b border-b-gray-200 dark:border-b-gray-800" : "w-0 opacity-0 pointer-events-none bottom-0")
-                        : "w-[200px] left-[50px] bottom-0 top-[50px]"
+                    // Basic behavior (Mobile or Collapsed): Overlay invisible by default, visible on hover
+                    (hoveredMenuItem ? "w-[200px] left-[50px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800 h-auto max-h-[80vh] rounded-[4px] border-b border-b-gray-200 dark:border-b-gray-800" : "w-0 opacity-0 pointer-events-none bottom-0"),
+                    // Desktop Expansion: Fixed sidebar if NOT collapsed
+                    !isPanelCollapsed && "md:w-[200px] md:left-[50px] md:bottom-0 md:top-[50px] md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto"
                 )}
                 style={isPanelCollapsed && (adjustedTop || panelTop) ? { top: `${adjustedTop || panelTop}px` } : (!isPanelCollapsed ? {} : { top: '50px' })}
             >
@@ -246,7 +248,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                    className="h-6 w-6 hidden md:flex text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                     onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
                                 >
                                     {isPanelCollapsed ? (
@@ -398,7 +400,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 {/* Subaccounts Section */}
                                 <div className="space-y-0.5 pl-1">
                                     <Link
-                                        href={`/agency/${agencyId}/all-subaccounts`}
+                                        href={`/agency/${currentAgencyId}/all-subaccounts`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -492,7 +494,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </div>
 
                                     <Link
-                                        href={`/agency/${agencyId}/analytics`}
+                                        href={`/agency/${currentAgencyId}/analytics`}
                                         className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 group"
                                     >
                                         <div className="flex items-center gap-2">
@@ -547,7 +549,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Team Members
                                         </span>
-                                        <Link href={`/agency/${agencyId}/team`}>
+                                        <Link href={`/agency/${currentAgencyId}/team`}>
                                             <PlusCircleIcon className="w-3 h-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
                                         </Link>
                                     </div>
@@ -581,7 +583,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 {/* Management Sections */}
                                 <div className="space-y-0.5 pl-1 border-t border-gray-200 dark:border-gray-800 pt-2">
                                     <Link
-                                        href={`/agency/${agencyId}/team?tab=roles`}
+                                        href={`/agency/${currentAgencyId}/team?tab=roles`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Shield className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -589,7 +591,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/team?tab=flowboard`}
+                                        href={`/agency/${currentAgencyId}/team?tab=flowboard`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <LayoutGrid className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -597,7 +599,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/team?tab=settings`}
+                                        href={`/agency/${currentAgencyId}/team?tab=settings`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -605,7 +607,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/team?tab=analytics`}
+                                        href={`/agency/${currentAgencyId}/team?tab=analytics`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -628,7 +630,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 {/* Inbox Categories */}
                                 <div className="space-y-0.5 pl-1">
                                     <Link
-                                        href={`/agency/${agencyId}/messages`}
+                                        href={`/agency/${currentAgencyId}/messages`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Mail className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -636,7 +638,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/messages?filter=me`}
+                                        href={`/agency/${currentAgencyId}/messages?filter=me`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -644,7 +646,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/messages?filter=team`}
+                                        href={`/agency/${currentAgencyId}/messages?filter=team`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -652,7 +654,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/messages?filter=agency`}
+                                        href={`/agency/${currentAgencyId}/messages?filter=agency`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Building2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -660,7 +662,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/messages?filter=personal`}
+                                        href={`/agency/${currentAgencyId}/messages?filter=personal`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -668,7 +670,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/messages?filter=groups`}
+                                        href={`/agency/${currentAgencyId}/messages?filter=groups`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -676,7 +678,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/messages?filter=channels`}
+                                        href={`/agency/${currentAgencyId}/messages?filter=channels`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Hash className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -684,7 +686,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/messages?filter=read`}
+                                        href={`/agency/${currentAgencyId}/messages?filter=read`}
                                         className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <div className="flex items-center gap-2">
@@ -695,7 +697,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/messages?filter=unread`}
+                                        href={`/agency/${currentAgencyId}/messages?filter=unread`}
                                         className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <div className="flex items-center gap-2">
@@ -749,7 +751,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </div>
                                     <div className="space-y-0.5 pl-1">
                                         <Link
-                                            href={`/agency/${agencyId}/tasks`}
+                                            href={`/agency/${currentAgencyId}/tasks`}
                                             className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                         >
                                             <CheckCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -757,7 +759,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         </Link>
 
                                         <Link
-                                            href={`/agency/${agencyId}/tasks?filter=assigned`}
+                                            href={`/agency/${currentAgencyId}/tasks?filter=assigned`}
                                             className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                         >
                                             <div className="flex items-center gap-2">
@@ -768,7 +770,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         </Link>
 
                                         <Link
-                                            href={`/agency/${agencyId}/tasks?filter=overdue`}
+                                            href={`/agency/${currentAgencyId}/tasks?filter=overdue`}
                                             className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                         >
                                             <div className="flex items-center gap-2">
@@ -779,7 +781,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         </Link>
 
                                         <Link
-                                            href={`/agency/${agencyId}/tasks?filter=personal`}
+                                            href={`/agency/${currentAgencyId}/tasks?filter=personal`}
                                             className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                         >
                                             <div className="flex items-center gap-2">
@@ -790,7 +792,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         </Link>
 
                                         <Link
-                                            href={`/agency/${agencyId}/tasks?filter=priority`}
+                                            href={`/agency/${currentAgencyId}/tasks?filter=priority`}
                                             className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                         >
                                             <div className="flex items-center gap-2">
@@ -805,7 +807,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 {/* Other Links */}
                                 <div className="space-y-0.5 pl-1 border-t border-gray-200 dark:border-gray-800 pt-2">
                                     <Link
-                                        href={`/agency/${agencyId}/tasks/pool`}
+                                        href={`/agency/${currentAgencyId}/tasks/pool`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <LayoutGrid className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -813,7 +815,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/team?tab=calendar`}
+                                        href={`/agency/${currentAgencyId}/team?tab=calendar`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Calendar className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -860,7 +862,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         </div>
                                     )}
                                     <Link
-                                        href={`/agency/${agencyId}/client-docs`}
+                                        href={`/agency/${currentAgencyId}/client-docs`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -974,7 +976,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 {/* Finance Categories */}
                                 <div className="space-y-0.5 pl-1">
                                     <Link
-                                        href={`/agency/${agencyId}/finance`}
+                                        href={`/agency/${currentAgencyId}/finance`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <DollarSign className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -982,7 +984,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/finance`}
+                                        href={`/agency/${currentAgencyId}/finance`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -990,7 +992,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/finance`}
+                                        href={`/agency/${currentAgencyId}/finance`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -998,7 +1000,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/finance`}
+                                        href={`/agency/${currentAgencyId}/finance`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1006,7 +1008,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/finance`}
+                                        href={`/agency/${currentAgencyId}/finance`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <CreditCard className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1014,7 +1016,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/finance`}
+                                        href={`/agency/${currentAgencyId}/finance`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1027,18 +1029,20 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             /* Custom Upgrade Panel */
                             <div className="space-y-3">
                                 {/* Upgrade Plan Button */}
-                                <Button
-                                    className="w-full justify-start gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                                    size="sm"
-                                >
-                                    <Zap className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Upgrade Plan</span>
-                                </Button>
+                                <Link href={`/agency/${agencyId || details?.agencyId}/billing/available-plans`} className="block">
+                                    <Button
+                                        className="w-full justify-start gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                                        size="sm"
+                                    >
+                                        <Zap className="w-4 h-4" />
+                                        <span className="text-sm font-medium">Upgrade Plan</span>
+                                    </Button>
+                                </Link>
 
                                 {/* Subscription Categories */}
                                 <div className="space-y-0.5 pl-1">
                                     <Link
-                                        href={`/agency/${agencyId}/billing`}
+                                        href={`/agency/${agencyId || details?.agencyId}/billing`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1046,7 +1050,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/billing`}
+                                        href={`/agency/${agencyId || details?.agencyId}/billing/available-plans`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1054,7 +1058,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/billing`}
+                                        href={`/agency/${agencyId || details?.agencyId}/billing/history`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <CreditCard className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1062,7 +1066,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/billing`}
+                                        href={`/agency/${agencyId || details?.agencyId}/billing/invoices`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1070,7 +1074,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/billing`}
+                                        href={`/agency/${agencyId || details?.agencyId}/billing/payment-methods`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Wallet className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1078,7 +1082,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/billing`}
+                                        href={`/agency/${agencyId || details?.agencyId}/billing/add-ons`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Award className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1094,7 +1098,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                                     size="sm"
                                     onClick={() => {
-                                        window.location.href = `/agency/${agencyId}/government-services/file-returns`
+                                        window.location.href = `/agency/${currentAgencyId}/government-services/file-returns`
                                     }}
                                 >
                                     <PlusCircleIcon className="w-4 h-4" />
@@ -1104,7 +1108,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 {/* KRA/Government Services Categories */}
                                 <div className="space-y-0.5 pl-1">
                                     <Link
-                                        href={`/agency/${agencyId}/government-services/file-returns`}
+                                        href={`/agency/${currentAgencyId}/government-services/file-returns`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1112,7 +1116,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/government-services`}
+                                        href={`/agency/${currentAgencyId}/government-services`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Building2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1120,7 +1124,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/government-services/generate-prns`}
+                                        href={`/agency/${currentAgencyId}/government-services/generate-prns`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1128,7 +1132,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/government-services/verify-documents`}
+                                        href={`/agency/${currentAgencyId}/government-services/verify-documents`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Shield className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1136,7 +1140,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/government-services`}
+                                        href={`/agency/${currentAgencyId}/government-services`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <Calendar className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -1144,7 +1148,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
 
                                     <Link
-                                        href={`/agency/${agencyId}/government-services`}
+                                        href={`/agency/${currentAgencyId}/government-services`}
                                         className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
                                         <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />

@@ -1,30 +1,48 @@
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url)
+    const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
-    // if "next" is in param, use it as the redirect URL
     const next = searchParams.get('next') ?? '/agency'
 
+    const isLocalEnv = process.env.NODE_ENV === 'development'
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const host = forwardedHost || request.headers.get('host')
+    const protocol = request.headers.get('x-forwarded-proto') || (isLocalEnv ? 'http' : 'https')
+    const currentOrigin = `${protocol}://${host}`
+
     if (code) {
-        const supabase = createClient()
+        const response = NextResponse.redirect(`${currentOrigin}${next}`)
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        const cookieHeader = request.headers.get('Cookie')
+                        if (!cookieHeader) return []
+                        return cookieHeader.split(';').map(c => {
+                            const [name, ...val] = c.trim().split('=')
+                            return { name, value: val.join('=') }
+                        })
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            response.cookies.set(name, value, options)
+                        )
+                    },
+                },
+            }
+        )
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
-            const isLocalEnv = process.env.NODE_ENV === 'development'
-            const host = request.headers.get('host')
-            const protocol = request.headers.get('x-forwarded-proto') || (isLocalEnv ? 'http' : 'https')
-            const currentOrigin = `${protocol}://${host}`
-
-            if (isLocalEnv && !host?.includes('ngrok')) {
-                return NextResponse.redirect(`${origin}${next}`)
-            } else {
-                return NextResponse.redirect(`${currentOrigin}${next}`)
-            }
+            return response
         }
+
+        console.error('Auth callback error:', error)
     }
 
-    // return the user to an error page with instructions
-    console.error('Auth error:', error)
-    return NextResponse.redirect(`${origin}/agency/sign-in?error=auth-code-error`)
+    // Return the user to an error page if code is missing or exchange fails
+    return NextResponse.redirect(`${currentOrigin}/agency/sign-in?error=auth-code-error`)
 }

@@ -16,11 +16,13 @@ export async function POST(req: NextRequest) {
     }
 
     const event = JSON.parse(body)
+    console.log('📬 Paystack Webhook Event:', event.event)
 
     try {
         switch (event.event) {
             case 'subscription.create':
             case 'charge.success': {
+                console.log('📦 Event Data:', JSON.stringify(event.data, null, 2))
                 // subscription.create is sent when a subscription is created
                 // charge.success might contain subscription details for recurring charges
                 const data = event.data

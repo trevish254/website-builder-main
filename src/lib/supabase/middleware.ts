@@ -35,7 +35,18 @@ export async function updateSession(request: NextRequest) {
 
     const {
         data: { user },
+        error: userError
     } = await supabase.auth.getUser()
+
+    if (userError) {
+        console.error('[Middleware] getUser error:', userError)
+    }
+
+    if (user) {
+        console.log(`[Middleware] User authenticated: ${user.email}`)
+    } else {
+        console.log(`[Middleware] User NOT authenticated for path: ${request.nextUrl.pathname}`)
+    }
 
     if (
         !user &&
@@ -45,14 +56,22 @@ export async function updateSession(request: NextRequest) {
         !request.nextUrl.pathname.startsWith('/site') &&
         !request.nextUrl.pathname.startsWith('/api/uploadthing') &&
         !request.nextUrl.pathname.startsWith('/api/heartbeat') &&
+        !request.nextUrl.pathname.startsWith('/api/paystack/webhook') &&
         request.nextUrl.pathname !== '/'
     ) {
         // Build redirect URL respecting ngrok/forwarded headers
-        const host = request.headers.get('host') || request.nextUrl.host
+        const forwardedHost = request.headers.get('x-forwarded-host')
+        const host = forwardedHost || request.headers.get('host') || request.nextUrl.host
         const protocol = request.headers.get('x-forwarded-proto') || (request.nextUrl.protocol === 'https:' ? 'https' : 'http')
         const redirectUrl = new URL('/agency/sign-in', `${protocol}://${host}`)
 
-        return NextResponse.redirect(redirectUrl)
+        // IMPORTANT: We MUST create the redirect response and then copy cookies from supabaseResponse
+        // to it, otherwise a refreshed token session will be lost.
+        const response = NextResponse.redirect(redirectUrl)
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+            response.cookies.set(cookie.name, cookie.value)
+        })
+        return response
     }
 
     // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're

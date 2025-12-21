@@ -6,6 +6,7 @@ export const paystack = {
         metadata?: any
         callback_url?: string
     }) => {
+        console.log('📡 Sending to Paystack:', JSON.stringify(data, null, 2))
         const res = await fetch('https://api.paystack.co/transaction/initialize', {
             method: 'POST',
             headers: {
@@ -14,7 +15,9 @@ export const paystack = {
             },
             body: JSON.stringify(data),
         })
-        return res.json()
+        const result = await res.json()
+        console.log('📥 Paystack Response:', JSON.stringify(result, null, 2))
+        return result
     },
     verifyTransaction: async (reference: string) => {
         const res = await fetch(
@@ -38,6 +41,42 @@ export const paystack = {
                 },
             }
         )
+        return res.json()
+    },
+    fetchCustomer: async (emailOrCode: string) => {
+        const res = await fetch(
+            `https://api.paystack.co/customer/${emailOrCode}`,
+            {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                },
+            }
+        )
+        return res.json()
+    },
+    listTransactions: async (customerIdOrCode?: string) => {
+        const url = customerIdOrCode
+            ? `https://api.paystack.co/transaction?customer=${customerIdOrCode}`
+            : 'https://api.paystack.co/transaction'
+        const res = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            },
+        })
+        return res.json()
+    },
+    listSubscriptions: async (customerIdOrCode?: string) => {
+        const url = customerIdOrCode
+            ? `https://api.paystack.co/subscription?customer=${customerIdOrCode}`
+            : 'https://api.paystack.co/subscription'
+        const res = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            },
+        })
         return res.json()
     },
 }

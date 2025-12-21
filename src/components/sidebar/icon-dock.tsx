@@ -99,7 +99,7 @@ const MENU_CATEGORIES = [
         id: 'upgrade',
         icon: 'rocket',
         label: 'Upgrade',
-        matchNames: ['Billing']
+        matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing']
     },
     {
         id: 'kra',
@@ -165,9 +165,8 @@ const IconDock = ({ sidebarOptions, logo, user }: Props) => {
         >
 
 
-            {/* Expand Toggle (Visible only when collapsed) */}
-            {/* Sidebar Toggle (Always visible) */}
-            <div className="w-full flex justify-center mb-4">
+            {/* Sidebar Toggle (Visible only on desktop) */}
+            <div className="w-full hidden md:flex justify-center mb-4">
                 <button
                     onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
                     className="h-6 w-6 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"

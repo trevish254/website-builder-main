@@ -5,15 +5,24 @@ export async function POST(req: Request) {
     const { email, planCode } = await req.json()
 
     if (!email || !planCode) {
-        return new NextResponse('Email or plan code is missing', { status: 400 })
+        return NextResponse.json({ message: 'Email or plan code is missing' }, { status: 400 })
     }
 
+    if (planCode === 'REPLACE_WITH_ACTUAL_PLAN_CODE') {
+        return NextResponse.json({
+            message: 'You have not configured your Paystack Plan Codes. Please update src/lib/constants.ts with your actual Plan Codes from the Paystack Dashboard.'
+        }, { status: 400 })
+    }
+
+    console.log('🚀 Initializing Paystack Transaction:', { email, planCode })
+
     try {
+        const { origin } = new URL(req.url)
         const response = await paystack.initializeTransaction({
             email,
-            amount: '0', // amount is determined by the plan in Paystack
+            amount: '0', // This is usually required by Paystack API but overridden by plan
             plan: planCode,
-            callback_url: `${process.env.NEXT_PUBLIC_URL}/agency`,
+            callback_url: `${origin}/agency`,
         })
 
         if (!response.status) {
@@ -26,6 +35,9 @@ export async function POST(req: Request) {
         })
     } catch (error: any) {
         console.error('🔴 Paystack Initialization Error:', error)
-        return new NextResponse(error.message || 'Internal Server Error', { status: 500 })
+        return NextResponse.json(
+            { message: error.message || 'Internal Server Error' },
+            { status: 500 }
+        )
     }
 }

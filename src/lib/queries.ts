@@ -46,6 +46,7 @@ export const getAuthUserDetails = cache(async () => {
           goal,
           createdAt,
           updatedAt,
+          Subscription (*),
           AgencySidebarOption (
             id,
             name,
@@ -121,6 +122,7 @@ export const getAuthUserDetails = cache(async () => {
             *,
             Agency (
               *,
+              Subscription (*),
               AgencySidebarOption (*),
               SubAccount (
                 *,
@@ -179,6 +181,7 @@ export const getAuthUserDetails = cache(async () => {
               *,
               Agency (
                 *,
+                Subscription (*),
                 AgencySidebarOption (*),
                 SubAccount (
                   *,
@@ -260,6 +263,7 @@ export const getAuthUserDetails = cache(async () => {
               *,
               Agency (
                 *,
+                Subscription (*),
                 AgencySidebarOption (*),
                 SubAccount (
                   *,
@@ -890,9 +894,27 @@ export const createDefaultSidebarOptions = async (agencyId: string) => {
       },
       {
         id: `sidebar-${agencyId}-5`,
-        name: 'Billing',
+        name: 'Current Plan',
         link: `/agency/${agencyId}/billing`,
+        icon: 'rocket',
+        agencyId: agencyId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: `sidebar-${agencyId}-billing-available`,
+        name: 'Available Plans',
+        link: `/agency/${agencyId}/billing/available-plans`,
         icon: 'payment',
+        agencyId: agencyId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: `sidebar-${agencyId}-billing-history`,
+        name: 'Billing History',
+        link: `/agency/${agencyId}/billing/history`,
+        icon: 'receipt',
         agencyId: agencyId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

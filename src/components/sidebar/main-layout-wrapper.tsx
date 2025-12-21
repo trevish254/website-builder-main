@@ -16,7 +16,7 @@ const MainLayoutWrapper = ({ children }: Props) => {
         <div
             className={cn(
                 "transition-all duration-200 ease-out flex flex-col h-full pt-[50px]",
-                isPanelCollapsed ? "md:pl-[60px]" : "md:pl-[260px]"
+                isPanelCollapsed ? "pl-[50px] md:pl-[60px]" : "pl-[50px] md:pl-[260px]"
             )}
         >
             {children}
