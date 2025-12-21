@@ -18,9 +18,13 @@ export async function middleware(request: NextRequest) {
   // Check if the hostname matches the main domain
   // Note: strict equality check might fail if port is included/excluded inconsistently
   // But usually host header includes port for localhost.
-  const isMainDomain = hostname === mainDomain || hostname === 'localhost:3000'
+  const isMainDomain =
+    hostname === mainDomain ||
+    hostname === 'localhost:3000' ||
+    hostname?.endsWith('.ngrok-free.dev') ||
+    hostname?.endsWith('.ngrok-free.app')
 
-  if (!isMainDomain && hostname) {
+  if (!isMainDomain && hostname && !url.pathname.startsWith('/api')) {
     console.log(`[Middleware] Rewriting for custom domain: ${hostname}`)
     // Rewrite to /[domain]/[path] to be handled by src/app/[domain]/page.tsx
     // We pass the full hostname as the 'domain' param

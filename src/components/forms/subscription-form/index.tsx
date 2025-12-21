@@ -1,63 +1,77 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import { Plan } from '@prisma/client'
-import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import React, { useState } from 'react'
 
 type Props = {
-  selectedPriceId: string | Plan
+  selectedPriceId: string
+  email: string
 }
 
-const SubscriptionForm = ({ selectedPriceId }: Props) => {
+const SubscriptionForm = ({ selectedPriceId, email }: Props) => {
   const { toast } = useToast()
-  const elements = useElements()
-  const stripeHook = useStripe()
+  const [loading, setLoading] = useState(false)
   const [priceError, setPriceError] = useState('')
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     if (!selectedPriceId) {
       setPriceError('You need to select a plan to subscribe.')
       return
     }
+    if (!email) {
+      setPriceError('User email is missing. Please try again or contact support.')
+      return
+    }
+
     setPriceError('')
-    event.preventDefault()
-    if (!stripeHook || !elements) return
+    setLoading(true)
 
     try {
-      const { error } = await stripeHook.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${process.env.NEXT_PUBLIC_URL}/agency`,
+      const response = await fetch('/api/paystack/create-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          planCode: selectedPriceId,
+        }),
       })
-      if (error) {
-        throw new Error()
+
+      const data = await response.json()
+
+      if (!response.ok || !data.authorization_url) {
+        throw new Error(data.message || 'Failed to initialize payment')
       }
-      toast({
-        title: 'Payment successfull',
-        description: 'Your payment has been successfully processed. ',
-      })
+
+      // Redirect to Paystack checkout
+      window.location.href = data.authorization_url
     } catch (error) {
-      console.log(error)
+      console.error(error)
       toast({
         variant: 'destructive',
         title: 'Payment failed',
-        description:
-          'We couldnt process your payment. Please try a different card',
+        description: 'Could not initiate payment. Please try again later.',
       })
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit}>
       <small className="text-destructive">{priceError}</small>
-      <PaymentElement />
+      <div className="py-4">
+        <p className="text-sm text-muted-foreground">
+          You will be redirected to Paystack to complete your payment securely.
+        </p>
+      </div>
       <Button
-        disabled={!stripeHook}
+        disabled={loading || !selectedPriceId}
         className="mt-4 w-full"
       >
-        Submit
+        {loading ? 'Initializing...' : 'Pay with Paystack'}
       </Button>
     </form>
   )

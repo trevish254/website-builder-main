@@ -61,6 +61,7 @@ export const pricingCards = [
     highlight: 'Key features',
     features: ['Rebilling', '24/7 Support team'],
     priceId: 'price_1OYxkqFj9oKEERu1KfJGWxgN', // TODO: Update this ID in Stripe Dashboard to match KSh 15,000
+    paystackPlanCode: 'PLN_unlimited_saas_placeholder', // TODO: Add Paystack plan code for KSh 15,000
   },
   {
     title: 'Basic',
@@ -70,6 +71,7 @@ export const pricingCards = [
     highlight: 'Everything in Starter, plus',
     features: ['Unlimited Sub accounts', 'Unlimited Team members'],
     priceId: 'price_1OYxkqFj9oKEERu1NbKUxXxN', // TODO: Update this ID in Stripe Dashboard to match KSh 5,000
+    paystackPlanCode: 'PLN_basic_placeholder', // TODO: Add Paystack plan code for KSh 5,000
   },
 ]
 

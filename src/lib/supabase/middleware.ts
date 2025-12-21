@@ -44,12 +44,15 @@ export async function updateSession(request: NextRequest) {
         !request.nextUrl.pathname.startsWith('/auth') &&
         !request.nextUrl.pathname.startsWith('/site') &&
         !request.nextUrl.pathname.startsWith('/api/uploadthing') &&
+        !request.nextUrl.pathname.startsWith('/api/heartbeat') &&
         request.nextUrl.pathname !== '/'
     ) {
-        // no user, potentially respond by redirecting the user to the login page
-        const url = request.nextUrl.clone()
-        url.pathname = '/agency/sign-in'
-        return NextResponse.redirect(url)
+        // Build redirect URL respecting ngrok/forwarded headers
+        const host = request.headers.get('host') || request.nextUrl.host
+        const protocol = request.headers.get('x-forwarded-proto') || (request.nextUrl.protocol === 'https:' ? 'https' : 'http')
+        const redirectUrl = new URL('/agency/sign-in', `${protocol}://${host}`)
+
+        return NextResponse.redirect(redirectUrl)
     }
 
     // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
