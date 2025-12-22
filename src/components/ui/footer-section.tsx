@@ -64,10 +64,10 @@ export function Footer() {
                 <AnimatedContainer className="space-y-4">
                     <div className="flex items-center gap-2">
                         <FrameIcon className="size-8" />
-                        <span className="text-xl font-bold">Plura</span>
+                        <span className="text-xl font-bold">Chapabiz</span>
                     </div>
                     <p className="text-muted-foreground mt-8 text-sm md:mt-0">
-                        © {new Date().getFullYear()} Plura. All rights reserved.
+                        © {new Date().getFullYear()} Chapabiz. All rights reserved.
                     </p>
                 </AnimatedContainer>
 

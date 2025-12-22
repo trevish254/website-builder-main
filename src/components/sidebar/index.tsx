@@ -16,7 +16,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
   let user = defaultUser
   let sidebarOpt = []
   let details = userDetails
-  let sideBarLogo = '/assets/plura-logo.svg'
+  let sideBarLogo = '/assets/chapabiz-logo.png'
   let subaccounts = []
   let teamMembers = []
 
@@ -39,7 +39,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
       const fallbackSubaccount = {
         id: id,
         name: 'Test Subaccount',
-        subAccountLogo: '/assets/plura-logo.svg',
+        subAccountLogo: '/assets/chapabiz-logo.png',
         address: '456 Sub St',
         city: 'Sub City',
         zipCode: '54321',
@@ -147,7 +147,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
       const fallbackAgency = {
         id: id,
         name: 'Test Agency',
-        agencyLogo: '/assets/plura-logo.svg',
+        agencyLogo: '/assets/chapabiz-logo.png',
         address: '123 Agency St',
         city: 'Agency City',
         zipCode: '12345',
@@ -359,10 +359,10 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
   // Determine which logo to show
   if (type === 'subaccount') {
     // For subaccounts, show subaccount logo if it exists, otherwise fall back to agency logo
-    sideBarLogo = (details as any)?.subAccountLogo || user.Agency.agencyLogo || '/assets/plura-logo.svg'
+    sideBarLogo = (details as any)?.subAccountLogo || user.Agency.agencyLogo || '/assets/chapabiz-logo.png'
   } else {
     // For agency, show agency logo
-    sideBarLogo = details.agencyLogo || user.Agency.agencyLogo || '/assets/plura-logo.svg'
+    sideBarLogo = details.agencyLogo || user.Agency.agencyLogo || '/assets/chapabiz-logo.png'
   }
 
   // Debug logging for agency sidebar options

@@ -39,7 +39,7 @@ const DashboardsLayout = async ({ children }: Props) => {
     const allNoti = Array.isArray(notifications) ? notifications : []
 
     const agencyDetails = user.Agency || user.Permissions?.[0]?.SubAccount?.Agency
-    const agencyLogo = agencyDetails?.agencyLogo || '/assets/plura-logo.svg'
+    const agencyLogo = agencyDetails?.agencyLogo || '/assets/chapabiz-logo.png'
     const agencyName = agencyDetails?.name || 'Agency'
 
     const dashboards = await getUserDashboards(user.id)

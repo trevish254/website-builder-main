@@ -31,7 +31,7 @@ const SubaccountLayoutClient = ({
     }
 
     // Determine logo to show (Subaccount logo or Agency logo fallback)
-    const logo = subaccountDetails?.subAccountLogo || userDetails?.Agency?.agencyLogo || '/assets/plura-logo.svg'
+    const logo = subaccountDetails?.subAccountLogo || userDetails?.Agency?.agencyLogo || '/assets/chapabiz-logo.png'
     const name = subaccountDetails?.name || 'Subaccount'
 
     return (

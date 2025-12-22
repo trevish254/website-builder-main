@@ -45,7 +45,7 @@ const mockMemberDetails: MemberDetail = {
   name: 'John Doe',
   email: 'john@example.com',
   role: 'CEO',
-  avatarUrl: '/assets/plura-logo.svg',
+  avatarUrl: '/assets/chapabiz-logo.png',
   status: 'active',
   phoneNumber: '+62 123 123 123',
   employeeId: '#EMP01',

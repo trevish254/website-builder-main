@@ -7,7 +7,7 @@ export const mockData = {
     connectAccountId: 'acct_test123', // Simulate connected Stripe account
     goal: 10,
     companyEmail: 'test@agency.com',
-    agencyLogo: '/assets/plura-logo.svg',
+    agencyLogo: '/assets/chapabiz-logo.png',
     whiteLabel: true,
   },
 
@@ -16,21 +16,21 @@ export const mockData = {
     {
       id: 'test-sub-1',
       name: 'E-commerce Store',
-      subAccountLogo: '/assets/plura-logo.svg',
+      subAccountLogo: '/assets/chapabiz-logo.png',
       connectAccountId: 'acct_test456',
       companyEmail: 'store@example.com',
     },
     {
-      id: 'test-sub-2', 
+      id: 'test-sub-2',
       name: 'SaaS Platform',
-      subAccountLogo: '/assets/plura-logo.svg',
+      subAccountLogo: '/assets/chapabiz-logo.png',
       connectAccountId: 'acct_test789',
       companyEmail: 'saas@example.com',
     },
     {
       id: 'test-sub-3',
       name: 'Consulting Firm',
-      subAccountLogo: '/assets/plura-logo.svg',
+      subAccountLogo: '/assets/chapabiz-logo.png',
       connectAccountId: 'acct_test101',
       companyEmail: 'consulting@example.com',
     }
@@ -204,7 +204,7 @@ export const mockData = {
                 id: 'user-1',
                 name: 'Sarah Johnson',
                 email: 'sarah@agency.com',
-                avatarUrl: '/assets/plura-logo.svg'
+                avatarUrl: '/assets/chapabiz-logo.png'
               },
               Customer: {
                 id: 'customer-1',
@@ -230,7 +230,7 @@ export const mockData = {
                 id: 'user-2',
                 name: 'Mike Chen',
                 email: 'mike@agency.com',
-                avatarUrl: '/assets/plura-logo.svg'
+                avatarUrl: '/assets/chapabiz-logo.png'
               },
               Customer: {
                 id: 'customer-2',
@@ -264,7 +264,7 @@ export const mockData = {
                 id: 'user-1',
                 name: 'Sarah Johnson',
                 email: 'sarah@agency.com',
-                avatarUrl: '/assets/plura-logo.svg'
+                avatarUrl: '/assets/chapabiz-logo.png'
               },
               Customer: {
                 id: 'customer-3',
@@ -298,7 +298,7 @@ export const mockData = {
                 id: 'user-3',
                 name: 'Alex Rodriguez',
                 email: 'alex@agency.com',
-                avatarUrl: '/assets/plura-logo.svg'
+                avatarUrl: '/assets/chapabiz-logo.png'
               },
               Customer: {
                 id: 'customer-4',
@@ -332,7 +332,7 @@ export const mockData = {
                 id: 'user-4',
                 name: 'Emma Davis',
                 email: 'emma@agency.com',
-                avatarUrl: '/assets/plura-logo.svg'
+                avatarUrl: '/assets/chapabiz-logo.png'
               },
               Customer: {
                 id: 'customer-5',
@@ -440,7 +440,7 @@ export const mockData = {
         id: 'user-1',
         name: 'Sarah Johnson',
         email: 'sarah@agency.com',
-        avatarUrl: '/assets/plura-logo.svg'
+        avatarUrl: '/assets/chapabiz-logo.png'
       }
     },
     {
@@ -453,7 +453,7 @@ export const mockData = {
         id: 'user-2',
         name: 'Mike Chen',
         email: 'mike@agency.com',
-        avatarUrl: '/assets/plura-logo.svg'
+        avatarUrl: '/assets/chapabiz-logo.png'
       }
     },
     {
@@ -466,7 +466,7 @@ export const mockData = {
         id: 'user-3',
         name: 'Alex Rodriguez',
         email: 'alex@agency.com',
-        avatarUrl: '/assets/plura-logo.svg'
+        avatarUrl: '/assets/chapabiz-logo.png'
       }
     }
   ],
@@ -478,7 +478,7 @@ export const mockData = {
       name: 'Sarah Johnson',
       email: 'sarah@agency.com',
       role: 'AGENCY_ADMIN',
-      avatarUrl: '/assets/plura-logo.svg',
+      avatarUrl: '/assets/chapabiz-logo.png',
       createdAt: new Date('2024-01-15'),
     },
     {
@@ -486,7 +486,7 @@ export const mockData = {
       name: 'Mike Chen',
       email: 'mike@agency.com',
       role: 'SUBACCOUNT_USER',
-      avatarUrl: '/assets/plura-logo.svg',
+      avatarUrl: '/assets/chapabiz-logo.png',
       createdAt: new Date('2024-02-20'),
     },
     {
@@ -494,7 +494,7 @@ export const mockData = {
       name: 'Alex Rodriguez',
       email: 'alex@agency.com',
       role: 'SUBACCOUNT_USER',
-      avatarUrl: '/assets/plura-logo.svg',
+      avatarUrl: '/assets/chapabiz-logo.png',
       createdAt: new Date('2024-03-10'),
     },
     {
@@ -502,7 +502,7 @@ export const mockData = {
       name: 'Emma Davis',
       email: 'emma@agency.com',
       role: 'SUBACCOUNT_USER',
-      avatarUrl: '/assets/plura-logo.svg',
+      avatarUrl: '/assets/chapabiz-logo.png',
       createdAt: new Date('2024-04-05'),
     }
   ],

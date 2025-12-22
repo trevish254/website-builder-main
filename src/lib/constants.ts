@@ -46,7 +46,7 @@ import {
 export const pricingCards = [
   {
     title: 'Starter',
-    description: 'Perfect for trying out plura',
+    description: 'Perfect for trying out Chapabiz',
     price: 'Free',
     duration: '',
     highlight: 'Key features',

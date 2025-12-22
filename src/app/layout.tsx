@@ -6,8 +6,11 @@ import './globals.css'
 const font = DM_Sans({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Plura',
+  title: 'Chapabiz',
   description: 'All in one Agency Solution',
+  icons: {
+    icon: '/icon.png',
+  },
 }
 
 export default function RootLayout({
@@ -20,7 +23,7 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
     >
-      <body className={font.className}>
+      <body className={`${font.className} overflow-x-hidden`}>
         {children}
       </body>
     </html>

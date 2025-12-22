@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PluraCategory = () => {
+const ChapabizCategory = () => {
   return (
     <svg
       width="24"

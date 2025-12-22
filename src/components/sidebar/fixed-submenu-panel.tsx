@@ -1210,7 +1210,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 <div className="flex items-center gap-2 w-full min-w-0">
                                     <div className="w-6 h-6 relative flex-shrink-0">
                                         <Image
-                                            src={details?.agencyLogo || details?.subAccountLogo || '/assets/plura-logo.svg'}
+                                            src={details?.agencyLogo || details?.subAccountLogo || '/assets/chapabiz-logo.png'}
                                             alt="Logo"
                                             fill
                                             className="rounded object-cover"
@@ -1261,7 +1261,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                     >
                                                         <div className="relative w-10 h-10">
                                                             <Image
-                                                                src={agency.agencyLogo || '/assets/plura-logo.svg'}
+                                                                src={agency.agencyLogo || '/assets/chapabiz-logo.png'}
                                                                 alt="Agency Logo"
                                                                 fill
                                                                 className="rounded-md object-contain"

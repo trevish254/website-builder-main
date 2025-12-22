@@ -16,103 +16,135 @@ import { HeroParallaxDemo } from '@/components/site/hero-parallax-demo'
 import { Footer } from '@/components/ui/footer-section'
 import { HeroScrollDemo } from '@/components/site/hero-scroll-demo'
 import { ZoomParallaxDemo } from '@/components/site/zoom-parallax-demo'
-import { FullScreenScrollDemo } from '@/components/site/full-screen-scroll-demo'
 import { ThreeDPhotoCarouselDemo } from '@/components/site/3d-carousel-demo'
+import { Logos3Demo } from '@/components/site/logos3-demo'
+import { DisplayCardsDemo } from '@/components/site/display-cards-demo'
+import { Process } from '@/components/site/cards-stack-demo'
+import ReleaseTimeLineDemo from '@/components/site/release-time-line-demo'
+import ContactCardDemo from '@/components/site/contact-card-demo'
+import BentoCardsAbout from '@/components/site/bento-cards-about'
+import FeatureSectionDemo from '@/components/site/feature-section-demo'
 
 export default async function Home() {
   // Stripe is disabled, using static pricing
   const prices = { data: [] }
 
   return (
-    <>
-      <section className="h-full w-full md:pt-44 mt-[-70px] relative flex items-center justify-center flex-col ">
-        {/* grid */}
+    <main className="flex flex-col items-center justify-center w-full">
+      <section className="h-full w-full pt-20 md:pt-40 relative flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#fff_40%,#63e_100%)] dark:[background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>
 
-        <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#161616_1px,transparent_1px),linear-gradient(to_bottom,#161616_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] -z-10" />
+        <div className="w-full relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-24 items-center">
+            <div className="flex flex-col gap-6 text-left px-4 md:pl-20 2xl:pl-40 lg:-mt-24">
+              <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary font-medium w-fit">
+                Run your agency, in one place
+              </div>
+              <h1 className="text-4xl md:text-7xl font-bold tracking-tighter">
+                The All-in-One <span className="bg-gradient-to-r from-primary to-secondary-foreground text-transparent bg-clip-text">Agency Solution</span>
+              </h1>
+              <p className="text-muted-foreground text-xl max-w-[600px]">
+                Scale your operations, manage pipelines, and build high-converting funnels with the platform designed for modern agency owners.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/agency"
+                  className="bg-primary text-primary-foreground p-4 px-8 rounded-md hover:bg-primary/80 text-lg font-semibold text-center"
+                >
+                  Start Free Trial
+                </Link>
+                <Link
+                  href="#pricing"
+                  className="border border-primary text-primary p-4 px-8 rounded-md hover:bg-primary/10 text-lg font-semibold text-center"
+                >
+                  View Pricing
+                </Link>
+              </div>
+            </div>
 
-        <p className="text-center">Run your agency, in one place</p>
-        <div className="bg-gradient-to-r from-primary to-secondary-foreground text-transparent bg-clip-text relative">
-          <h1 className="text-9xl font-bold text-center md:text-[300px]">
-            Plura
-          </h1>
-        </div>
-        <div className="flex flex-col justify-center items-center relative md:mt-[-70px] w-full gap-10">
-          <ThreeDMarqueeDemo />
-          <HeroParallaxDemo />
-          <div className="bottom-0 top-[50%] bg-gradient-to-t dark:from-background left-0 right-0 absolute z-10"></div>
+            <div className="relative flex justify-center items-center w-full lg:overflow-visible pr-0">
+              <div className="w-full lg:translate-x-12 translate-x-0">
+                <ThreeDMarqueeDemo />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
-      <section id="features" className="flex justify-center items-center flex-col gap-4 md:!mt-20 mt-[-60px]">
+
+      <div className="w-full overflow-hidden">
+        <Logos3Demo />
+      </div>
+
+      <div className="w-full overflow-hidden">
+        <FeatureSectionDemo />
+      </div>
+
+      <div className="flex flex-col justify-center items-center relative w-full gap-10 mt-40 overflow-x-hidden">
+        <HeroParallaxDemo />
+        <div className="bottom-0 top-[50%] bg-gradient-to-t dark:from-background left-0 right-0 absolute z-10"></div>
+      </div>
+      <section id="features" className="flex justify-center items-center flex-col gap-4 md:!mt-20 mt-[-60px] container mx-auto px-4">
         <h2 className="text-4xl text-center">Powerful Features for Your Agency</h2>
         <p className="text-muted-foreground text-center max-w-2xl">
           Streamline your agency operations with our comprehensive suite of tools designed for modern businesses.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8 max-w-6xl">
-          <Card className="p-6">
-            <CardHeader>
-              <CardTitle>Pipeline Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Create and manage unlimited pipelines to track your leads and deals effectively.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="p-6">
-            <CardHeader>
-              <CardTitle>Team Collaboration</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Invite team members and manage permissions across multiple sub-accounts.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="p-6">
-            <CardHeader>
-              <CardTitle>Funnel Builder</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Build high-converting sales funnels with our drag-and-drop editor.
-              </p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mt-8 w-full">
+          <div className="flex justify-center items-center w-full overflow-hidden">
+            <DisplayCardsDemo />
+          </div>
+          <div className="grid grid-cols-1 gap-8">
+            <Card className="p-6">
+              <CardHeader>
+                <CardTitle>Pipeline Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Create and manage unlimited pipelines to track your leads and deals effectively.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="p-6">
+              <CardHeader>
+                <CardTitle>Team Collaboration</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Invite team members and manage permissions across multiple sub-accounts.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="p-6">
+              <CardHeader>
+                <CardTitle>Funnel Builder</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Build high-converting sales funnels with our drag-and-drop editor.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
-      <section className="flex justify-center items-center flex-col gap-4 md:!mt-20 mt-[-60px]">
+      <section className="flex justify-center items-center flex-col gap-4 md:!mt-20 mt-[-60px] w-full overflow-hidden">
         <HeroScrollDemo />
       </section>
+
+      <div className="w-full space-y-20">
+        <Process />
+      </div>
+
       <section className="mt-[-60px]">
         <ZoomParallaxDemo />
       </section>
-      <section className="mt-[-60px] relative z-[20]">
-        <FullScreenScrollDemo />
-      </section>
-      <section className="mt-20">
+
+      <ReleaseTimeLineDemo />
+      <section className="mt-20 w-full overflow-hidden">
         <ThreeDPhotoCarouselDemo />
       </section>
-      <section id="about" className="flex justify-center items-center flex-col gap-4 md:!mt-20">
-        <h2 className="text-4xl text-center">About Plura</h2>
-        <p className="text-muted-foreground text-center max-w-3xl">
-          Plura is the all-in-one platform designed specifically for agencies looking to scale their operations.
-          From lead management to team collaboration, we provide the tools you need to run your agency efficiently.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-4xl">
-          <div className="text-center">
-            <h3 className="text-2xl font-bold mb-4">Our Mission</h3>
-            <p className="text-muted-foreground">
-              To empower agencies with the tools they need to focus on what matters most - growing their business and serving their clients.
-            </p>
-          </div>
-          <div className="text-center">
-            <h3 className="text-2xl font-bold mb-4">Why Choose Plura</h3>
-            <p className="text-muted-foreground">
-              Built by agency owners for agency owners, Plura understands the unique challenges of running a modern agency.
-            </p>
-          </div>
-        </div>
-      </section>
+      <div id="about">
+        <BentoCardsAbout />
+      </div>
       <section id="pricing" className="flex justify-center items-center flex-col gap-4 md:!mt-20">
         <h2 className="text-4xl text-center"> Choose what fits you right</h2>
         <p className="text-muted-foreground text-center">
@@ -225,27 +257,10 @@ export default async function Home() {
           </Card>
         </div>
       </section>
-      <section id="contact" className="flex justify-center items-center flex-col gap-4 md:!mt-20">
-        <h2 className="text-4xl text-center">Get Started Today</h2>
-        <p className="text-muted-foreground text-center max-w-2xl">
-          Ready to transform your agency operations? Join thousands of agencies already using Plura to streamline their workflow.
-        </p>
-        <div className="flex gap-4 mt-8">
-          <Link
-            href="/agency"
-            className="bg-primary text-white p-4 px-8 rounded-md hover:bg-primary/80 text-lg font-semibold"
-          >
-            Start Free Trial
-          </Link>
-          <Link
-            href="#pricing"
-            className="border border-primary text-primary p-4 px-8 rounded-md hover:bg-primary/10 text-lg font-semibold"
-          >
-            View Pricing
-          </Link>
-        </div>
-      </section>
+      <div id="contact" className="mt-20">
+        <ContactCardDemo />
+      </div>
       <Footer />
-    </>
+    </main>
   )
 }

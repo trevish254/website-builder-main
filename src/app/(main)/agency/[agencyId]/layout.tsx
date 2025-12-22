@@ -123,7 +123,7 @@ const layout = async ({ children, params }: Props) => {
     agencyDetails = userDetails.Agency
   }
 
-  const agencyLogo = agencyDetails?.agencyLogo || '/assets/plura-logo.svg'
+  const agencyLogo = agencyDetails?.agencyLogo || '/assets/chapabiz-logo.png'
   const agencyName = agencyDetails?.name || 'Agency'
 
   return (

@@ -37,7 +37,7 @@ export function FullScreenScrollDemo() {
             <FullScreenScrollFX
                 sections={sections}
                 header={<><div>Agency</div><div>Success</div></>}
-                footer={<div className="text-sm opacity-50">Plura Agency Solutions</div>}
+                footer={<div className="text-sm opacity-50">Chapabiz Agency Solutions</div>}
                 showProgress
                 durations={{ change: 0.7, snap: 800 }}
             />
