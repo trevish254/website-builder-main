@@ -25,7 +25,9 @@ type Props = {
     sidebarOptions: SidebarOption[]
     logo: string
     user?: any
+    type: 'agency' | 'subaccount'
 }
+
 
 // Define menu categories with their icons and associated menu items
 const MENU_CATEGORIES = [
@@ -37,9 +39,15 @@ const MENU_CATEGORIES = [
     },
     {
         id: 'dashboard',
-        icon: 'category',
+        icon: 'chart',
         label: 'Dashboard',
-        matchNames: ['Dashboard']
+        matchNames: ['Dashboards']
+    },
+    {
+        id: 'inventory',
+        icon: 'package',
+        label: 'Inventory',
+        matchNames: ['product Dashboard', 'Inventory', 'Order', 'Customer Details', 'Revenue Analytics']
     },
     {
         id: 'clients',
@@ -122,25 +130,50 @@ const MENU_CATEGORIES = [
 ]
 
 
-const IconDock = ({ sidebarOptions, logo, user }: Props) => {
+const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
     const { setHoveredMenuItem, activeCategory, setActiveCategory, isPanelCollapsed, setIsPanelCollapsed, setPanelTop } = useSidebar()
     const pathname = usePathname()
 
     // Group sidebar options by category
     const categorizedOptions = MENU_CATEGORIES.map(category => {
         const matchingOptions = sidebarOptions.filter(opt =>
-            category.matchNames.includes(opt.name)
+            category.matchNames.some(matchName => matchName.toLowerCase() === opt.name.toLowerCase())
         )
         return {
             ...category,
             options: matchingOptions,
             hasOptions: matchingOptions.length > 0
         }
-    }).filter(cat => cat.hasOptions)
+    }).filter(cat => {
+        // AGGRESSIVE FILTER: Hide inventory for agency type
+        if (cat.id === 'inventory' && type === 'agency') {
+            console.log('🚫 IconDock: Filtering out inventory for AGENCY type')
+            return false
+        }
+        if (cat.id === 'inventory') {
+            console.log('📦 IconDock Inventory State:', { hasOptions: cat.hasOptions, count: cat.options.length, items: cat.options.map(o => o.name) })
+            // FAIL-SAFE: If it's a subaccount, force it to be visible even if empty (though it shouldn't be empty)
+            if (type === 'subaccount') return true
+        }
+        return cat.hasOptions
+    })
+
+    console.log('🏗️ IconDock Final Categories:', categorizedOptions.map(c => c.id))
 
     // Determine if a category is active based on current route
-    const isCategoryActive = (category: typeof MENU_CATEGORIES[0]) => {
-        return category.options.some(opt => pathname.includes(opt.link))
+    const isCategoryActive = (category: any) => {
+        return category.options.some((opt: any) => {
+            // Precise match for dashboard/overview to prevent root-overmatch
+            if (opt.link.endsWith('/subaccount/' + (user?.Agency?.SubAccount?.[0]?.id || '')) ||
+                opt.link.endsWith('/agency/' + (user?.Agency?.id || ''))) {
+                return pathname === opt.link
+            }
+            // Otherwise check if current path starts with option link
+            if (opt.link.length > 5) {
+                return pathname.startsWith(opt.link)
+            }
+            return pathname === opt.link
+        })
     }
 
     const handleCategoryHover = (categoryId: string, event: React.MouseEvent<HTMLButtonElement>) => {
@@ -151,31 +184,23 @@ const IconDock = ({ sidebarOptions, logo, user }: Props) => {
     }
 
     const handleMouseLeave = () => {
-        // Don't clear immediately to allow smooth transition to submenu panel
         setTimeout(() => {
             setHoveredMenuItem(null)
         }, 100)
     }
 
     return (
-
         <div
             className="fixed left-0 top-[50px] h-[calc(100vh-50px)] w-[50px] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 z-50 transition-all duration-300"
             onMouseLeave={handleMouseLeave}
         >
-
-
-            {/* Sidebar Toggle (Visible only on desktop) */}
+            {/* Sidebar Toggle */}
             <div className="w-full hidden md:flex justify-center mb-4">
                 <button
                     onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
                     className="h-6 w-6 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
                 >
-                    {isPanelCollapsed ? (
-                        <ChevronsRight size={14} />
-                    ) : (
-                        <ChevronsLeft size={14} />
-                    )}
+                    {isPanelCollapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
                 </button>
             </div>
 
@@ -192,19 +217,15 @@ const IconDock = ({ sidebarOptions, logo, user }: Props) => {
                             onMouseEnter={(e) => handleCategoryHover(category.id, e)}
                             className={cn(
                                 'w-10 h-10 flex flex-col items-center justify-center rounded-xl transition-all duration-200 mb-2 group relative',
-                                'hover:bg-gray-100 dark:hover:bg-gray-800', // Hover state
-                                // Open submenu state (not active)
+                                'hover:bg-gray-100 dark:hover:bg-gray-800',
                                 activeCategory === category.id && !isActive && 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-                                // Active state - Glow Effect
-                                isActive && 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10 shadow-[0_0_15px_rgba(37,99,235,0.4)] dark:shadow-[0_0_15px_rgba(59,130,246,0.4)] ring-1 ring-blue-200 dark:ring-blue-800'
+                                isActive && 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
                             )}
                         >
                             <IconComponent
                                 className={cn(
-                                    'w-[18px] h-[18px] transition-all duration-200 mb-0.5',
-                                    // Icon color logic
-                                    !isActive && 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200',
-                                    isActive && 'text-currentColor'
+                                    'w-5 h-5 transition-transform duration-200 group-hover:scale-110',
+                                    isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'
                                 )}
                             />
                         </button>
@@ -212,18 +233,14 @@ const IconDock = ({ sidebarOptions, logo, user }: Props) => {
                 })}
             </div>
 
-
-
             {/* User Avatar at Bottom */}
-            <div className="pt-3 border-t border-gray-200 dark:border-gray-800 w-full px-2">
+            <div className="pt-3 border-t border-gray-200 dark:border-gray-800 w-full px-2" >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold mx-auto overflow-hidden">
                     {user?.avatarUrl ? (
                         <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" />
                     ) : user ? (
-                        // Initials or placeholder
                         user.name?.slice(0, 2).toUpperCase() || 'U'
                     ) : (
-                        // Fallback to logo or 'U' if no user
                         'U'
                     )}
                 </div>

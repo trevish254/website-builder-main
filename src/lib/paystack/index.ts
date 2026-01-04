@@ -79,4 +79,107 @@ export const paystack = {
         })
         return res.json()
     },
+    createProduct: async (data: {
+        name: string
+        description: string
+        price: number // amount in kobo/cents
+        currency: string
+        unlimited?: boolean
+        quantity?: number
+        metadata?: any
+    }) => {
+        const res = await fetch('https://api.paystack.co/product', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        return res.json()
+    },
+    updateProduct: async (id: string, data: any) => {
+        const res = await fetch(`https://api.paystack.co/product/${id}`, {
+            method: 'PUT',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        return res.json()
+    },
+    fetchProduct: async (id: string) => {
+        const res = await fetch(`https://api.paystack.co/product/${id}`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            },
+        })
+        return res.json()
+    },
+    listProducts: async () => {
+        const res = await fetch('https://api.paystack.co/product', {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            },
+        })
+        return res.json()
+    },
+    charge: async (data: {
+        email: string
+        amount: string
+        metadata?: any
+        card: {
+            number: string
+            cvv: string
+            expiry_month: string
+            expiry_year: string
+        }
+        pin?: string
+    }) => {
+        const res = await fetch('https://api.paystack.co/charge', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        return res.json()
+    },
+    submitOtp: async (data: { otp: string; reference: string }) => {
+        const res = await fetch('https://api.paystack.co/charge/submit_otp', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        return res.json()
+    },
+    createOrder: async (data: {
+        customer: string // customer code or email
+        amount: number // amount in kobo
+        currency?: string
+        products: Array<{
+            product_id?: string
+            name: string
+            quantity: number
+            price: number // price per unit in kobo
+        }>
+        metadata?: any
+    }) => {
+        const res = await fetch('https://api.paystack.co/order', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        return res.json()
+    },
 }

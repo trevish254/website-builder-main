@@ -41,6 +41,7 @@ import {
   Briefcase,
   Globe,
   Rocket,
+  Package,
 } from 'lucide-react'
 
 export const pricingCards = [
@@ -293,6 +294,11 @@ export const icons = [
     value: 'rocket',
     label: 'Rocket',
     path: Rocket,
+  },
+  {
+    value: 'package',
+    label: 'Package',
+    path: Package,
   },
 ]
 

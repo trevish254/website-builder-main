@@ -368,6 +368,141 @@ export interface Database {
           funnelId?: string
         }
       }
+      Product: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          price: number
+          images: string[] | null
+          subAccountId: string
+          paystackProductId: string | null
+          type: string
+          active: boolean
+          createdAt: string
+          updatedAt: string
+          brand: string | null
+          colors: string[] | null
+          category: string | null
+          stockQuantity: number | null
+          minOrder: number | null
+          maxOrder: number | null
+          lowStockThreshold: number | null
+          customAttributes: Json | null
+          shippingDelivery: string | null
+          shippingInternational: string | null
+          shippingArrival: string | null
+          paymentTaxInfo: string | null
+          paymentTerms: string | null
+        }
+        Insert: {
+          id: string
+          name: string
+          description?: string | null
+          price?: number
+          images?: string[] | null
+          subAccountId: string
+          paystackProductId?: string | null
+          type?: string
+          active?: boolean
+          createdAt?: string
+          updatedAt?: string
+          brand?: string | null
+          colors?: string[] | null
+          category?: string | null
+          stockQuantity?: number | null
+          minOrder?: number | null
+          maxOrder?: number | null
+          lowStockThreshold?: number | null
+          customAttributes?: Json | null
+          shippingDelivery?: string | null
+          shippingInternational?: string | null
+          shippingArrival?: string | null
+          paymentTaxInfo?: string | null
+          paymentTerms?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          price?: number
+          images?: string[] | null
+          subAccountId?: string
+          paystackProductId?: string | null
+          type?: string
+          active?: boolean
+          createdAt?: string
+          updatedAt?: string
+          brand?: string | null
+          colors?: string[] | null
+          category?: string | null
+          stockQuantity?: number | null
+          minOrder?: number | null
+          maxOrder?: number | null
+          lowStockThreshold?: number | null
+          customAttributes?: Json | null
+          shippingDelivery?: string | null
+          shippingInternational?: string | null
+          shippingArrival?: string | null
+          paymentTaxInfo?: string | null
+          paymentTerms?: string | null
+        }
+      }
+      ProductVariant: {
+        Row: {
+          id: string
+          productId: string
+          name: string
+          value: string
+          priceOverride: number | null
+          stock: number
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id: string
+          productId: string
+          name: string
+          value: string
+          priceOverride?: number | null
+          stock?: number
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          productId?: string
+          name?: string
+          value?: string
+          priceOverride?: number | null
+          stock?: number
+          createdAt?: string
+          updatedAt?: string
+        }
+      }
+      InventoryLog: {
+        Row: {
+          id: string
+          variantId: string
+          changeAmount: number
+          reason: string | null
+          createdAt: string
+        }
+        Insert: {
+          id: string
+          variantId: string
+          changeAmount: number
+          reason?: string | null
+          createdAt?: string
+        }
+        Update: {
+          id?: string
+          variantId?: string
+          changeAmount?: number
+          reason?: string | null
+          createdAt?: string
+        }
+      }
       Notification: {
         Row: {
           id: string
@@ -703,350 +838,157 @@ export interface Database {
           [_ in never]: never
         }
       }
-    }
-
-// Export individual types for convenience
-export type User = Database['public']['Tables']['User']['Row']
-export type Agency = Database['public']['Tables']['Agency']['Row']
-export type SubAccount = Database['public']['Tables']['SubAccount']['Row']
-export type AgencySidebarOption = Database['public']['Tables']['AgencySidebarOption']['Row']
-export type SubAccountSidebarOption = Database['public']['Tables']['SubAccountSidebarOption']['Row']
-export type Pipeline = Database['public']['Tables']['Pipeline']['Row']
-export type Lane = Database['public']['Tables']['Lane']['Row']
-export type Ticket = Database['public']['Tables']['Ticket']['Row']
-export type Contact = Database['public']['Tables']['Contact']['Row']
-export type Tag = Database['public']['Tables']['Tag']['Row']
-export type Notification = Database['public']['Tables']['Notification']['Row']
-export type Permission = Database['public']['Tables']['Permission']['Row']
-export type Media = Database['public']['Tables']['Media']['Row']
-export type Funnel = Database['public']['Tables']['Funnel']['Row']
-export type FunnelPage = Database['public']['Tables']['FunnelPage']['Row']
-export type Subscription = Database['public']['Tables']['Subscription']['Row']
-export type Invitation = Database['public']['Tables']['Invitation']['Row']
-name: string
-originalName: string
-type: 'DOCUMENT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'SPREADSHEET' | 'PRESENTATION' | 'PDF' | 'OTHER'
-size: number
-url: string
-createdAt: string
-updatedAt: string
-subAccountId: string
-uploadedBy: string
+      Dashboard: {
+        Row: {
+          id: string
+          userId: string
+          agencyId: string | null
+          subAccountId: string | null
+          name: string
+          description: string | null
+          isDefault: boolean
+          isPrivate: boolean
+          isFavorite: boolean
+          lastAccessedAt: string
+          createdAt: string
+          updatedAt: string
         }
-Insert: {
-  id: string
-  name: string
-  originalName: string
-  type: 'DOCUMENT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'SPREADSHEET' | 'PRESENTATION' | 'PDF' | 'OTHER'
-  size: number
-  url: string
-  createdAt ?: string
-  updatedAt ?: string
-  subAccountId: string
-  uploadedBy: string
-}
-Update: {
-  id ?: string
-  name ?: string
-  originalName ?: string
-  type ?: 'DOCUMENT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'SPREADSHEET' | 'PRESENTATION' | 'PDF' | 'OTHER'
-  size ?: number
-  url ?: string
-  createdAt ?: string
-  updatedAt ?: string
-  subAccountId ?: string
-  uploadedBy ?: string
-}
+        Insert: {
+          id?: string
+          userId: string
+          agencyId?: string | null
+          subAccountId?: string | null
+          name: string
+          description?: string | null
+          isDefault?: boolean
+          isPrivate?: boolean
+          isFavorite?: boolean
+          lastAccessedAt?: string
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          userId?: string
+          agencyId?: string | null
+          subAccountId?: string | null
+          name?: string
+          description?: string | null
+          isDefault?: boolean
+          isPrivate?: boolean
+          isFavorite?: boolean
+          lastAccessedAt?: string
+          createdAt?: string
+          updatedAt?: string
+        }
       }
-SubAccountEmployee: {
-  Row: {
-    id: string
-    subAccountId: string
-    userId: string
-    role: string | null
-    assignedAt: string
-    isActive: boolean
-    createdAt: string
-    updatedAt: string
-  }
-  Insert: {
-    id: string
-    subAccountId: string
-    userId: string
-    role ?: string | null
-    assignedAt ?: string
-    isActive ?: boolean
-    createdAt ?: string
-    updatedAt ?: string
-  }
-  Update: {
-    id ?: string
-    subAccountId ?: string
-    userId ?: string
-    role ?: string | null
-    assignedAt ?: string
-    isActive ?: boolean
-    createdAt ?: string
-    updatedAt ?: string
-  }
-}
-SubAccountReport: {
-  Row: {
-    id: string
-    title: string
-    description: string | null
-    type: string
-    status: 'DRAFT' | 'PENDING' | 'COMPLETED' | 'REJECTED' | 'IN_REVIEW'
-    dueDate: string | null
-    completedDate: string | null
-    createdAt: string
-    updatedAt: string
-    subAccountId: string
-    assignedTo: string | null
-    createdBy: string
-  }
-  Insert: {
-    id: string
-    title: string
-    description ?: string | null
-    type: string
-    status ?: 'DRAFT' | 'PENDING' | 'COMPLETED' | 'REJECTED' | 'IN_REVIEW'
-    dueDate ?: string | null
-    completedDate ?: string | null
-    createdAt ?: string
-    updatedAt ?: string
-    subAccountId: string
-    assignedTo ?: string | null
-    createdBy: string
-  }
-  Update: {
-    id ?: string
-    title ?: string
-    description ?: string | null
-    type ?: string
-    status ?: 'DRAFT' | 'PENDING' | 'COMPLETED' | 'REJECTED' | 'IN_REVIEW'
-    dueDate ?: string | null
-    completedDate ?: string | null
-    createdAt ?: string
-    updatedAt ?: string
-    subAccountId ?: string
-    assignedTo ?: string | null
-    createdBy ?: string
-  }
-}
-TaskBoard: {
-  Row: {
-    id: string
-    name: string
-    agencyId: string | null
-    subAccountId: string | null
-    createdAt: string
-    updatedAt: string
-  }
-  Insert: {
-    id ?: string
-    name: string
-    agencyId ?: string | null
-    subAccountId ?: string | null
-    createdAt ?: string
-    updatedAt ?: string
-  }
-  Update: {
-    id ?: string
-    name ?: string
-    agencyId ?: string | null
-    subAccountId ?: string | null
-    createdAt ?: string
-    updatedAt ?: string
-  }
-}
-TaskLane: {
-  Row: {
-    id: string
-    name: string
-    boardId: string
-    order: number
-    color: string | null
-    createdAt: string
-    updatedAt: string
-  }
-  Insert: {
-    id ?: string
-    name: string
-    boardId: string
-    order ?: number
-    color ?: string | null
-    createdAt ?: string
-    updatedAt ?: string
-  }
-  Update: {
-    id ?: string
-    name ?: string
-    boardId ?: string
-    order ?: number
-    [_ in never]: never
-  }
-  Enums: {
-    Role: 'AGENCY_OWNER' | 'AGENCY_ADMIN' | 'SUBACCOUNT_USER' | 'SUBACCOUNT_GUEST'
-    Icon: 'settings' | 'chart' | 'calendar' | 'check' | 'chip' | 'compass' | 'database' | 'flag' | 'home' | 'info' | 'link' | 'lock' | 'messages' | 'notification' | 'payment' | 'power' | 'receipt' | 'shield' | 'star' | 'tune' | 'videorecorder' | 'wallet' | 'warning' | 'headphone' | 'send' | 'pipelines' | 'person' | 'category' | 'contact' | 'clipboardIcon'
-    TriggerTypes: 'CONTACT_FORM'
-    ActionType: 'CREATE_CONTACT'
-    InvitationStatus: 'ACCEPTED' | 'REVOKED' | 'PENDING'
-    Plan: 'price_1OYxkqFj9oKEERu1NbKUxXxN' | 'price_1OYxkqFj9oKEERu1KfJGWxgN'
-  }
-  [_ in never]: never
-}
-}
-Dashboard: {
-  Row: {
-    id: string
-    userId: string
-    agencyId: string | null
-    subAccountId: string | null
-    name: string
-    description: string | null
-    isDefault: boolean
-    isPrivate: boolean
-    isFavorite: boolean
-    lastAccessedAt: string
-    createdAt: string
-    updatedAt: string
-  }
-  Insert: {
-    id ?: string
-    userId: string
-    agencyId ?: string | null
-    subAccountId ?: string | null
-    name: string
-    description ?: string | null
-    isDefault ?: boolean
-    isPrivate ?: boolean
-    isFavorite ?: boolean
-    lastAccessedAt ?: string
-    createdAt ?: string
-    updatedAt ?: string
-  }
-  Update: {
-    id ?: string
-    userId ?: string
-    agencyId ?: string | null
-    subAccountId ?: string | null
-    name ?: string
-    description ?: string | null
-    isDefault ?: boolean
-    isPrivate ?: boolean
-    isFavorite ?: boolean
-    lastAccessedAt ?: string
-    createdAt ?: string
-    updatedAt ?: string
-  }
-}
-DashboardCard: {
-  Row: {
-    id: string
-    dashboardId: string
-    cardType: string
-    positionX: number
-    positionY: number
-    width: number
-    height: number
-    config: Json
-    order: number
-    createdAt: string
-    updatedAt: string
-  }
-  Insert: {
-    id ?: string
-    dashboardId: string
-    cardType: string
-    positionX ?: number
-    positionY ?: number
-    width ?: number
-    height ?: number
-    config ?: Json
-    order ?: number
-    createdAt ?: string
-    updatedAt ?: string
-  }
-  Update: {
-    id ?: string
-    dashboardId ?: string
-    cardType ?: string
-    positionX ?: number
-    positionY ?: number
-    width ?: number
-    height ?: number
-    config ?: Json
-    order ?: number
-    createdAt ?: string
-    updatedAt ?: string
-  }
-}
-DashboardShare: {
-  Row: {
-    id: string
-    dashboardId: string
-    sharedWithUserId: string
-    permission: string
-    createdAt: string
-  }
-  Insert: {
-    id ?: string
-    dashboardId: string
-    sharedWithUserId: string
-    permission ?: string
-    createdAt ?: string
-  }
-  Update: {
-    id ?: string
-    dashboardId ?: string
-    sharedWithUserId ?: string
-    permission ?: string
-    createdAt ?: string
-  }
-}
-DashboardTemplate: {
-  Row: {
-    id: string
-    name: string
-    description: string | null
-    category: string
-    layout: Json
-    isPublic: boolean
-    createdAt: string
-  }
-  Insert: {
-    id ?: string
-    name: string
-    description ?: string | null
-    category: string
-    layout ?: Json
-    isPublic ?: boolean
-    createdAt ?: string
-  }
-  Update: {
-    id ?: string
-    name ?: string
-    description ?: string | null
-    category ?: string
-    layout ?: Json
-    isPublic ?: boolean
-    createdAt ?: string
-  }
-}
-Enums: {
-  Role: 'AGENCY_OWNER' | 'AGENCY_ADMIN' | 'SUBACCOUNT_USER' | 'SUBACCOUNT_GUEST'
-  Icon: 'settings' | 'chart' | 'calendar' | 'check' | 'chip' | 'compass' | 'database' | 'flag' | 'home' | 'info' | 'link' | 'lock' | 'messages' | 'notification' | 'payment' | 'power' | 'receipt' | 'shield' | 'star' | 'tune' | 'videorecorder' | 'wallet' | 'warning' | 'headphone' | 'send' | 'pipelines' | 'person' | 'category' | 'contact' | 'clipboardIcon'
-  TriggerTypes: 'CONTACT_FORM'
-  ActionType: 'CREATE_CONTACT'
-  InvitationStatus: 'ACCEPTED' | 'REVOKED' | 'PENDING'
-  Plan: 'price_1OYxkqFj9oKEERu1NbKUxXxN' | 'price_1OYxkqFj9oKEERu1KfJGWxgN'
-}
-CompositeTypes: {
-  [_ in never]: never
-}
-}
+      DashboardCard: {
+        Row: {
+          id: string
+          dashboardId: string
+          cardType: string
+          positionX: number
+          positionY: number
+          width: number
+          height: number
+          config: Json
+          order: number
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id?: string
+          dashboardId: string
+          cardType: string
+          positionX?: number
+          positionY?: number
+          width?: number
+          height?: number
+          config?: Json
+          order?: number
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          dashboardId?: string
+          cardType?: string
+          positionX?: number
+          positionY?: number
+          width?: number
+          height?: number
+          config?: Json
+          order?: number
+          createdAt?: string
+          updatedAt?: string
+        }
+      }
+      DashboardShare: {
+        Row: {
+          id: string
+          dashboardId: string
+          sharedWithUserId: string
+          permission: string
+          createdAt: string
+        }
+        Insert: {
+          id?: string
+          dashboardId: string
+          sharedWithUserId: string
+          permission?: string
+          createdAt?: string
+        }
+        Update: {
+          id?: string
+          dashboardId?: string
+          sharedWithUserId?: string
+          permission?: string
+          createdAt?: string
+        }
+      }
+      DashboardTemplate: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          category: string
+          layout: Json
+          isPublic: boolean
+          createdAt: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          category: string
+          layout?: Json
+          isPublic?: boolean
+          createdAt?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          category?: string
+          layout?: Json
+          isPublic?: boolean
+          createdAt?: string
+        }
+      }
+      Enums: {
+        Role: 'AGENCY_OWNER' | 'AGENCY_ADMIN' | 'SUBACCOUNT_USER' | 'SUBACCOUNT_GUEST'
+        Icon: 'settings' | 'chart' | 'calendar' | 'check' | 'chip' | 'compass' | 'database' | 'flag' | 'home' | 'info' | 'link' | 'lock' | 'messages' | 'notification' | 'payment' | 'power' | 'receipt' | 'shield' | 'star' | 'tune' | 'videorecorder' | 'wallet' | 'warning' | 'headphone' | 'send' | 'pipelines' | 'person' | 'category' | 'contact' | 'clipboardIcon'
+        TriggerTypes: 'CONTACT_FORM'
+        ActionType: 'CREATE_CONTACT'
+        InvitationStatus: 'ACCEPTED' | 'REVOKED' | 'PENDING'
+        Plan: 'price_1OYxkqFj9oKEERu1NbKUxXxN' | 'price_1OYxkqFj9oKEERu1KfJGWxgN'
+      }
+      CompositeTypes: {
+        [_ in never]: never
+      }
     }
+  }
+}
 
 // Export individual types for convenience
 export type User = Database['public']['Tables']['User']['Row']
@@ -1078,6 +1020,9 @@ export type Dashboard = Database['public']['Tables']['Dashboard']['Row']
 export type DashboardCard = Database['public']['Tables']['DashboardCard']['Row']
 export type DashboardShare = Database['public']['Tables']['DashboardShare']['Row']
 export type DashboardTemplate = Database['public']['Tables']['DashboardTemplate']['Row']
+export type Product = Database['public']['Tables']['Product']['Row']
+export type ProductVariant = Database['public']['Tables']['ProductVariant']['Row']
+export type InventoryLog = Database['public']['Tables']['InventoryLog']['Row']
 
 // Role type
 export type Role = 'AGENCY_OWNER' | 'AGENCY_ADMIN' | 'SUBACCOUNT_USER' | 'SUBACCOUNT_GUEST'

@@ -40,6 +40,11 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       console.log('✅ Media uploaded:', file.url)
     }),
+  productImage: f({ image: { maxFileSize: '4MB', maxFileCount: 1 } })
+    .middleware(authenticateUser)
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log('✅ Product image uploaded:', file.url)
+    }),
 } satisfies FileRouter
 
 export type OurFileRouter = typeof ourFileRouter

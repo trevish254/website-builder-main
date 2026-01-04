@@ -15,7 +15,7 @@ FREE access Limited spots only!!!
 Share all bugs and solutions in the discord. Would love to collaborate and get to know talented developers like yourself. 
 [Discord](https://discord.gg/GG4wJkxh)
 
-## SaaS Notion Clone with Realtime cursors, Nextjs 13, Stripe, Drizzle ORM, Tailwind, Supabase, Sockets
+# SaaS Notion Clone with Realtime cursors, Nextjs 13, Stripe, Drizzle ORM, Tailwind, Supabase, Sockets
 [Saas Notion Clone](https://www.youtube.com/watch?v=A3l6YYkXzzg)
 
 ### Features in this application.

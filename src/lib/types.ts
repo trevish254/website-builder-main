@@ -187,6 +187,9 @@ export type Transaction = {
   reference: string | null
   phoneNumber: string | null
   description: string | null
+  productId: string | null
+  variantId: string | null
+  quantity: number
   metadata: any
   createdAt: string
   updatedAt: string
@@ -221,4 +224,42 @@ export const CreateTaskFormSchema = z.object({
   assignees: z.array(z.string()).optional(), // New field for multiple assignees
   laneId: z.string().min(1),
   priority: z.string().optional(),
+})
+
+export const ProductFormSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+  price: z.string().refine((value) => currencyNumberRegex.test(value), {
+    message: 'Value must be a valid price.',
+  }),
+  type: z.enum(['PRODUCT', 'SERVICE']),
+  images: z.array(z.string()).optional(),
+  active: z.boolean().default(true),
+  brand: z.string().optional(),
+  category: z.string().optional(),
+  colors: z.array(z.string()).optional(),
+  stockQuantity: z.number().min(0, 'Stock cannot be negative').default(0),
+  minOrder: z.number().min(1, 'Minimum order must be at least 1').default(1),
+  maxOrder: z.number().optional(),
+  lowStockThreshold: z.number().min(0).default(5),
+  customAttributes: z.array(z.object({
+    key: z.string().min(1, 'Key is required').max(15, 'Max 15 chars'),
+    value: z.string().min(1, 'Value is required'),
+  })).optional(),
+  // Shipping Info
+  shippingDelivery: z.string().optional(),
+  shippingInternational: z.string().optional(),
+  shippingArrival: z.string().optional(),
+  // Payment Info
+  paymentTaxInfo: z.string().optional(),
+  paymentTerms: z.string().optional(),
+})
+
+export const ProductVariantSchema = z.object({
+  name: z.string().min(1, 'Variant name is required (e.g. Size)'),
+  value: z.string().min(1, 'Variant value is required (e.g. Large)'),
+  priceOverride: z.string().optional().refine((value) => !value || currencyNumberRegex.test(value), {
+    message: 'Override value must be a valid price.',
+  }),
+  stock: z.number().int().min(0).default(0),
 })

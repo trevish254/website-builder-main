@@ -12,9 +12,9 @@ import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import QuickInvite from '../global/quick-invite'
 
 type SidebarOption = {
     id: string
@@ -28,9 +28,6 @@ type SubAccount = {
     name: string
     subAccountLogo: string
     address: string
-    subAccountType?: 'AGENCY' | 'TEAM' | 'INDIVIDUAL' | 'ORGANIZATION'
-    companyName?: string
-    createdAt: string
 }
 
 type Props = {
@@ -39,12 +36,10 @@ type Props = {
     user: any
     details: any
     agencyId?: string
-    teamMembers?: any[]
-    dashboards?: any[]
+    type: 'agency' | 'subaccount'
 }
 
-// Define menu categories matching the icon dock
-const MENU_CATEGORIES = [
+const MENU_CATEGORIES_RAW = [
     {
         id: 'home',
         label: 'Home',
@@ -53,7 +48,12 @@ const MENU_CATEGORIES = [
     {
         id: 'dashboard',
         label: 'Dashboard',
-        matchNames: ['Dashboard']
+        matchNames: ['Dashboards']
+    },
+    {
+        id: 'inventory',
+        label: 'Inventory Management',
+        matchNames: ['product Dashboard', 'Inventory', 'Order', 'Customer Details', 'Revenue Analytics']
     },
     {
         id: 'clients',
@@ -122,37 +122,36 @@ const MENU_CATEGORIES = [
     }
 ]
 
-const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyId, teamMembers, dashboards }: Props) => {
+const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyId, type }: Props) => {
     const currentAgencyId = agencyId || (details as any)?.agencyId
-    const { hoveredMenuItem, activeCategory, setHoveredMenuItem, isPanelCollapsed, setIsPanelCollapsed, panelTop } = useSidebar()
+    const { hoveredMenuItem, activeCategory, setHoveredMenuItem, isPanelCollapsed, panelTop } = useSidebar()
     const pathname = usePathname()
     const [searchQuery, setSearchQuery] = useState('')
-
-    // Ref for the panel to measure its height
     const panelRef = useRef<HTMLDivElement>(null)
-    // State to hold the final adjusted top position
     const [adjustedTop, setAdjustedTop] = useState<number | null>(null)
 
-    // Calculate smart positioning
+    const MENU_CATEGORIES = MENU_CATEGORIES_RAW.filter(cat => {
+        if (cat.id === 'inventory' && type === 'agency') {
+            return false
+        }
+        return true
+    })
+
     useLayoutEffect(() => {
         if (!isPanelCollapsed || !panelTop || !panelRef.current) {
-            setAdjustedTop(null) // Reset when not in tooltip mode
+            setAdjustedTop(null)
             return
         }
 
         const panelHeight = panelRef.current.offsetHeight
         const viewportHeight = window.innerHeight
         const margin = 20
-        const headerSpace = 60 // 50px header + 10px buffer
+        const headerSpace = 60
 
         let newTop = panelTop
-
-        // Check if it overflows bottom
         if (panelTop + panelHeight + margin > viewportHeight) {
             newTop = viewportHeight - panelHeight - margin
         }
-
-        // Check if it overflows top (overlaps header)
         if (newTop < headerSpace) {
             newTop = headerSpace
         }
@@ -160,1159 +159,242 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
         setAdjustedTop(newTop)
     }, [isPanelCollapsed, panelTop, hoveredMenuItem])
 
-    // Get the active category or use the hovered one
     const displayCategory = hoveredMenuItem || activeCategory
 
-    // Get options for the current category
     const getCurrentCategoryOptions = () => {
-        if (!displayCategory) {
-            return sidebarOptions.slice(0, 8)
-        }
-
+        if (!displayCategory) return []
         const category = MENU_CATEGORIES.find(c => c.id === displayCategory)
-
         if (category) {
-            console.log('FixedSubmenuPanel Debug:', {
-                displayCategory,
-                matchNames: category.matchNames,
-                sidebarOptions: sidebarOptions.map(o => o.name),
-                filtered: sidebarOptions.filter(opt => category.matchNames.includes(opt.name))
-            })
-            return sidebarOptions.filter(opt =>
+            return sidebarOptions.filter((opt: SidebarOption) =>
                 category.matchNames.some(n => n.toLowerCase() === opt.name.toLowerCase())
             )
         }
-
         return []
     }
 
     const filteredOptions = getCurrentCategoryOptions().filter(
-        (option) =>
+        (option: SidebarOption) =>
             option.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
     const getCategoryLabel = () => {
         if (!displayCategory) return 'Menu'
         if (displayCategory === 'home') return 'Quick Access'
-        return displayCategory.charAt(0).toUpperCase() + displayCategory.slice(1)
+        const cat = MENU_CATEGORIES.find(c => c.id === displayCategory)
+        return cat ? cat.label : displayCategory.charAt(0).toUpperCase() + displayCategory.slice(1)
     }
 
-    // Don't render anything if panel is collapsed
-    // We handle the width transition in the parent wrapper
-    // but we can hide content here if needed
-
     return (
-        <>
-            <div
-                ref={panelRef}
-                onMouseEnter={() => {
-                    if (isPanelCollapsed && hoveredMenuItem) {
-                        setHoveredMenuItem(hoveredMenuItem)
-                        // Re-assert state after IconDock's timeout (100ms) to prevent flickering
-                        setTimeout(() => setHoveredMenuItem(hoveredMenuItem), 120)
-                    }
-                }}
-                onMouseLeave={() => {
-                    if (isPanelCollapsed) {
-                        setHoveredMenuItem(null)
-                    }
-                }}
-                className={cn(
-                    "fixed z-20 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
-                    // Basic behavior (Mobile or Collapsed): Overlay invisible by default, visible on hover
-                    (hoveredMenuItem ? "w-[200px] left-[50px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800 h-auto max-h-[80vh] rounded-[4px] border-b border-b-gray-200 dark:border-b-gray-800" : "w-0 opacity-0 pointer-events-none bottom-0"),
-                    // Desktop Expansion: Fixed sidebar if NOT collapsed
-                    !isPanelCollapsed && "md:w-[200px] md:left-[50px] md:bottom-0 md:top-[50px] md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto"
-                )}
-                style={isPanelCollapsed && (adjustedTop || panelTop) ? { top: `${adjustedTop || panelTop}px` } : (!isPanelCollapsed ? {} : { top: '50px' })}
-            >
-                {/* Search Header - Only show when NOT collapsed, or show simple title when collapsed */
-                    !isPanelCollapsed ? (
-                        <div className="p-3 border-b border-gray-200 dark:border-gray-800 space-y-3">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Search..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md text-gray-700 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                            </div>
-
-                            {/* Category Label & Collapse Toggle */}
-                            <div className="flex items-center justify-between">
-                                <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">
-                                    {getCategoryLabel()}
-                                </p>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 hidden md:flex text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                                    onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-                                >
-                                    {isPanelCollapsed ? (
-                                        <ChevronsRight className="w-4 h-4" />
-                                    ) : (
-                                        <ChevronsLeft className="w-4 h-4" />
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="p-3 border-b border-gray-200 dark:border-gray-800">
-                            <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">
-                                {getCategoryLabel()}
-                            </p>
-                        </div>
-                    )
+        <div
+            ref={panelRef}
+            onMouseEnter={() => {
+                if (isPanelCollapsed && hoveredMenuItem) {
+                    setHoveredMenuItem(hoveredMenuItem)
+                    setTimeout(() => setHoveredMenuItem(hoveredMenuItem), 120)
                 }
+            }}
+            onMouseLeave={() => {
+                if (isPanelCollapsed) {
+                    setHoveredMenuItem(null)
+                }
+            }}
+            style={adjustedTop !== null ? { top: `${adjustedTop}px`, bottom: 'auto' } : {}}
+            className={cn(
+                "fixed z-20 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
+                (hoveredMenuItem ? "w-[240px] left-[50px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800 h-auto max-h-[80vh] rounded-[4px] border-b border-b-gray-200 dark:border-b-gray-800" : "w-0 opacity-0 pointer-events-none bottom-0"),
+                !isPanelCollapsed && "md:w-[240px] md:left-[50px] md:bottom-0 md:top-[50px] md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto"
+            )}
+        >
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {getCategoryLabel()}
+                    </h2>
+                </div>
+                <div className="relative group">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                    <Input
+                        placeholder="Search..."
+                        className="pl-8 h-8 text-xs bg-gray-50/50 dark:bg-zinc-900/50 border-gray-200 dark:border-gray-800 focus:ring-1 focus:ring-blue-500/20"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+            </div>
 
-                {/* Scrollable Menu Items */}
-                <div className="flex-1 overflow-y-auto px-3 py-2">
-                    {displayCategory === 'dashboard' ? (
-                        /* Custom Dashboard Panel */
-                        <div className="space-y-3">
-                            {/* Add Dashboard Button */}
-                            <Link href="/dashboards?openAdd=true" className="block">
-                                <Button
-                                    className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                    size="sm"
-                                >
-                                    <PlusCircleIcon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Add Dashboard</span>
-                                </Button>
-                            </Link>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+                {displayCategory === 'inventory' ? (
+                    <div className="space-y-3">
+                        <Link href={`/subaccount/${details?.id || 'id'}/inventory?openAdd=true`} className="block">
+                            <Button
+                                className="w-full justify-start gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white"
+                                size="sm"
+                            >
+                                <PlusCircleIcon className="w-4 h-4" />
+                                <span className="text-sm font-medium">Add Product</span>
+                            </Button>
+                        </Link>
 
-                            {/* Dashboards Section with Dropdown */}
-                            <div className="space-y-1">
-                                <div className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <span>Dashboards</span>
-                                </div>
-
-                                <div className="space-y-0.5 pl-1">
+                        <div className="space-y-0.5">
+                            {[
+                                { name: 'product Dashboard', icon: LayoutGrid, link: `/subaccount/${details?.id || 'id'}/inventory` },
+                                { name: 'Inventory', icon: Package, link: `/subaccount/${details?.id || 'id'}/inventory` },
+                                { name: 'Order', icon: Receipt, link: `/subaccount/${details?.id || 'id'}/inventory/orders` },
+                                { name: 'Customer Details', icon: Users, link: `/subaccount/${details?.id || 'id'}/inventory/customers` },
+                                { name: 'Revenue Analytics', icon: TrendingUp, link: `/subaccount/${details?.id || 'id'}/inventory/analytics` },
+                            ].map((item) => {
+                                const isActive = pathname === item.link
+                                return (
                                     <Link
-                                        href="/dashboards"
-                                        className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 group"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">All Dashboards</span>
-                                        </div>
-                                    </Link>
-
-                                    <Link
-                                        href="/dashboards?filter=my"
-                                        className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 group"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <LayoutGrid className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">My Dashboards</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">
-                                            {dashboards?.filter(d => d.userId === user?.id).length || 0}
-                                        </span>
-                                    </Link>
-
-                                    <Link
-                                        href="/dashboards?filter=assigned"
-                                        className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 group"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Assigned to me</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">
-                                            {dashboards?.filter(d => d.userId !== user?.id).length || 0}
-                                        </span>
-                                    </Link>
-
-                                    <Link
-                                        href="/dashboards?filter=private"
-                                        className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 group"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <EyeOff className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Private</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">
-                                            {dashboards?.filter(d => d.isPrivate).length || 0}
-                                        </span>
-                                    </Link>
-
-                                    <Link
-                                        href="/dashboards?filter=favorites"
-                                        className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 group"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Favorites</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">
-                                            {dashboards?.filter(d => d.isFavorite).length || 0}
-                                        </span>
-                                    </Link>
-                                </div>
-                            </div>
-
-                            {/* Recents Section */}
-                            <div className="space-y-1">
-                                <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Recent Dashboards
-                                </div>
-                                <div className="space-y-0.5 pl-1 max-h-[200px] overflow-y-auto">
-                                    {dashboards && dashboards.length > 0 ? (
-                                        [...dashboards]
-                                            .sort((a, b) => new Date(b.lastAccessedAt || b.updatedAt).getTime() - new Date(a.lastAccessedAt || a.updatedAt).getTime())
-                                            .slice(0, 5)
-                                            .map((dashboard) => (
-                                                <Link
-                                                    key={dashboard.id}
-                                                    href={`/dashboards/${dashboard.id}`}
-                                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                                >
-                                                    <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                    <span className="text-sm truncate">{dashboard.name}</span>
-                                                </Link>
-                                            ))
-                                    ) : (
-                                        <div className="px-3 py-2 text-sm text-gray-500">No dashboards found</div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )
-                        : displayCategory === 'clients' ? (
-                            /* Custom Clients Panel */
-                            <div className="space-y-3">
-                                {/* Add Subaccount Button */}
-                                <Button
-                                    className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                    onClick={() => {
-                                        // Navigate to create subaccount modal/page
-                                    }}
-                                    size="sm"
-                                >
-                                    <PlusCircleIcon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Add Subaccount</span>
-                                </Button>
-
-                                {/* Subaccounts Section */}
-                                <div className="space-y-0.5 pl-1">
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/all-subaccounts`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">All Subaccounts</span>
-                                        <span className="ml-auto text-xs text-gray-400">{subAccounts.length}</span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Team Subaccount</span>
-                                        <span className="ml-auto text-xs text-gray-400">
-                                            {subAccounts.filter(s => s.subAccountType === 'TEAM').length}
-                                        </span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Building2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Agency Subaccounts</span>
-                                        <span className="ml-auto text-xs text-gray-400">
-                                            {subAccounts.filter(s => !s.subAccountType || s.subAccountType === 'AGENCY').length}
-                                        </span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Individual Subaccount</span>
-                                        <span className="ml-auto text-xs text-gray-400">
-                                            {subAccounts.filter(s => s.subAccountType === 'INDIVIDUAL').length}
-                                        </span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Briefcase className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Organization Subaccount</span>
-                                        <span className="ml-auto text-xs text-gray-400">
-                                            {subAccounts.filter(s => s.subAccountType === 'ORGANIZATION').length}
-                                        </span>
-                                    </Link>
-
-                                    <div className="pt-2 pb-1">
-                                        <div className="px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                                            Assigned to me
-                                        </div>
-                                        <div className="space-y-0.5">
-                                            {subAccounts.filter(subAccount => {
-                                                const permission = user?.Permissions?.find(
-                                                    (p: any) => p.subAccountId === subAccount.id
-                                                )
-                                                return permission?.access
-                                            }).length > 0 ? (
-                                                subAccounts
-                                                    .filter(subAccount => {
-                                                        const permission = user?.Permissions?.find(
-                                                            (p: any) => p.subAccountId === subAccount.id
-                                                        )
-                                                        return permission?.access
-                                                    })
-                                                    .map((subAccount) => (
-                                                        <Link
-                                                            key={subAccount.id}
-                                                            href={`/subaccount/${subAccount.id}`}
-                                                            className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                                        >
-                                                            <div className="relative w-4 h-4">
-                                                                <Image
-                                                                    src={subAccount.subAccountLogo}
-                                                                    alt="Subaccount Logo"
-                                                                    fill
-                                                                    className="rounded-full object-cover"
-                                                                />
-                                                            </div>
-                                                            <span className="text-sm truncate">{subAccount.name}</span>
-                                                        </Link>
-                                                    ))
-                                            ) : (
-                                                <div className="px-3 py-2 text-sm text-gray-500">No subaccounts assigned</div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/analytics`}
-                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 group"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Analytics</span>
-                                        </div>
-                                        <Button size="icon" variant="ghost" className="h-5 w-5 opacity-0 group-hover:opacity-100">
-                                            <ChevronRight className="h-3 w-3" />
-                                        </Button>
-                                    </Link>
-                                </div>
-
-                                {/* Recent Section */}
-                                <div className="space-y-1">
-                                    <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Recent Subaccounts
-                                    </div>
-                                    <div className="space-y-0.5 pl-1">
-                                        {[...subAccounts]
-                                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                                            .slice(0, 3)
-                                            .map((subAccount) => (
-                                                <Link
-                                                    key={subAccount.id}
-                                                    href={`/subaccount/${subAccount.id}`}
-                                                    className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                                >
-                                                    <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                    <span className="text-sm truncate">{subAccount.name}</span>
-                                                </Link>
-                                            ))}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : displayCategory === 'team' ? (
-                            /* Custom Teams Panel */
-                            <div className="space-y-3">
-                                {/* Quick Invite Button */}
-                                <QuickInvite agencyId={agencyId || ''}>
-                                    <Button
-                                        className="w-full justify-start gap-2 bg-purple-600 hover:bg-purple-700 text-white"
-                                        size="sm"
-                                    >
-                                        <UserPlus className="w-4 h-4" />
-                                        <span className="text-sm font-medium">Quick Invite</span>
-                                    </Button>
-                                </QuickInvite>
-
-                                {/* Team Members Section */}
-                                <div className="space-y-1">
-                                    <div className="flex items-center justify-between px-2 py-1.5">
-                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            Team Members
-                                        </span>
-                                        <Link href={`/agency/${currentAgencyId}/team`}>
-                                            <PlusCircleIcon className="w-3 h-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                                        </Link>
-                                    </div>
-                                    <div className="space-y-0.5 pl-1 max-h-[200px] overflow-y-auto">
-                                        {teamMembers && teamMembers.length > 0 ? (
-                                            teamMembers.map((member) => (
-                                                <div
-                                                    key={member.id}
-                                                    className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-                                                >
-                                                    <div className="relative w-5 h-5 min-w-[20px]">
-                                                        <Image
-                                                            src={member.avatarUrl}
-                                                            alt={member.name}
-                                                            fill
-                                                            className="rounded-full object-cover"
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-col overflow-hidden">
-                                                        <span className="text-sm truncate text-gray-700 dark:text-gray-300">{member.name}</span>
-                                                        <span className="text-[10px] text-gray-500 truncate">{member.role}</span>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="px-3 py-2 text-sm text-gray-500">No team members found</div>
+                                        key={item.name}
+                                        href={item.link}
+                                        className={cn(
+                                            'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                                         )}
-                                    </div>
-                                </div>
-
-                                {/* Management Sections */}
-                                <div className="space-y-0.5 pl-1 border-t border-gray-200 dark:border-gray-800 pt-2">
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/team?tab=roles`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                                     >
-                                        <Shield className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Roles & Permissions</span>
+                                        <item.icon
+                                            className={cn(
+                                                'w-4 h-4',
+                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                            )}
+                                        />
+                                        <span className={cn(
+                                            'text-sm',
+                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                        )}>
+                                            {item.name}
+                                        </span>
                                     </Link>
+                                )
+                            })}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-0.5">
+                        {filteredOptions.length > 0 ? (
+                            filteredOptions.map((option) => {
+                                const result = icons.find(icon => icon.value === option.icon)
+                                const IconComponent = result?.path || Settings
+                                const isActive = pathname.includes(option.link)
 
+                                return (
                                     <Link
-                                        href={`/agency/${currentAgencyId}/team?tab=flowboard`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                        key={option.id}
+                                        href={option.link}
+                                        className={cn(
+                                            'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                        )}
                                     >
-                                        <LayoutGrid className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Flowboard</span>
+                                        <IconComponent
+                                            className={cn(
+                                                'w-4 h-4',
+                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                            )}
+                                        />
+                                        <span className={cn(
+                                            'text-sm',
+                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                        )}>
+                                            {option.name}
+                                        </span>
                                     </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/team?tab=settings`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Settings</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/team?tab=analytics`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Analytics</span>
-                                    </Link>
-                                </div>
-                            </div>
-                        ) : displayCategory === 'messages' ? (
-                            /* Custom Messages Panel */
-                            <div className="space-y-3">
-                                {/* New Message Button */}
-                                <Button
-                                    className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                    size="sm"
-                                >
-                                    <PlusCircleIcon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">New Message</span>
-                                </Button>
-
-                                {/* Inbox Categories */}
-                                <div className="space-y-0.5 pl-1">
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/messages`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Mail className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Inbox</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/messages?filter=me`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Me</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/messages?filter=team`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Team</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/messages?filter=agency`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Building2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Agency</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/messages?filter=personal`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Personal</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/messages?filter=groups`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Groups</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/messages?filter=channels`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Hash className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Channels</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/messages?filter=read`}
-                                        className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <CheckCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Read</span>
-                                        </div>
-                                        <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">12</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/messages?filter=unread`}
-                                        className="flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Circle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Unread</span>
-                                        </div>
-                                        <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">5</span>
-                                    </Link>
-                                </div>
-                            </div>
-                        ) : displayCategory === 'pipelines' ? (
-                            /* Custom Tasks Panel */
-                            /* Custom Tasks Panel */
-                            <div className="space-y-3">
-                                {/* Add Task Button */}
-                                <Button
-                                    className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                    size="sm"
-                                >
-                                    <PlusCircleIcon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Create Task</span>
-                                </Button>
-
-                                {/* My Tasks Section */}
-                                <div className="space-y-1">
-                                    {getCurrentCategoryOptions().length > 0 && (
-                                        <div className="mb-2">
-                                            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Apps
-                                            </div>
-                                            <div className="space-y-0.5 pl-1">
-                                                {getCurrentCategoryOptions().map((option) => {
-                                                    const iconResult = icons.find(icon => icon.value === option.icon)
-                                                    const IconComponent = iconResult?.path || Settings
-                                                    return (
-                                                        <Link
-                                                            key={option.id}
-                                                            href={option.link}
-                                                            className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                                        >
-                                                            <IconComponent className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                            <span className="text-sm">{option.name}</span>
-                                                        </Link>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        My Tasks
-                                    </div>
-                                    <div className="space-y-0.5 pl-1">
-                                        <Link
-                                            href={`/agency/${currentAgencyId}/tasks`}
-                                            className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                        >
-                                            <CheckCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">All tasks</span>
-                                        </Link>
-
-                                        <Link
-                                            href={`/agency/${currentAgencyId}/tasks?filter=assigned`}
-                                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                <span className="text-sm">Assigned to me</span>
-                                            </div>
-                                            <span className="text-xs text-gray-400 font-medium">12</span>
-                                        </Link>
-
-                                        <Link
-                                            href={`/agency/${currentAgencyId}/tasks?filter=overdue`}
-                                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <AlertCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                <span className="text-sm">Today & Overdue</span>
-                                            </div>
-                                            <span className="text-xs text-gray-400 font-medium">3</span>
-                                        </Link>
-
-                                        <Link
-                                            href={`/agency/${currentAgencyId}/tasks?filter=personal`}
-                                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <List className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                <span className="text-sm">Personal List</span>
-                                            </div>
-                                            <span className="text-xs text-gray-400 font-medium">5</span>
-                                        </Link>
-
-                                        <Link
-                                            href={`/agency/${currentAgencyId}/tasks?filter=priority`}
-                                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                <span className="text-sm">Priority</span>
-                                            </div>
-                                            <span className="text-xs text-gray-400 font-medium">8</span>
-                                        </Link>
-                                    </div>
-                                </div>
-
-                                {/* Other Links */}
-                                <div className="space-y-0.5 pl-1 border-t border-gray-200 dark:border-gray-800 pt-2">
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/tasks/pool`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <LayoutGrid className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Task Pool</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/team?tab=calendar`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Calendar className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Calendar</span>
-                                    </Link>
-                                </div>
-                            </div>
-                        ) : displayCategory === 'content' ? (
-                            /* Custom Content Panel */
-                            /* Custom Content Panel */
-                            <div className="space-y-3">
-                                {/* Create Docs Button */}
-                                <Button
-                                    className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                    size="sm"
-                                >
-                                    <PlusCircleIcon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Create Docs</span>
-                                </Button>
-
-                                {/* Document Categories */}
-                                <div className="space-y-0.5 pl-1">
-                                    {getCurrentCategoryOptions().length > 0 && (
-                                        <div className="mb-2">
-                                            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Apps
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                {getCurrentCategoryOptions().map((option) => {
-                                                    const iconResult = icons.find(icon => icon.value === option.icon)
-                                                    const IconComponent = iconResult?.path || Settings
-                                                    return (
-                                                        <Link
-                                                            key={option.id}
-                                                            href={option.link}
-                                                            className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                                        >
-                                                            <IconComponent className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                            <span className="text-sm">{option.name}</span>
-                                                        </Link>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/client-docs`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">All Docs</span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">My Docs</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">4</span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Shared with me</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">2</span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <EyeOff className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Private</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">1</span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Meeting Notes</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">7</span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Archive className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Archived</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">12</span>
-                                    </Link>
-
-                                    <Link
-                                        href="#"
-                                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                            <span className="text-sm">Favourite</span>
-                                        </div>
-                                        <span className="text-xs text-gray-400 font-medium">3</span>
-                                    </Link>
-
-                                    {/* Recent Section */}
-                                    <div className="space-y-1 pt-2 border-t border-gray-200 dark:border-gray-800 mt-2">
-                                        <div className="px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            Recent
-                                        </div>
-                                        <div className="space-y-0.5">
-                                            {/* Placeholder Recent Docs */}
-                                            <Link
-                                                href="#"
-                                                className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                            >
-                                                <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                <span className="text-sm truncate">Project Proposal</span>
-                                            </Link>
-                                            <Link
-                                                href="#"
-                                                className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                            >
-                                                <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                                <span className="text-sm truncate">Q4 Marketing Plan</span>
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : displayCategory === 'finance' ? (
-                            /* Custom Finance Panel */
-                            /* Custom Finance Panel */
-                            <div className="space-y-3">
-                                {/* Add Payment Button */}
-                                <Button
-                                    className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                    size="sm"
-                                >
-                                    <PlusCircleIcon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Add Payment</span>
-                                </Button>
-
-                                {/* Finance Categories */}
-                                <div className="space-y-0.5 pl-1">
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/finance`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <DollarSign className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Initiate Payment</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/finance`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">APIs</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/finance`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Analytics</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/finance`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Invoices</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/finance`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <CreditCard className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Transactions</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/finance`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Reports</span>
-                                    </Link>
-                                </div>
-                            </div>
-                        ) : displayCategory === 'upgrade' ? (
-                            /* Custom Upgrade Panel */
-                            /* Custom Upgrade Panel */
-                            <div className="space-y-3">
-                                {/* Upgrade Plan Button */}
-                                <Link href={`/agency/${agencyId || details?.agencyId}/billing/available-plans`} className="block">
-                                    <Button
-                                        className="w-full justify-start gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                                        size="sm"
-                                    >
-                                        <Zap className="w-4 h-4" />
-                                        <span className="text-sm font-medium">Upgrade Plan</span>
-                                    </Button>
-                                </Link>
-
-                                {/* Subscription Categories */}
-                                <div className="space-y-0.5 pl-1">
-                                    <Link
-                                        href={`/agency/${agencyId || details?.agencyId}/billing`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Current Plan</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${agencyId || details?.agencyId}/billing/available-plans`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Star className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Available Plans</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${agencyId || details?.agencyId}/billing/history`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <CreditCard className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Billing History</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${agencyId || details?.agencyId}/billing/invoices`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Invoices</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${agencyId || details?.agencyId}/billing/payment-methods`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Wallet className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Payment Methods</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${agencyId || details?.agencyId}/billing/add-ons`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Award className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Add-ons</span>
-                                    </Link>
-                                </div>
-                            </div>
-                        ) : displayCategory === 'kra' ? (
-                            /* Custom KRA Panel */
-                            <div className="space-y-3">
-                                {/* File Return Button */}
-                                <Button
-                                    className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                    size="sm"
-                                    onClick={() => {
-                                        window.location.href = `/agency/${currentAgencyId}/government-services/file-returns`
-                                    }}
-                                >
-                                    <PlusCircleIcon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">File Return</span>
-                                </Button>
-
-                                {/* KRA/Government Services Categories */}
-                                <div className="space-y-0.5 pl-1">
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/government-services/file-returns`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Tax Returns</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/government-services`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Building2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Compliance</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/government-services/generate-prns`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">VAT/Tax Invoices</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/government-services/verify-documents`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Shield className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Certificates</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/government-services`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <Calendar className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Filing Deadlines</span>
-                                    </Link>
-
-                                    <Link
-                                        href={`/agency/${currentAgencyId}/government-services`}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                    >
-                                        <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm">Reports</span>
-                                    </Link>
-                                </div>
-                            </div>
+                                )
+                            })
                         ) : (
-                            /* Regular Menu Items for Other Categories */
-                            <div className="space-y-0.5">
-                                {filteredOptions.length > 0 ? (
-                                    filteredOptions.map((option) => {
-                                        const result = icons.find(icon => icon.value === option.icon)
-                                        const IconComponent = result?.path || Settings
-                                        const isActive = pathname.includes(option.link)
-
-                                        return (
-                                            <Link
-                                                key={option.id}
-                                                href={option.link}
-                                                className={cn(
-                                                    'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                                    isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                                )}
-                                            >
-                                                <IconComponent
-                                                    className={cn(
-                                                        'w-4 h-4',
-                                                        isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
-                                                    )}
-                                                />
-                                                <span className={cn(
-                                                    'text-sm',
-                                                    isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
-                                                )}>
-                                                    {option.name}
-                                                </span>
-                                            </Link>
-                                        )
-                                    })
-                                ) : (
-                                    <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
-                                        {searchQuery ? 'No results found' : 'No items'}
-                                    </div>
-                                )}
+                            <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+                                {searchQuery ? 'No results found' : 'No items'}
                             </div>
                         )}
-                </div>
+                    </div>
+                )}
+            </div>
 
-
-                {/* Account Switcher */}
-                <div className="mt-auto p-3 border-t border-gray-200 dark:border-gray-800">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                className="w-full justify-start text-left text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 h-auto py-2"
-                            >
-                                <div className="flex items-center gap-2 w-full min-w-0">
-                                    <div className="w-6 h-6 relative flex-shrink-0">
-                                        <Image
-                                            src={details?.agencyLogo || details?.subAccountLogo || '/assets/chapabiz-logo.png'}
-                                            alt="Logo"
-                                            fill
-                                            className="rounded object-cover"
-                                        />
-                                    </div>
-                                    <span className="truncate flex-1 text-xs">{details?.name || 'Account'}</span>
-                                    <ChevronDown className="h-3 w-3 flex-shrink-0" />
+            <div className="mt-auto p-3 border-t border-gray-200 dark:border-gray-800">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-start text-left text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 h-auto py-2"
+                        >
+                            <div className="flex items-center gap-2 w-full min-w-0">
+                                <div className="w-6 h-6 relative flex-shrink-0">
+                                    <Image
+                                        src={details?.agencyLogo || details?.subAccountLogo || '/assets/chapabiz-logo.png'}
+                                        alt="Logo"
+                                        fill
+                                        className="rounded object-cover"
+                                    />
                                 </div>
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[180px]" side="top" align="start" sideOffset={8}>
-                            <Command className="rounded-lg">
-                                <CommandInput placeholder="Search Accounts..." />
-                                <CommandList>
-                                    <CommandEmpty>No results found</CommandEmpty>
-                                    {user?.Agency && (
-                                        <CommandGroup heading="Agency">
-                                            <CommandItem>
+                                <span className="truncate flex-1 text-xs">{details?.name || 'Account'}</span>
+                                <ChevronDown className="h-3 w-3 flex-shrink-0" />
+                            </div>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[180px]" side="top" align="start" sideOffset={8}>
+                        <Command className="rounded-lg">
+                            <CommandInput placeholder="Search Accounts..." />
+                            <CommandList>
+                                <CommandEmpty>No results found</CommandEmpty>
+                                {user?.Agency && (
+                                    <CommandGroup heading="Agency">
+                                        <CommandItem>
+                                            <Link
+                                                href={`/agency/${user.Agency.id}`}
+                                                className="flex gap-3 w-full"
+                                            >
+                                                <div className="relative w-10 h-10">
+                                                    <Image
+                                                        src={user.Agency.agencyLogo}
+                                                        alt="Agency Logo"
+                                                        fill
+                                                        className="rounded-md object-contain"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col flex-1 min-w-0">
+                                                    <span className="truncate">{user.Agency.name}</span>
+                                                    <span className="text-xs text-muted-foreground truncate">
+                                                        {user.Agency.address}
+                                                    </span>
+                                                </div>
+                                            </Link>
+                                        </CommandItem>
+                                    </CommandGroup>
+                                )}
+                                {subAccounts && subAccounts.length > 0 && (
+                                    <CommandGroup heading="Sub Accounts">
+                                        {subAccounts.map((subaccount) => (
+                                            <CommandItem key={subaccount.id}>
                                                 <Link
-                                                    href={`/agency/${user.Agency.id}`}
+                                                    href={`/subaccount/${subaccount.id}`}
                                                     className="flex gap-3 w-full"
                                                 >
                                                     <div className="relative w-10 h-10">
                                                         <Image
-                                                            src={user.Agency.agencyLogo}
-                                                            alt="Agency Logo"
+                                                            src={subaccount.subAccountLogo}
+                                                            alt="Subaccount Logo"
                                                             fill
                                                             className="rounded-md object-contain"
                                                         />
                                                     </div>
                                                     <div className="flex flex-col flex-1 min-w-0">
-                                                        <span className="truncate">{user.Agency.name}</span>
+                                                        <span className="truncate">{subaccount.name}</span>
                                                         <span className="text-xs text-muted-foreground truncate">
-                                                            {user.Agency.address}
+                                                            {subaccount.address}
                                                         </span>
                                                     </div>
                                                 </Link>
                                             </CommandItem>
-                                        </CommandGroup>
-                                    )}
-                                    {user?.InvitedAgencies && user.InvitedAgencies.length > 0 && (
-                                        <CommandGroup heading="Invited Agencies">
-                                            {user.InvitedAgencies.map((agency: any) => (
-                                                <CommandItem key={agency.id}>
-                                                    <Link
-                                                        href={`/agency/${agency.id}`}
-                                                        className="flex gap-3 w-full"
-                                                    >
-                                                        <div className="relative w-10 h-10">
-                                                            <Image
-                                                                src={agency.agencyLogo || '/assets/chapabiz-logo.png'}
-                                                                alt="Agency Logo"
-                                                                fill
-                                                                className="rounded-md object-contain"
-                                                            />
-                                                        </div>
-                                                        <div className="flex flex-col flex-1 min-w-0">
-                                                            <span className="truncate">{agency.name}</span>
-                                                            <span className="text-xs text-muted-foreground truncate">
-                                                                {agency.role || 'Team Member'}
-                                                            </span>
-                                                        </div>
-                                                    </Link>
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    )}
-                                    {subAccounts && subAccounts.length > 0 && (
-                                        <CommandGroup heading="Sub Accounts">
-                                            {subAccounts.map((subaccount) => (
-                                                <CommandItem key={subaccount.id}>
-                                                    <Link
-                                                        href={`/subaccount/${subaccount.id}`}
-                                                        className="flex gap-3 w-full"
-                                                    >
-                                                        <div className="relative w-10 h-10">
-                                                            <Image
-                                                                src={subaccount.subAccountLogo}
-                                                                alt="Subaccount Logo"
-                                                                fill
-                                                                className="rounded-md object-contain"
-                                                            />
-                                                        </div>
-                                                        <div className="flex flex-col flex-1 min-w-0">
-                                                            <span className="truncate">{subaccount.name}</span>
-                                                            <span className="text-xs text-muted-foreground truncate">
-                                                                {subaccount.address}
-                                                            </span>
-                                                        </div>
-                                                    </Link>
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    )}
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                </div >
-            </div >
-
-        </>
+                                        ))}
+                                    </CommandGroup>
+                                )}
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
+            </div>
+        </div>
     )
 }
 

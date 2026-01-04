@@ -12,6 +12,7 @@ import {
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { cache } from 'react'
+import { paystack } from './paystack'
 
 // Type helper to avoid 'never' type issues
 type AnyRecord = Record<string, any>
@@ -1161,6 +1162,15 @@ export const createDefaultSubAccountSidebarOptions = async (subAccountId: string
         name: 'Settings',
         link: `/subaccount/${subAccountId}/settings`,
         icon: 'settings',
+        subAccountId: subAccountId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: `sub-sidebar-${subAccountId}-inventory`,
+        name: 'Inventory',
+        link: `/subaccount/${subAccountId}/inventory`,
+        icon: 'category',
         subAccountId: subAccountId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -2640,6 +2650,9 @@ export const createTransaction = async (
   description?: string,
   reference?: string,
   phoneNumber?: string,
+  productId?: string,
+  variantId?: string,
+  quantity?: number,
   metadata?: any
 ) => {
   const { data, error } = await supabase
@@ -2651,6 +2664,9 @@ export const createTransaction = async (
       description,
       reference,
       phoneNumber,
+      productId,
+      variantId,
+      quantity: quantity || 1,
       metadata,
       status: 'PENDING', // Default status
     } as AnyRecord)
@@ -2816,6 +2832,348 @@ export const getTaskBoardDetails = async (subAccountId: string) => {
   })) || []
 
   return { ...board, TaskLane: lanesWithTasks }
+}
+
+export const getDistinctBrands = async (subAccountId: string) => {
+  const { data } = await supabase
+    .from('Product')
+    .select('brand')
+    .eq('subAccountId', subAccountId)
+    .eq('active', true)
+    .not('brand', 'is', null)
+    .neq('brand', '')
+
+  const brands = new Set<string>()
+  data?.forEach((p) => {
+    if (p.brand) brands.add(p.brand)
+  })
+  return Array.from(brands)
+}
+
+export const getDistinctCategories = async (subAccountId: string) => {
+  const { data } = await supabase
+    .from('Product')
+    .select('category')
+    .eq('subAccountId', subAccountId)
+    .eq('active', true)
+    .not('category', 'is', null)
+    .neq('category', '')
+
+  const categories = new Set<string>()
+  data?.forEach((p) => {
+    if (p.category) categories.add(p.category)
+  })
+  return Array.from(categories)
+}
+
+// ==========================================
+// INVENTORY QUERIES
+// ==========================================
+
+export const getProducts = async (
+  subAccountId: string,
+  filters?: {
+    query?: string
+    brand?: string[]
+    category?: string
+    colors?: string[]
+    active?: boolean
+    minPrice?: number
+    maxPrice?: number
+    page?: number
+    limit?: number
+  }
+) => {
+  let query = supabase
+    .from('Product')
+    .select(`*, ProductVariant(*)`, { count: 'exact' })
+    .eq('subAccountId', subAccountId)
+    .order('createdAt', { ascending: false })
+
+  if (filters?.query) {
+    query = query.ilike('name', `%${filters.query}%`)
+  }
+  if (filters?.brand && filters.brand.length > 0) {
+    query = query.in('brand', filters.brand)
+  }
+  if (filters?.category) {
+    query = query.eq('category', filters.category)
+  }
+  if (filters?.colors && filters.colors.length > 0) {
+    query = query.overlaps('colors', filters.colors)
+  }
+  if (filters?.active !== undefined) {
+    query = query.eq('active', filters.active)
+  }
+  if (filters?.minPrice) {
+    query = query.gte('price', filters.minPrice)
+  }
+  if (filters?.maxPrice) {
+    query = query.lte('price', filters.maxPrice)
+  }
+  if (filters?.customAttributes && filters.customAttributes.length > 0) {
+    // Filter by contained JSON. 
+    // Supabase .contains() works if we pass the array of objects we expect to find.
+    // However, if we want to match *all* filters (AND logic), we need to chain .contains().
+    // filters.customAttributes is assumed to be an array of { key: string, value: string }
+    filters.customAttributes.forEach((attr: { key: string, value: string }) => {
+      query = query.contains('customAttributes', [attr])
+    })
+  }
+
+  const page = filters?.page || 1
+  const limit = filters?.limit || 12
+  const from = (page - 1) * limit
+  const to = from + limit - 1
+
+  query = query.range(from, to)
+
+  const { data, error, count } = await query
+  console.log('🛒 getProducts Filters:', JSON.stringify(filters, null, 2))
+  console.log('🛒 getProducts Result Count:', count)
+  console.log('🛒 getProducts Error (if any):', error)
+
+  if (error) {
+    console.error('Error fetching products:', error)
+    return { data: [], count: 0 }
+  }
+
+  return { data, count }
+}
+
+export const getProductDetails = async (productId: string) => {
+  const { data, error } = await supabase
+    .from('Product')
+    .select(`
+      *,
+      ProductVariant (*)
+    `)
+    .eq('id', productId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching product details:', error)
+    return null
+  }
+
+  return data
+}
+
+export const upsertProduct = async (product: Partial<any>) => {
+  console.log('🔥 upsertProduct called with:', JSON.stringify(product, null, 2))
+  const productId = product.id || v4()
+  const subAccountId = product.subAccountId
+
+  if (!subAccountId) {
+    console.error('subAccountId is required for upsertProduct')
+    return null
+  }
+
+  // Paystack sync
+  let paystackProductId = product.paystackProductId
+  if (!paystackProductId) {
+    try {
+      const psResponse = await paystack.createProduct({
+        name: product.name,
+        description: product.description || '',
+        price: Math.round(Number(product.price) * 100), // convert to kobo
+        currency: 'KES',
+        unlimited: (product.stockQuantity ?? 0) > 0 ? false : true,
+        quantity: (product.stockQuantity ?? 0) > 0 ? Number(product.stockQuantity) : undefined,
+        metadata: {
+          brand: product.brand,
+          category: product.category,
+          colors: product.colors,
+          minOrder: product.minOrder,
+          maxOrder: product.maxOrder,
+          maxOrder: product.maxOrder,
+          lowStockThreshold: product.lowStockThreshold,
+          active: product.active,
+          customAttributes: product.customAttributes,
+          shippingDelivery: product.shippingDelivery,
+          shippingInternational: product.shippingInternational,
+          shippingArrival: product.shippingArrival,
+          paymentTaxInfo: product.paymentTaxInfo,
+          paymentTerms: product.paymentTerms,
+        }
+      })
+      if (psResponse.status) {
+        paystackProductId = psResponse.data.product_code
+      } else {
+        console.error('Paystack product creation failed:', psResponse.message)
+      }
+    } catch (error) {
+      console.error('Error syncing with Paystack:', error)
+    }
+  } else {
+    // Update Paystack if needed
+    try {
+      await paystack.updateProduct(paystackProductId, {
+        name: product.name,
+        description: product.description,
+        price: Math.round(Number(product.price) * 100),
+        unlimited: (product.stockQuantity ?? 0) > 0 ? false : true,
+        quantity: (product.stockQuantity ?? 0) > 0 ? Number(product.stockQuantity) : undefined,
+        metadata: {
+          brand: product.brand,
+          category: product.category,
+          colors: product.colors,
+          minOrder: product.minOrder,
+          maxOrder: product.maxOrder,
+          lowStockThreshold: product.lowStockThreshold,
+          active: product.active,
+          customAttributes: product.customAttributes
+        }
+      })
+    } catch (error) {
+      console.error('Error updating Paystack product:', error)
+    }
+  }
+
+  const productData = {
+    ...product,
+    id: productId,
+    paystackProductId,
+    updatedAt: new Date().toISOString(),
+    createdAt: product.createdAt || new Date().toISOString(),
+  }
+
+  const { data, error } = await supabase
+    .from('Product')
+    .upsert(productData as AnyRecord)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error upserting product logic:', error)
+    throw new Error(`Supabase Error: ${error.message} (${error.code})`)
+  }
+
+  revalidatePath(`/subaccount/${subAccountId}/inventory`)
+  revalidatePath(`/subaccount/${subAccountId}/inventory/${productId}`)
+  revalidatePath(`/inventory-preview/${productId}`)
+  return data
+}
+
+export const deleteProduct = async (productId: string, subAccountId: string) => {
+  // We'll just deactivate instead of delete to maintain transaction history
+  const { error } = await supabase
+    .from('Product')
+    .update({ active: false } as AnyRecord)
+    .eq('id', productId)
+
+  if (error) {
+    console.error('Error deactivating product:', error)
+    return false
+  }
+
+  revalidatePath(`/subaccount/${subAccountId}/inventory`)
+  return true
+}
+
+export const getDistinctCustomAttributes = async (subAccountId: string) => {
+  const { data, error } = await supabase
+    .from('Product')
+    .select('customAttributes')
+    .eq('subAccountId', subAccountId)
+    .eq('active', true) // Optional: only show attributes from active products
+
+  if (error) {
+    console.error('Error fetching custom attributes:', error)
+    return {}
+  }
+
+  const aggregated: Record<string, string[]> = {}
+
+  // data is array of { customAttributes: Json }
+  data.forEach((item) => {
+    const attrs = item.customAttributes as Array<{ key: string; value: string }>
+    if (Array.isArray(attrs)) {
+      attrs.forEach((attr) => {
+        const k = attr.key
+        const v = attr.value
+        if (k && v) {
+          if (!aggregated[k]) aggregated[k] = []
+          if (!aggregated[k].includes(v)) aggregated[k].push(v)
+        }
+      })
+    }
+  })
+
+  return aggregated
+}
+
+export const upsertProductVariant = async (variant: Partial<any>) => {
+  const variantId = variant.id || v4()
+  const variantData = {
+    ...variant,
+    id: variantId,
+    updatedAt: new Date().toISOString(),
+    createdAt: variant.createdAt || new Date().toISOString(),
+  }
+
+  const { data, error } = await supabase
+    .from('ProductVariant')
+    .upsert(variantData as AnyRecord)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error upserting variant:', error)
+    return null
+  }
+
+  return data
+}
+
+export const deleteProductVariant = async (variantId: string) => {
+  const { error } = await supabase
+    .from('ProductVariant')
+    .delete()
+    .eq('id', variantId)
+
+  if (error) {
+    console.error('Error deleting variant:', error)
+    return false
+  }
+
+  return true
+}
+
+export const addInventoryToExistingSubAccount = async (subAccountId: string) => {
+  try {
+    const { data: existingOption, error: checkError } = await supabase
+      .from('SubAccountSidebarOption')
+      .select('id')
+      .eq('subAccountId', subAccountId)
+      .eq('name', 'Inventory')
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking for existing Inventory option:', checkError)
+      return
+    }
+
+    if (!existingOption) {
+      const inventoryOption = {
+        id: `sub-sidebar-${subAccountId}-inventory`,
+        name: 'Inventory',
+        link: `/subaccount/${subAccountId}/inventory`,
+        icon: 'category',
+        subAccountId: subAccountId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      await supabase
+        .from('SubAccountSidebarOption')
+        .insert(inventoryOption as AnyRecord)
+
+      console.log('✅ Inventory option added to subaccount:', subAccountId)
+    }
+  } catch (error) {
+    console.error('Error adding Inventory to existing subaccount:', error)
+  }
 }
 
 export const upsertContact = async (contact: {

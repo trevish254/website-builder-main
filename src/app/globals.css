@@ -98,6 +98,40 @@
   }
 }
 
+/* Global Rich Text Styles (Fallback for missing typography plugin) */
+.rich-text-content ul {
+  list-style-type: disc !important;
+  margin-left: 1.5rem !important;
+  padding-left: 1rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.rich-text-content ol {
+  list-style-type: decimal !important;
+  margin-left: 1.5rem !important;
+  padding-left: 1rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.rich-text-content li {
+  display: list-item !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.rich-text-content h1 {
+  @apply text-2xl font-bold mb-4;
+}
+
+.rich-text-content h2 {
+  @apply text-xl font-bold mb-3;
+}
+
+.rich-text-content h3 {
+  @apply text-lg font-bold mb-2;
+}
+
 /* GridStack Spacing - Set CSS Variables Explicitly */
 .grid-stack {
   --gs-item-margin-top: 12px;
