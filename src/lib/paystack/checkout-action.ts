@@ -19,6 +19,14 @@ export const processCheckout = async (data: {
     }
     paymentMethod: 'card' | 'mpesa'
     phone?: string
+    customerName?: string
+    isGift?: boolean
+    address?: string
+    city?: string
+    state?: string
+    zipCode?: string
+    country?: string
+    variantId?: string
 }) => {
     console.log('💳 Processing Checkout for:', data.email)
 
@@ -113,10 +121,17 @@ export const processCheckout = async (data: {
 
         // Step 3: If payment is successful immediately (no OTP), create the order
         if (chargeResponse && (chargeResponse.data?.status === 'success' || chargeResponse.status === 'success' || chargeResponse.status === true)) {
-            await createOrder({
+            const createdOrder = await createOrder({
                 subAccountId: data.subAccountId,
                 customerEmail: data.email,
-                customerName: data.email.split('@')[0], // Fallback name
+                customerName: data.customerName || data.email.split('@')[0],
+                customerPhone: data.phone,
+                shippingAddress: data.address,
+                shippingCity: data.city,
+                shippingState: data.state,
+                shippingPostalCode: data.zipCode,
+                shippingCountry: data.country,
+                notes: data.isGift ? 'Gift Order' : undefined,
                 totalPrice: data.amount,
                 paymentMethod: data.paymentMethod.toUpperCase(),
                 paymentStatus: 'Done',
@@ -124,6 +139,7 @@ export const processCheckout = async (data: {
                 items: [
                     {
                         productId: data.productId,
+                        variantId: data.variantId,
                         productName: data.productName,
                         quantity: data.quantity,
                         unitPrice: data.amount / data.quantity,
@@ -131,6 +147,10 @@ export const processCheckout = async (data: {
                     }
                 ]
             })
+
+            if (createdOrder && chargeResponse.data) {
+                chargeResponse.data.createdOrderId = createdOrder.id
+            }
         }
 
         return chargeResponse || { status: false, message: 'Invalid payment details' }
@@ -146,10 +166,17 @@ export const submitPaymentOtp = async (otp: string, reference: string, orderDeta
 
         // If OTP verification is successful, create the order
         if (response.status && (response.data?.status === 'success' || response.status === true) && orderDetails) {
-            await createOrder({
+            const createdOrder = await createOrder({
                 subAccountId: orderDetails.subAccountId,
                 customerEmail: orderDetails.email,
-                customerName: orderDetails.email.split('@')[0],
+                customerName: orderDetails.customerName || orderDetails.email.split('@')[0],
+                customerPhone: orderDetails.phone,
+                shippingAddress: orderDetails.address,
+                shippingCity: orderDetails.city,
+                shippingState: orderDetails.state,
+                shippingPostalCode: orderDetails.zipCode,
+                shippingCountry: orderDetails.country,
+                notes: orderDetails.isGift ? 'Gift Order' : undefined,
                 totalPrice: orderDetails.amount,
                 paymentMethod: orderDetails.paymentMethod?.toUpperCase() || 'CARD',
                 paymentStatus: 'Done',
@@ -157,6 +184,7 @@ export const submitPaymentOtp = async (otp: string, reference: string, orderDeta
                 items: [
                     {
                         productId: orderDetails.productId,
+                        variantId: orderDetails.variantId,
                         productName: orderDetails.productName,
                         quantity: orderDetails.quantity,
                         unitPrice: orderDetails.amount / orderDetails.quantity,
@@ -164,6 +192,10 @@ export const submitPaymentOtp = async (otp: string, reference: string, orderDeta
                     }
                 ]
             })
+
+            if (createdOrder && response.data) {
+                response.data.createdOrderId = createdOrder.id
+            }
         }
 
         return response

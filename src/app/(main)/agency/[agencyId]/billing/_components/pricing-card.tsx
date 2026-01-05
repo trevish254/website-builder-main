@@ -54,25 +54,10 @@ const PricingCard = ({
   const plan = searchParams.get('plan')
 
   const handleManagePlan = async () => {
-    setOpen(
-      <CustomModal
-        title={'Manage Your Plan'}
-        subheading="You can change your plan at any time from the billings settings"
-      >
-        <SubscriptionFormWrapper
-          customerId={customerId}
-          planExists={planExists}
-        />
-      </CustomModal>,
-      async () => ({
-        plans: {
-          defaultPriceId: plan ? plan : '',
-          plans: prices,
-        },
-        user,
-        agency,
-      })
-    )
+    if (planExists) return
+
+    const planCode = prices.find((p) => p.nickname === title)?.id || ''
+    window.open(`/agency/${agency.id}/billing/checkout?plan=${planCode}`, '_blank')
   }
 
   return (

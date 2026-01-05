@@ -522,6 +522,7 @@ export const updateAgencyDetails = async (
   return data
 }
 
+
 export const deleteAgency = async (agencyId: string) => {
   const { error } = await supabase
     .from('Agency')
@@ -3705,7 +3706,7 @@ export const getOrderStats = async (subAccountId: string) => {
     .from('Order')
     .select('*', { count: 'exact', head: true })
     .eq('subAccountId', subAccountId)
-    .eq('orderStatus', 'Returned')
+    .or('orderStatus.eq.Returned,orderStatus.eq.Return Initiated')
 
   // Calculate return orders change (simplified)
   const returnOrdersChange = totalOrders && totalOrders > 0 ? (returnOrders! / totalOrders) * 100 : 0
@@ -3713,10 +3714,53 @@ export const getOrderStats = async (subAccountId: string) => {
   // Get revenue data for the chart (last 12 months)
   const { data: orders } = await supabase
     .from('Order')
-    .select('createdAt, totalPrice, orderStatus')
+    .select('createdAt, totalPrice, orderStatus, shippingCountry')
     .eq('subAccountId', subAccountId)
     .gte('createdAt', new Date(now.getFullYear(), now.getMonth() - 11, 1).toISOString())
     .order('createdAt', { ascending: true })
+
+  // Country distribution for map
+  const countryCounts: Record<string, { count: number, successful: number, cancels: number }> = {}
+  orders?.forEach(o => {
+    const country = o.shippingCountry || 'Unknown'
+    if (!countryCounts[country]) {
+      countryCounts[country] = { count: 0, successful: 0, cancels: 0 }
+    }
+    countryCounts[country].count++
+    if (o.orderStatus === 'Delivered') countryCounts[country].successful++
+    if (o.orderStatus === 'Cancelled' || o.orderStatus === 'Failed') countryCounts[country].cancels++
+  })
+
+  // Basic coordinates for common countries (in a real app, use a geocoding service or a more comprehensive map)
+  const countryCoords: Record<string, [number, number]> = {
+    'Kenya': [37.9062, -1.286389],
+    'United States': [-95.7129, 37.0902],
+    'United Kingdom': [-3.436, 55.3781],
+    'Germany': [10.4515, 51.1657],
+    'Nigeria': [8.6753, 9.082],
+    'Ghana': [-1.0232, 7.9465],
+    'South Africa': [22.9375, -30.5595],
+    'Uganda': [32.2903, 1.3733],
+    'Tanzania': [34.8888, -6.369],
+    'Rwanda': [29.8739, -1.9403],
+    'Ethiopia': [39.1225, 9.145],
+    'Egypt': [30.8025, 26.8206],
+    'India': [78.9629, 20.5937],
+    'Canada': [-106.3468, 56.1304],
+    'Australia': [133.7751, -25.2744],
+  }
+
+  const countryDistribution = Object.entries(countryCounts)
+    .map(([country, stats]) => ({
+      country,
+      count: stats.count,
+      successful: stats.successful,
+      cancels: stats.cancels,
+      abandons: 0, // Placeholder
+      growth: '+0%', // Placeholder
+      coordinates: countryCoords[country] || [0, 0]
+    }))
+    .sort((a, b) => b.count - a.count)
 
   return {
     totalOrders: totalOrders || 0,
@@ -3729,6 +3773,7 @@ export const getOrderStats = async (subAccountId: string) => {
     totalOrdersChange: totalOrdersChange || 11,
     returnOrdersChange: returnOrdersChange || -3.3,
     orders: orders || [],
+    countryDistribution: countryDistribution || [],
   }
 }
 
@@ -3745,4 +3790,32 @@ export const getOrderHistory = async (orderId: string) => {
   }
 
   return data
+}
+
+export const cancelOrder = async (orderId: string, reason?: string) => {
+  const { data: order } = await supabase
+    .from('Order')
+    .select('orderStatus')
+    .eq('id', orderId)
+    .single()
+
+  if (order && (order.orderStatus === 'Shipped' || order.orderStatus === 'Delivered' || order.orderStatus === 'In Transit' || order.orderStatus === 'In Sorting Centre')) {
+    throw new Error('Cannot cancel an order that has already been shipped or is in transit.')
+  }
+
+  return updateOrderStatus(orderId, 'Cancelled', reason || 'Order cancelled by customer')
+}
+
+export const returnOrder = async (orderId: string, reason?: string) => {
+  const { data: order } = await supabase
+    .from('Order')
+    .select('orderStatus')
+    .eq('id', orderId)
+    .single()
+
+  if (order && order.orderStatus !== 'Delivered') {
+    throw new Error('Only delivered orders can be transitioned to return.')
+  }
+
+  return updateOrderStatus(orderId, 'Return Initiated', reason || 'Customer requested a return')
 }

@@ -24,9 +24,10 @@ import {
     Receipt,
     Printer,
     ExternalLink,
+    RotateCcw,
     Image as ImageIcon
 } from 'lucide-react'
-import { getOrderHistory, updateOrderStatus } from '@/lib/queries'
+import { getOrderHistory, updateOrderStatus, cancelOrder, returnOrder } from '@/lib/queries'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
@@ -157,7 +158,6 @@ const ShipmentTracker = ({ subAccountId, subaccount, order }: ShipmentTrackerPro
 
             if (res) {
                 toast.success(`Order marked as ${newStatus}`)
-                // Refresh history
                 const data = await getOrderHistory(order.id)
                 setHistory(data)
                 router.refresh()
@@ -168,7 +168,39 @@ const ShipmentTracker = ({ subAccountId, subaccount, order }: ShipmentTrackerPro
         } finally {
             setIsUpdating(false)
         }
-    };
+    }
+
+    const handleCancel = async () => {
+        if (!confirm('Are you sure you want to cancel this order?')) return
+        try {
+            setIsUpdating(true)
+            await cancelOrder(order.id, 'Cancelled by administrator from dashboard')
+            toast.success("Order cancelled successfully")
+            const data = await getOrderHistory(order.id)
+            setHistory(data)
+            router.refresh()
+        } catch (error: any) {
+            toast.error(error.message || "Failed to cancel order")
+        } finally {
+            setIsUpdating(false)
+        }
+    }
+
+    const handleReturn = async () => {
+        if (!confirm('Initiate return process for this order?')) return
+        try {
+            setIsUpdating(true)
+            await returnOrder(order.id, 'Return initiated by administrator')
+            toast.success("Return initiated")
+            const data = await getOrderHistory(order.id)
+            setHistory(data)
+            router.refresh()
+        } catch (error: any) {
+            toast.error(error.message || "Failed to initiate return")
+        } finally {
+            setIsUpdating(false)
+        }
+    }
 
     return (
         <div className="flex flex-col h-full bg-transparent selection:bg-primary/20">
@@ -298,7 +330,7 @@ const ShipmentTracker = ({ subAccountId, subaccount, order }: ShipmentTrackerPro
                             <div className="grid grid-cols-2 gap-4">
                                 <Button
                                     onClick={() => handleStatusUpdate('Shipped')}
-                                    disabled={isUpdating || order.orderStatus === 'Shipped' || order.orderStatus === 'In Transit' || order.orderStatus === 'Delivered'}
+                                    disabled={isUpdating || order.orderStatus === 'Shipped' || order.orderStatus === 'In Transit' || order.orderStatus === 'Delivered' || order.orderStatus === 'Cancelled'}
                                     className="h-16 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-white dark:to-slate-200 text-white dark:text-slate-900 rounded-2xl flex flex-col items-center justify-center gap-1.5 group transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl border border-white/10 dark:border-black/5 relative overflow-hidden"
                                 >
                                     <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -307,12 +339,32 @@ const ShipmentTracker = ({ subAccountId, subaccount, order }: ShipmentTrackerPro
                                 </Button>
                                 <Button
                                     onClick={() => handleStatusUpdate('Delivered')}
-                                    disabled={isUpdating || order.orderStatus === 'Delivered'}
-                                    className="h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-2xl flex flex-col items-center justify-center gap-1.5 group transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl shadow-emerald-500/20 border border-white/10 relative overflow-hidden"
+                                    disabled={isUpdating || order.orderStatus === 'Delivered' || order.orderStatus === 'Cancelled'}
+                                    className="h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-2xl flex flex-col items-center justify-center gap-1.5 group transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl shadow-indigo-500/20 border border-white/10 relative overflow-hidden"
                                 >
                                     <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <CheckCircle2 className="size-4 group-hover:scale-110 transition-transform" />
                                     <span className="text-[9px] font-black uppercase tracking-[0.2em]">Mark Delivered</span>
+                                </Button>
+
+                                <Button
+                                    onClick={handleReturn}
+                                    disabled={isUpdating || order.orderStatus !== 'Delivered'}
+                                    className="h-16 bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-2xl flex flex-col items-center justify-center gap-1.5 group transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl shadow-amber-500/20 border border-white/10 relative overflow-hidden"
+                                >
+                                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <RotateCcw className="size-4 group-hover:-rotate-45 transition-transform" />
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">Initiate Return</span>
+                                </Button>
+
+                                <Button
+                                    onClick={handleCancel}
+                                    disabled={isUpdating || order.orderStatus === 'Shipped' || order.orderStatus === 'Delivered' || order.orderStatus === 'Cancelled'}
+                                    className="h-16 bg-gradient-to-br from-rose-500 to-rose-600 text-white rounded-2xl flex flex-col items-center justify-center gap-1.5 group transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl shadow-rose-500/20 border border-white/10 relative overflow-hidden"
+                                >
+                                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <AlertCircle className="size-4 group-hover:scale-110 transition-transform" />
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">Cancel Order</span>
                                 </Button>
                             </div>
 

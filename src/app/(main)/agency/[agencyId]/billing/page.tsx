@@ -1,18 +1,25 @@
 import React from 'react'
-import { stripe } from '@/lib/stripe' // Still needed for some types or if we keep old logic
 import { pricingCards } from '@/lib/constants'
 import { db } from '@/lib/db'
-import { Separator } from '@/components/ui/separator'
-import PricingCard from './_components/pricing-card'
-import clsx from 'clsx'
-import SubscriptionHelper from './_components/subscription-helper'
 import { getAuthUserDetails } from '@/lib/queries'
 import { paystack } from '@/lib/paystack'
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import UsageDashboard from './_components/usage-dashboard'
 import { getAgencyTeamMembers } from '@/lib/queries'
-import { Layers } from 'lucide-react'
+import { Layers, Shield, Users, Rocket, Workflow, CheckIcon, Star, BadgeCheck, Headphones } from 'lucide-react'
+import {
+  PricingTable,
+  PricingTableBody,
+  PricingTableHeader,
+  PricingTableHead,
+  PricingTableRow,
+  PricingTableCell,
+  PricingTablePlan,
+} from '@/components/ui/pricing-table'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
+import SubscriptionHelper from './_components/subscription-helper'
 
 type Props = {
   params: { agencyId: string }
@@ -22,7 +29,6 @@ const page = async ({ params }: Props) => {
   const userDetails = await getAuthUserDetails()
   if (!userDetails) return null
 
-  // 1. Fetch Subscription and Data from DB
   const [agencyRes, teamMembers] = await Promise.all([
     db
       .from('Agency')
@@ -39,11 +45,8 @@ const page = async ({ params }: Props) => {
     : agencyData?.Subscription
 
 
-  // 2. If no active subscription in DB, check Paystack LIVE as a fallback
   if (!activeSubscription?.active) {
     const customerEmail = agencyData?.companyEmail || userDetails.email
-
-    // a. Resolve the correct customer code
     let codeToUse = agencyData?.customerId
 
     const isSuspectCode = !codeToUse || !codeToUse.startsWith('CUS_')
@@ -60,7 +63,6 @@ const page = async ({ params }: Props) => {
         paystack.listTransactions(codeToUse)
       ])
 
-      // PAYSTACK BUG WORKAROUND
       if ((!subsRes.data || subsRes.data.length === 0) || (!transRes.data || transRes.data.length === 0)) {
         const [allSubs, allTrans] = await Promise.all([
           paystack.listSubscriptions(),
@@ -132,7 +134,6 @@ const page = async ({ params }: Props) => {
     }
   }
 
-  // Create prices structure for UI components
   const prices = {
     data: pricingCards.map(card => ({
       id: card.paystackPlanCode || card.priceId,
@@ -148,11 +149,8 @@ const page = async ({ params }: Props) => {
     return isMatch;
   }) || pricingCards[0]
 
-  // Usage calculations
   const teamCount = teamMembers.length
   const subaccountCount = agencyData?.SubAccount?.length || 0
-
-  // Find limit from plan
   const subaccountLimit = currentPlanDetails.title === 'Starter' ? 3 : 100
 
   const formattedRenewal = activeSubscription?.currentPeriodEndDate
@@ -164,7 +162,7 @@ const page = async ({ params }: Props) => {
     : 'N/A'
 
   return (
-    <div className="flex flex-col gap-8 pb-20">
+    <div className="flex flex-col gap-8 pb-20 relative min-h-screen">
       <SubscriptionHelper
         prices={prices.data as any}
         customerId={activeSubscription?.customerId || ''}
@@ -173,9 +171,9 @@ const page = async ({ params }: Props) => {
         agency={userDetails.Agency}
       />
 
-      <div className="p-4 md:p-8 space-y-8">
+      <div className="p-4 md:p-8 space-y-8 relative z-10">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">Subscription</h1>
+          <h1 className="text-4xl font-black tracking-tight">Subscription</h1>
           <p className="text-muted-foreground mt-2">
             Manage your billing, plans and view your subscription usage.
           </p>
@@ -185,19 +183,19 @@ const page = async ({ params }: Props) => {
           <TabsList className="bg-transparent border-b border-border w-full justify-start rounded-none h-auto p-0 gap-8">
             <TabsTrigger
               value="overview"
-              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-4 px-0 font-semibold"
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-4 px-0 font-bold uppercase tracking-widest text-xs"
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="plans"
-              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-4 px-0 font-semibold"
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-4 px-0 font-bold uppercase tracking-widest text-xs"
             >
               Available Plans
             </TabsTrigger>
             <TabsTrigger
               value="addons"
-              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-4 px-0 font-semibold"
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-4 px-0 font-bold uppercase tracking-widest text-xs"
             >
               Add-ons
             </TabsTrigger>
@@ -216,29 +214,90 @@ const page = async ({ params }: Props) => {
           </TabsContent>
 
           <TabsContent value="plans" className="mt-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
-              {pricingCards.map((card) => (
-                <PricingCard
-                  key={card.title}
-                  planExists={activeSubscription?.active === true && activeSubscription.priceId === (card.paystackPlanCode || card.priceId)}
-                  prices={prices.data as any}
-                  customerId={activeSubscription?.customerId || ''}
-                  user={userDetails}
-                  agency={userDetails.Agency}
-                  amt={card.price}
-                  buttonCta={
-                    activeSubscription?.active === true && activeSubscription.priceId === (card.paystackPlanCode || card.priceId)
-                      ? 'Current Plan'
-                      : 'Upgrade'
-                  }
-                  highlightDescription={card.description}
-                  highlightTitle={card.title}
-                  description={card.description}
-                  duration={card.duration ? `/ ${card.duration}` : ''}
-                  features={card.features}
-                  title={card.title}
-                />
-              ))}
+            <div className="relative overflow-hidden rounded-[32px] border border-border/50 bg-card/10 backdrop-blur-xl p-1">
+              {/* Dots Background inside Tab */}
+              <div
+                className={cn(
+                  'absolute inset-0 z-[-1] size-full opacity-20',
+                  '[mask-image:radial-gradient(ellipse_at_center,black,transparent)]',
+                )}
+                style={{
+                  backgroundImage:
+                    'radial-gradient(var(--foreground) 1px, transparent 1px)',
+                  backgroundSize: '32px 32px',
+                }}
+              />
+
+              <PricingTable className="w-full">
+                <PricingTableHeader>
+                  <PricingTableRow className="hover:bg-transparent border-none">
+                    <th className="p-8 text-left align-middle min-w-[200px]">
+                      <div className="space-y-1">
+                        <h2 className="text-4xl font-black tracking-tighter leading-none">Compare Features</h2>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                          FIND THE RIGHT FIT FOR YOU
+                        </p>
+                      </div>
+                    </th>
+                    {pricingCards.map((card) => {
+                      const isCurrentPlan = activeSubscription?.active === true && activeSubscription.priceId === (card.paystackPlanCode || card.priceId)
+                      const isStarter = card.title === 'Starter'
+                      const isUnlimited = card.title === 'Unlimited Saas'
+
+                      return (
+                        <th key={card.title} className="p-2 min-w-[280px]">
+                          <PricingTablePlan
+                            name={card.title}
+                            badge={isCurrentPlan ? 'Current' : card.highlight}
+                            price={card.price}
+                            icon={isStarter ? Shield : isUnlimited ? Rocket : Users}
+                            className={cn(
+                              'bg-transparent border-none shadow-none',
+                              isCurrentPlan && 'bg-primary/5 ring-1 ring-primary/20'
+                            )}
+                          >
+                            <Link
+                              href={isCurrentPlan ? '#' : `/agency/${params.agencyId}/billing/checkout?plan=${card.paystackPlanCode || card.priceId}`}
+                              target={isCurrentPlan ? '_self' : '_blank'}
+                              className="w-full"
+                            >
+                              <Button
+                                disabled={isCurrentPlan}
+                                className={cn(
+                                  'w-full h-12 rounded-xl font-black uppercase tracking-widest text-xs transition-all',
+                                  isCurrentPlan
+                                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20'
+                                    : 'bg-primary shadow-lg shadow-primary/20 hover:scale-[1.02]'
+                                )}
+                                variant={isCurrentPlan ? 'outline' : 'default'}
+                              >
+                                {isCurrentPlan ? 'Active Plan' : isStarter ? 'Free Tier' : 'Upgrade Now'}
+                              </Button>
+                            </Link>
+                          </PricingTablePlan>
+                        </th>
+                      )
+                    })}
+                  </PricingTableRow>
+                </PricingTableHeader>
+                <PricingTableBody>
+                  {FEATURES.map((feature, index) => (
+                    <PricingTableRow key={index} className="hover:bg-muted/30 transition-colors">
+                      <PricingTableHead className="p-6 font-bold text-foreground flex items-center gap-3">
+                        <div className="p-1.5 rounded-lg bg-muted/50 transition-colors">
+                          <feature.icon className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        {feature.label}
+                      </PricingTableHead>
+                      {feature.values.map((value, vIndex) => (
+                        <PricingTableCell key={vIndex} className="text-center p-6 text-sm font-medium">
+                          {value}
+                        </PricingTableCell>
+                      ))}
+                    </PricingTableRow>
+                  ))}
+                </PricingTableBody>
+              </PricingTable>
             </div>
           </TabsContent>
 
@@ -256,5 +315,23 @@ const page = async ({ params }: Props) => {
     </div>
   )
 }
+
+const FEATURES = [
+  { label: 'Sub Accounts', values: ['3', 'Unlimited', 'Unlimited'], icon: Layers },
+  { label: 'Team Members', values: ['2', 'Unlimited', 'Unlimited'], icon: Users },
+  { label: 'Pipelines', values: [true, true, true], icon: Workflow },
+  { label: 'Guests', values: [true, true, true], icon: Users },
+  { label: 'Live collaboration', values: [false, true, true], icon: Users },
+  { label: 'Asset library', values: ['50 assets', '500 assets', 'Unlimited assets'], icon: Star },
+  { label: 'Export files', values: ['PNG only', 'PNG, PDF, MP4', 'PNG, PDF, MP4, JPEG'], icon: Rocket },
+  { label: 'Multiple dimensions', values: ['1:1', '1:1 and 9:16', 'All ratios & custom sizes'], icon: Star },
+  { label: 'Dedicated account manager', values: [false, false, true], icon: Users },
+  { label: 'Access to help center', values: [true, true, true], icon: Headphones },
+  { label: 'Priority support', values: [false, 'Business hours', '24/7 priority'], icon: Headphones },
+  { label: 'Advanced analytics', values: [false, true, true], icon: Star },
+  { label: 'Storage space', values: ['1 GB', '20 GB', '1 TB'], icon: Star },
+  { label: 'User roles & permissions', values: [false, true, true], icon: BadgeCheck },
+  { label: 'White-label option', values: [false, false, true], icon: BadgeCheck },
+];
 
 export default page

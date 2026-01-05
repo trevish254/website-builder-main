@@ -336,8 +336,8 @@ const AgencyDetails = ({ data }: Props) => {
     <AlertDialog>
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Agency Information</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-4xl font-black text-foreground tracking-tight">Agency Information</CardTitle>
+          <CardDescription className="text-muted-foreground font-medium">
             Lets create an agency for you business. You can edit agency settings
             later from the agency settings tab.
           </CardDescription>
@@ -354,7 +354,7 @@ const AgencyDetails = ({ data }: Props) => {
                 name="agencyLogo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Agency Logo (Optional)</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Agency Logo (Optional)</FormLabel>
                     <FormControl>
                       <FileUpload
                         apiEndpoint="agencyLogo"
@@ -384,10 +384,11 @@ const AgencyDetails = ({ data }: Props) => {
                   name="name"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <FormLabel>Agency Name</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Agency Name</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Your agency name"
+                          className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                           {...field}
                         />
                       </FormControl>
@@ -401,11 +402,12 @@ const AgencyDetails = ({ data }: Props) => {
                   name="companyEmail"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <FormLabel>Agency Email</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Agency Email</FormLabel>
                       <FormControl>
                         <Input
                           type="email"
                           placeholder={user?.email || "agency@example.com"}
+                          className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                           {...field}
                         />
                       </FormControl>
@@ -421,10 +423,11 @@ const AgencyDetails = ({ data }: Props) => {
                   name="companyPhone"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <FormLabel>Agency Phone Number</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Agency Phone Number</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Phone"
+                          className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                           {...field}
                         />
                       </FormControl>
@@ -442,7 +445,7 @@ const AgencyDetails = ({ data }: Props) => {
                   return (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border gap-4 p-4">
                       <div>
-                        <FormLabel>Whitelabel Agency</FormLabel>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Whitelabel Agency</FormLabel>
                         <FormDescription>
                           Turning on whilelabel mode will show your agency logo
                           to all sub accounts by default. You can overwrite this
@@ -466,10 +469,11 @@ const AgencyDetails = ({ data }: Props) => {
                 name="address"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>Address</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Address</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="123 st..."
+                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                         {...field}
                       />
                     </FormControl>
@@ -484,10 +488,11 @@ const AgencyDetails = ({ data }: Props) => {
                   name="city"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <FormLabel>City</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">City</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="City"
+                          className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                           {...field}
                         />
                       </FormControl>
@@ -501,10 +506,11 @@ const AgencyDetails = ({ data }: Props) => {
                   name="state"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <FormLabel>State</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">State</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="State"
+                          className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                           {...field}
                         />
                       </FormControl>
@@ -518,10 +524,11 @@ const AgencyDetails = ({ data }: Props) => {
                   name="zipCode"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <FormLabel>Zipcpde</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Zipcpde</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Zipcode"
+                          className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                           {...field}
                         />
                       </FormControl>
@@ -536,10 +543,11 @@ const AgencyDetails = ({ data }: Props) => {
                 name="country"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>Country</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Country</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Country"
+                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                         {...field}
                       />
                     </FormControl>
@@ -549,7 +557,7 @@ const AgencyDetails = ({ data }: Props) => {
               />
               {data?.id && (
                 <div className="flex flex-col gap-2">
-                  <FormLabel>Create A Goal</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Create A Goal</FormLabel>
                   <FormDescription>
                     ✨ Create a goal for your agency. As your business grows
                     your goals grow too so dont forget to set the bar higher!
@@ -575,6 +583,7 @@ const AgencyDetails = ({ data }: Props) => {
               <Button
                 type="submit"
                 disabled={isLoading}
+                className="w-full h-16 rounded-[22px] bg-primary text-primary-foreground font-black text-base uppercase tracking-[0.1em] shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-3 group"
               >
                 {isLoading ? <Loading /> : 'Save Agency Information'}
               </Button>

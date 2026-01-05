@@ -234,8 +234,8 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Sub Account Information</CardTitle>
-        <CardDescription>Please enter business details</CardDescription>
+        <CardTitle className="text-4xl font-black text-foreground tracking-tight">Sub Account Information</CardTitle>
+        <CardDescription className="text-muted-foreground font-medium">Please enter business details</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -249,7 +249,7 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
               name="subAccountLogo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Account Logo</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Account Logo</FormLabel>
                   <FormControl>
                     <FileUpload
                       apiEndpoint="subaccountLogo"
@@ -267,13 +267,13 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
               name="subAccountType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Subaccount Type</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Subaccount Type</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold">
                         <SelectValue placeholder="Select a subaccount type" />
                       </SelectTrigger>
                     </FormControl>
@@ -295,10 +295,11 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 name="companyName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Company Name</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Company Name</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Company Name"
+                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                         {...field}
                       />
                     </FormControl>
@@ -314,13 +315,14 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 name="name"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">
                       {subAccountType === 'TEAM' ? 'Team Name' : 'Account Name'}
                     </FormLabel>
                     <FormControl>
                       <Input
                         required
                         placeholder="Your agency name"
+                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                         {...field}
                       />
                     </FormControl>
@@ -334,10 +336,11 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 name="companyEmail"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>Acount Email</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Acount Email</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Email"
+                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                         {...field}
                       />
                     </FormControl>
@@ -353,11 +356,12 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 name="companyPhone"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>Acount Phone Number</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Acount Phone Number</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Phone"
                         required
+                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                         {...field}
                       />
                     </FormControl>
@@ -373,11 +377,12 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
               name="address"
               render={({ field }) => (
                 <FormItem className="flex-1">
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Address</FormLabel>
                   <FormControl>
                     <Input
                       required
                       placeholder="123 st..."
+                      className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                       {...field}
                     />
                   </FormControl>
@@ -392,11 +397,12 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 name="city"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>City</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">City</FormLabel>
                     <FormControl>
                       <Input
                         required
                         placeholder="City"
+                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                         {...field}
                       />
                     </FormControl>
@@ -410,11 +416,12 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 name="state"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>State</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">State</FormLabel>
                     <FormControl>
                       <Input
                         required
                         placeholder="State"
+                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                         {...field}
                       />
                     </FormControl>
@@ -428,11 +435,12 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 name="zipCode"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>Zipcpde</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Zipcpde</FormLabel>
                     <FormControl>
                       <Input
                         required
                         placeholder="Zipcode"
+                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                         {...field}
                       />
                     </FormControl>
@@ -447,11 +455,12 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
               name="country"
               render={({ field }) => (
                 <FormItem className="flex-1">
-                  <FormLabel>Country</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Country</FormLabel>
                   <FormControl>
                     <Input
                       required
                       placeholder="Country"
+                      className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
                       {...field}
                     />
                   </FormControl>
@@ -462,6 +471,7 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
             <Button
               type="submit"
               disabled={isLoading}
+              className="w-full h-16 rounded-[22px] bg-primary text-primary-foreground font-black text-base uppercase tracking-[0.1em] shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-3 group"
             >
               {isLoading ? <Loading /> : 'Save Account Information'}
             </Button>

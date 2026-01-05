@@ -57,6 +57,8 @@ export async function updateSession(request: NextRequest) {
         !request.nextUrl.pathname.startsWith('/api/uploadthing') &&
         !request.nextUrl.pathname.startsWith('/api/heartbeat') &&
         !request.nextUrl.pathname.startsWith('/api/paystack/webhook') &&
+        !request.nextUrl.pathname.startsWith('/inventory-preview') &&
+        !request.nextUrl.pathname.startsWith('/inventory-checkout') &&
         request.nextUrl.pathname !== '/'
     ) {
         // Build redirect URL respecting ngrok/forwarded headers

@@ -134,6 +134,15 @@ interface OrdersClientProps {
             totalPrice: number
             orderStatus: string
         }>
+        countryDistribution: Array<{
+            country: string
+            count: number
+            successful: number
+            cancels: number
+            abandons: number
+            growth: string
+            coordinates: [number, number]
+        }>
     }
     count: number
     totalPages: number
@@ -213,12 +222,13 @@ const StatusCard = ({ label, count, color, trend, percentage, icon: Icon, gradie
     )
 }
 
-const RegionalInsightsCard = () => {
-    const regions = [
-        { country: "United States", growth: "+12%", percentage: 85, color: "bg-blue-500" },
-        { country: "Germany", growth: "+8%", percentage: 65, color: "bg-emerald-500" },
-        { country: "United Kingdom", growth: "-2%", percentage: 45, color: "bg-amber-500" },
-    ]
+const RegionalInsightsCard = ({ data }: { data: any[] }) => {
+    const regions = data.slice(0, 3).map(d => ({
+        country: d.country,
+        growth: d.growth || '+0%',
+        percentage: Math.min(100, (d.count / (data[0]?.count || 1)) * 100),
+        color: "bg-primary"
+    }))
 
     return (
         <PremiumCard className="overflow-hidden border border-border shadow-xs">
@@ -582,7 +592,7 @@ const OrdersClient = ({
 
                         <Card className="p-6 bg-card border border-border shadow-sm flex flex-col h-full overflow-hidden">
                             <div className="flex-1 min-h-[550px]">
-                                <CountryDistributionMap />
+                                <CountryDistributionMap data={stats.countryDistribution} />
                             </div>
                         </Card>
                     </div>
@@ -592,7 +602,7 @@ const OrdersClient = ({
                         <StatusCard label="Shipped Orders" count={stats.shippedOrdersCount} color="blue" trend="up" percentage={8.4} icon={Truck} gradientId="shippedGradient" />
                         <StatusCard label="Canceled Orders" count={stats.canceledOrdersCount} color="rose" trend="down" percentage={3.2} icon={XCircle} gradientId="canceledGradient" />
                         <StatusCard label="Delivered Orders" count={stats.deliveredOrdersCount} color="emerald" trend="up" percentage={15.9} icon={CheckCircle2} gradientId="deliveredGradient" />
-                        <RegionalInsightsCard />
+                        <RegionalInsightsCard data={stats.countryDistribution} />
                     </div>
                 </div>
 

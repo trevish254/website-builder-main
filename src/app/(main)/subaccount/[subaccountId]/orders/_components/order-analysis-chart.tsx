@@ -93,26 +93,26 @@ const OrderAnalysisChart = ({ orders, chartType }: OrderAnalysisChartProps) => {
                     {
                         label: 'Fulfilled',
                         data: fulfilledData,
-                        borderColor: '#ef4444',
-                        backgroundColor: chartType === 'Line' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.8)',
+                        borderColor: '#10b981',
+                        backgroundColor: chartType === 'Line' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.8)',
                         fill: chartType === 'Line',
                         tension: 0.4,
                         pointRadius: 4,
                         pointHoverRadius: 6,
-                        pointBackgroundColor: '#ef4444',
+                        pointBackgroundColor: '#10b981',
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                     },
                     {
-                        label: 'Cancel',
+                        label: 'Canceled',
                         data: cancelledData,
-                        borderColor: '#94a3b8',
-                        backgroundColor: chartType === 'Line' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.8)',
+                        borderColor: '#f43f5e',
+                        backgroundColor: chartType === 'Line' ? 'rgba(244, 63, 94, 0.1)' : 'rgba(244, 63, 94, 0.8)',
                         fill: chartType === 'Line',
                         tension: 0.4,
                         pointRadius: 4,
                         pointHoverRadius: 6,
-                        pointBackgroundColor: '#94a3b8',
+                        pointBackgroundColor: '#f43f5e',
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                     },
@@ -192,13 +192,13 @@ const OrderAnalysisChart = ({ orders, chartType }: OrderAnalysisChartProps) => {
             {/* Legend */}
             <div className="absolute top-0 right-0 flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                     <span className="text-muted-foreground">Fulfilled</span>
                     <span className="font-semibold text-foreground">{hasData ? totalFulfilled.toLocaleString() : '366'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-                    <span className="text-muted-foreground">Cancel</span>
+                    <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                    <span className="text-muted-foreground">Canceled</span>
                     <span className="font-semibold text-foreground">{hasData ? totalCancelled.toLocaleString() : '76'}</span>
                 </div>
             </div>
