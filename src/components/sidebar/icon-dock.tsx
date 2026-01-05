@@ -47,7 +47,7 @@ const MENU_CATEGORIES = [
         id: 'inventory',
         icon: 'package',
         label: 'Inventory',
-        matchNames: ['product Dashboard', 'Inventory', 'Order', 'Customer Details', 'Revenue Analytics']
+        matchNames: ['product Dashboard', 'Inventory', 'Orders', 'Order', 'Customer Details', 'Revenue Analytics']
     },
     {
         id: 'clients',

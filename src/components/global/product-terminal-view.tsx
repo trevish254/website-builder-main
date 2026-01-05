@@ -148,6 +148,7 @@ const ProductTerminalView: React.FC<ProductTerminalViewProps> = ({ product }) =>
                 productId: product.id,
                 productName: product.name,
                 quantity,
+                subAccountId: product.subAccountId,
                 cardData,
                 paymentMethod,
                 phone: phone.replace(/\s/g, '')
@@ -178,7 +179,16 @@ const ProductTerminalView: React.FC<ProductTerminalViewProps> = ({ product }) =>
     const handleOtpSubmit = async () => {
         setLoading(true)
         try {
-            const result = await submitPaymentOtp(otpValue, reference)
+            const orderDetails = {
+                email,
+                amount: total,
+                productId: product.id,
+                productName: product.name,
+                quantity,
+                subAccountId: product.subAccountId,
+                paymentMethod
+            }
+            const result = await submitPaymentOtp(otpValue, reference, orderDetails)
             if (result.status && (result.data?.status === 'success' || result.status === true)) {
                 setPaymentDetails(result.data)
                 setOtpRequired(false)
@@ -193,6 +203,7 @@ const ProductTerminalView: React.FC<ProductTerminalViewProps> = ({ product }) =>
             setLoading(false)
         }
     }
+
 
     return (
         <div className="min-h-screen bg-slate-50/50 flex flex-col items-center justify-center p-0 md:p-4 lg:p-8">

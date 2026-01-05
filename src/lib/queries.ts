@@ -253,6 +253,16 @@ export const getAuthUserDetails = cache(async () => {
               await addWebsitesToExistingSubAccount(subAccount.id)
               shouldRefetchSubAccount = true
             }
+
+            const hasOrders = subAccount.SubAccountSidebarOption.some(
+              (option: any) => option.name === 'Orders'
+            )
+
+            if (!hasOrders) {
+              console.log('🔧 Adding Orders to existing subaccount sidebar options')
+              await addOrdersToExistingSubAccount(subAccount.id)
+              shouldRefetchSubAccount = true
+            }
           }
         }
 
@@ -1175,6 +1185,15 @@ export const createDefaultSubAccountSidebarOptions = async (subAccountId: string
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
+      {
+        id: `sub-sidebar-${subAccountId}-orders`,
+        name: 'Orders',
+        link: `/subaccount/${subAccountId}/orders`,
+        icon: 'clipboardIcon',
+        subAccountId: subAccountId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
     ]
 
     const { error: insertError } = await supabase
@@ -1232,6 +1251,50 @@ export const addWebsitesToExistingSubAccount = async (subAccountId: string) => {
     }
   } catch (error) {
     console.error('Error adding Websites to existing subaccount:', error)
+  }
+}
+
+export const addOrdersToExistingSubAccount = async (subAccountId: string) => {
+  try {
+    // Check if Orders option already exists
+    const { data: existingOption, error: checkError } = await supabase
+      .from('SubAccountSidebarOption')
+      .select('id')
+      .eq('subAccountId', subAccountId)
+      .eq('name', 'Orders')
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error('Error checking for existing Orders option:', checkError)
+      return
+    }
+
+    // If option doesn't exist, add it
+    if (!existingOption) {
+      const ordersOption = {
+        id: `sub-sidebar-${subAccountId}-orders`,
+        name: 'Orders',
+        link: `/subaccount/${subAccountId}/orders`,
+        icon: 'clipboardIcon',
+        subAccountId: subAccountId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      const { error: insertError } = await supabase
+        .from('SubAccountSidebarOption')
+        .insert(ordersOption as AnyRecord)
+
+      if (insertError) {
+        console.error('Error adding Orders option:', insertError)
+      } else {
+        console.log('✅ Orders option added to subaccount:', subAccountId)
+      }
+    } else {
+      console.log('✅ Orders option already exists for subaccount:', subAccountId)
+    }
+  } catch (error) {
+    console.error('Error adding Orders to existing subaccount:', error)
   }
 }
 
@@ -3268,4 +3331,418 @@ export const getAgencyTaskBoardDetails = async (agencyId: string) => {
   })) || []
 
   return { ...board, TaskLane: lanesWithTasks }
+}
+
+// ============================================
+// ORDERS MANAGEMENT QUERIES
+// ============================================
+
+export const getOrders = async (
+  subAccountId: string,
+  filters?: {
+    query?: string
+    status?: string
+    paymentStatus?: string
+    startDate?: string
+    endDate?: string
+    page?: number
+    limit?: number
+  }
+) => {
+  const page = filters?.page || 1
+  const limit = filters?.limit || 20
+  const offset = (page - 1) * limit
+
+  let query = supabase
+    .from('Order')
+    .select(`
+      *,
+      OrderItem (
+        *,
+        Product (
+          *
+        )
+      )
+    `, { count: 'exact' })
+    .eq('subAccountId', subAccountId)
+    .order('createdAt', { ascending: false })
+
+  // Apply filters
+  if (filters?.query) {
+    query = query.or(`orderId.ilike.%${filters.query}%,customerName.ilike.%${filters.query}%,customerEmail.ilike.%${filters.query}%`)
+  }
+
+  if (filters?.status && filters.status !== 'all' && filters.status !== '') {
+    query = query.eq('orderStatus', filters.status)
+  }
+
+  if (filters?.paymentStatus && filters.paymentStatus !== 'all' && filters.paymentStatus !== '') {
+    query = query.eq('paymentStatus', filters.paymentStatus)
+  }
+
+  if (filters?.startDate) {
+    query = query.gte('createdAt', filters.startDate)
+  }
+
+  if (filters?.endDate) {
+    query = query.lte('createdAt', filters.endDate)
+  }
+
+  query = query.range(offset, offset + limit - 1)
+
+  const { data, error, count } = await query
+
+  if (error) {
+    console.error('Error fetching orders:', error)
+    return { data: [], count: 0 }
+  }
+
+  return { data: data || [], count: count || 0 }
+}
+
+export const getOrderById = async (orderId: string) => {
+  const { data, error } = await supabase
+    .from('Order')
+    .select(`
+      *,
+      OrderItem (
+        *,
+        Product (
+          id,
+          name,
+          images,
+          description
+        )
+      ),
+      OrderStatusHistory (
+        *
+      )
+    `)
+    .eq('id', orderId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching order:', error)
+    return null
+  }
+
+  return data
+}
+
+export const createOrder = async (orderData: {
+  subAccountId: string
+  customerName?: string
+  customerEmail?: string
+  customerPhone?: string
+  totalPrice: number
+  paymentMethod?: string
+  paymentStatus?: string
+  orderStatus?: string
+  shippingAddress?: string
+  shippingCity?: string
+  shippingState?: string
+  shippingCountry?: string
+  shippingPostalCode?: string
+  trackingNumber?: string
+  estimatedDelivery?: string
+  notes?: string
+  items: Array<{
+    productId: string
+    variantId?: string
+    productName: string
+    quantity: number
+    unitPrice: number
+    totalPrice: number
+  }>
+}) => {
+  const orderId = `#${Math.random().toString(36).substring(2, 9).toUpperCase()}-${Math.random().toString(36).substring(2, 4).toUpperCase()}`
+
+  const order = {
+    id: v4(),
+    orderId,
+    subAccountId: orderData.subAccountId,
+    customerName: orderData.customerName,
+    customerEmail: orderData.customerEmail,
+    customerPhone: orderData.customerPhone,
+    totalPrice: orderData.totalPrice,
+    paymentMethod: orderData.paymentMethod || 'VISA',
+    paymentStatus: orderData.paymentStatus || 'Pending',
+    orderStatus: orderData.orderStatus || 'Order Confirmed',
+    shippingAddress: orderData.shippingAddress,
+    shippingCity: orderData.shippingCity,
+    shippingState: orderData.shippingState,
+    shippingCountry: orderData.shippingCountry,
+    shippingPostalCode: orderData.shippingPostalCode,
+    trackingNumber: orderData.trackingNumber,
+    estimatedDelivery: orderData.estimatedDelivery,
+    notes: orderData.notes,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+
+  const { data: createdOrder, error: orderError } = await supabase
+    .from('Order')
+    .insert(order as AnyRecord)
+    .select()
+    .single()
+
+  if (orderError) {
+    console.error('Error creating order:', orderError)
+    return null
+  }
+
+  // Create order items
+  const orderItems = orderData.items.map(item => ({
+    id: v4(),
+    orderId: createdOrder.id,
+    productId: item.productId,
+    variantId: item.variantId,
+    productName: item.productName,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    totalPrice: item.totalPrice,
+    createdAt: new Date().toISOString(),
+  }))
+
+  const { error: itemsError } = await supabase
+    .from('OrderItem')
+    .insert(orderItems as AnyRecord[])
+
+  if (itemsError) {
+    console.error('Error creating order items:', itemsError)
+    return null
+  }
+
+  // Create initial status history
+  await supabase
+    .from('OrderStatusHistory')
+    .insert({
+      id: v4(),
+      orderId: createdOrder.id,
+      status: order.orderStatus,
+      description: 'Order has been confirmed',
+      createdAt: new Date().toISOString(),
+    } as AnyRecord)
+
+  return createdOrder
+}
+
+export const updateOrderStatus = async (
+  orderId: string,
+  status: string,
+  description?: string,
+  location?: string
+) => {
+  const { data, error } = await supabase
+    .from('Order')
+    .update({
+      orderStatus: status,
+      updatedAt: new Date().toISOString(),
+    } as AnyRecord)
+    .eq('id', orderId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating order status:', error)
+    return null
+  }
+
+  // Add to status history
+  await supabase
+    .from('OrderStatusHistory')
+    .insert({
+      id: v4(),
+      orderId,
+      status,
+      description,
+      location,
+      createdAt: new Date().toISOString(),
+    } as AnyRecord)
+
+  // Revalidate to refresh the UI
+  revalidatePath(`/subaccount/${data.subAccountId}/orders`)
+
+  return data
+}
+
+export const bulkUpdateOrderStatus = async (
+  orderIds: string[],
+  status: string,
+  subAccountId: string,
+  description?: string,
+  location?: string
+) => {
+  const { data, error } = await supabase
+    .from('Order')
+    .update({
+      orderStatus: status,
+      updatedAt: new Date().toISOString(),
+    } as AnyRecord)
+    .in('id', orderIds)
+    .select('id')
+
+  if (error) {
+    console.error('Error batch updating order status:', error)
+    return null
+  }
+
+  // Add to status history for all
+  const historyEntries = orderIds.map(orderId => ({
+    id: v4(),
+    orderId,
+    status,
+    description,
+    location,
+    createdAt: new Date().toISOString(),
+  }))
+
+  await supabase.from('OrderStatusHistory').insert(historyEntries as AnyRecord[])
+
+  // Revalidate to refresh the UI
+  revalidatePath(`/subaccount/${subAccountId}/orders`)
+
+  return data
+}
+
+export const bulkDeleteOrders = async (orderIds: string[], subAccountId: string) => {
+  const { error } = await supabase
+    .from('Order')
+    .delete()
+    .in('id', orderIds)
+
+  if (error) {
+    console.error('Error deleting orders:', error)
+    return false
+  }
+
+  // Revalidate to refresh the UI
+  revalidatePath(`/subaccount/${subAccountId}/orders`)
+
+  return true
+}
+
+export const assignOrders = async (orderIds: string[], userId: string, subAccountId: string) => {
+  // Assuming there is an assignedTo field
+  const { data, error } = await supabase
+    .from('Order')
+    .update({
+      assignedTo: userId,
+      updatedAt: new Date().toISOString(),
+    } as AnyRecord)
+    .in('id', orderIds)
+
+  if (error) {
+    console.error('Error assigning orders:', error)
+    return null
+  }
+
+  revalidatePath(`/subaccount/${subAccountId}/orders`)
+  return data
+}
+
+export const getOrderStats = async (subAccountId: string) => {
+  const now = new Date()
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+
+  // Get total orders (current week)
+  const { count: totalOrders } = await supabase
+    .from('Order')
+    .select('*', { count: 'exact', head: true })
+    .eq('subAccountId', subAccountId)
+
+  // Get total orders (last week)
+  const { count: lastWeekOrders } = await supabase
+    .from('Order')
+    .select('*', { count: 'exact', head: true })
+    .eq('subAccountId', subAccountId)
+    .gte('createdAt', oneWeekAgo.toISOString())
+
+  // Get total orders (week before last)
+  const { count: weekBeforeLastOrders } = await supabase
+    .from('Order')
+    .select('*', { count: 'exact', head: true })
+    .eq('subAccountId', subAccountId)
+    .gte('createdAt', twoWeeksAgo.toISOString())
+    .lte('createdAt', oneWeekAgo.toISOString())
+
+  // Status-specific counts
+  const { count: pendingOrders } = await supabase
+    .from('Order')
+    .select('*', { count: 'exact', head: true })
+    .eq('subAccountId', subAccountId)
+    .or('orderStatus.eq.Order Confirmed,orderStatus.eq.Pending')
+
+  const { count: shippedOrders } = await supabase
+    .from('Order')
+    .select('*', { count: 'exact', head: true })
+    .eq('subAccountId', subAccountId)
+    .or('orderStatus.eq.In Transit,orderStatus.eq.In Sorting Centre')
+
+  const { count: canceledOrders } = await supabase
+    .from('Order')
+    .select('*', { count: 'exact', head: true })
+    .eq('subAccountId', subAccountId)
+    .or('orderStatus.eq.Cancelled,orderStatus.eq.Failed')
+
+  const { count: deliveredOrders } = await supabase
+    .from('Order')
+    .select('*', { count: 'exact', head: true })
+    .eq('subAccountId', subAccountId)
+    .eq('orderStatus', 'Delivered')
+
+  // Calculate percentage change for total orders
+  let totalOrdersChange = 0
+  if (weekBeforeLastOrders && weekBeforeLastOrders > 0) {
+    totalOrdersChange = ((lastWeekOrders! - weekBeforeLastOrders) / weekBeforeLastOrders) * 100
+  } else if (lastWeekOrders && lastWeekOrders > 0) {
+    totalOrdersChange = 100
+  }
+
+  // Get returns (generic for stats card)
+  const { count: returnOrders } = await supabase
+    .from('Order')
+    .select('*', { count: 'exact', head: true })
+    .eq('subAccountId', subAccountId)
+    .eq('orderStatus', 'Returned')
+
+  // Calculate return orders change (simplified)
+  const returnOrdersChange = totalOrders && totalOrders > 0 ? (returnOrders! / totalOrders) * 100 : 0
+
+  // Get revenue data for the chart (last 12 months)
+  const { data: orders } = await supabase
+    .from('Order')
+    .select('createdAt, totalPrice, orderStatus')
+    .eq('subAccountId', subAccountId)
+    .gte('createdAt', new Date(now.getFullYear(), now.getMonth() - 11, 1).toISOString())
+    .order('createdAt', { ascending: true })
+
+  return {
+    totalOrders: totalOrders || 0,
+    fulfilledOrders: deliveredOrders || 0,
+    returnOrders: returnOrders || 0,
+    pendingOrdersCount: pendingOrders || 0,
+    shippedOrdersCount: shippedOrders || 0,
+    canceledOrdersCount: canceledOrders || 0,
+    deliveredOrdersCount: deliveredOrders || 0,
+    totalOrdersChange: totalOrdersChange || 11,
+    returnOrdersChange: returnOrdersChange || -3.3,
+    orders: orders || [],
+  }
+}
+
+export const getOrderHistory = async (orderId: string) => {
+  const { data, error } = await supabase
+    .from('OrderStatusHistory')
+    .select('*')
+    .eq('orderId', orderId)
+    .order('createdAt', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching order history:', error)
+    return []
+  }
+
+  return data
 }

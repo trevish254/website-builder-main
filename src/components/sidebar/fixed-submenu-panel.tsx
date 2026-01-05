@@ -37,6 +37,8 @@ type Props = {
     details: any
     agencyId?: string
     type: 'agency' | 'subaccount'
+    teamMembers?: any[]
+    dashboards?: any[]
 }
 
 const MENU_CATEGORIES_RAW = [
@@ -53,7 +55,7 @@ const MENU_CATEGORIES_RAW = [
     {
         id: 'inventory',
         label: 'Inventory Management',
-        matchNames: ['product Dashboard', 'Inventory', 'Order', 'Customer Details', 'Revenue Analytics']
+        matchNames: ['product Dashboard', 'Inventory', 'Orders', 'Order', 'Customer Details', 'Revenue Analytics']
     },
     {
         id: 'clients',
@@ -122,7 +124,7 @@ const MENU_CATEGORIES_RAW = [
     }
 ]
 
-const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyId, type }: Props) => {
+const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyId, type, teamMembers = [], dashboards = [] }: Props) => {
     const currentAgencyId = agencyId || (details as any)?.agencyId
     const { hoveredMenuItem, activeCategory, setHoveredMenuItem, isPanelCollapsed, panelTop } = useSidebar()
     const pathname = usePathname()
@@ -201,8 +203,8 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
             style={adjustedTop !== null ? { top: `${adjustedTop}px`, bottom: 'auto' } : {}}
             className={cn(
                 "fixed z-20 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
-                (hoveredMenuItem ? "w-[240px] left-[50px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800 h-auto max-h-[80vh] rounded-[4px] border-b border-b-gray-200 dark:border-b-gray-800" : "w-0 opacity-0 pointer-events-none bottom-0"),
-                !isPanelCollapsed && "md:w-[240px] md:left-[50px] md:bottom-0 md:top-[50px] md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto"
+                (hoveredMenuItem ? "w-[240px] left-[50px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800 h-auto max-h-[calc(100vh-80px)] rounded-[4px] border-b border-b-gray-200 dark:border-b-gray-800" : "w-0 opacity-0 pointer-events-none bottom-0"),
+                !isPanelCollapsed && "md:w-[240px] md:left-[50px] md:bottom-0 md:top-[50px] md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto md:max-h-[calc(100vh-50px)]"
             )}
         >
             <div className="p-4 border-b border-gray-200 dark:border-gray-800">
@@ -223,7 +225,220 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
-                {displayCategory === 'inventory' ? (
+                {displayCategory === 'dashboard' ? (
+                    <div className="space-y-3">
+                        <Link href={`/dashboards?openAdd=true`} className="block">
+                            <Button
+                                className="w-full justify-start gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                                size="sm"
+                            >
+                                <PlusCircleIcon className="w-4 h-4" />
+                                <span className="text-sm font-medium">Add Dashboard</span>
+                            </Button>
+                        </Link>
+
+                        <div className="space-y-2">
+                            <div className="px-2 py-1">
+                                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Filters</p>
+                            </div>
+                            {[
+                                { name: 'All', icon: LayoutGrid, count: dashboards?.length || 0 },
+                                { name: 'My', icon: User, count: dashboards?.filter((d: any) => d.createdBy === user?.id).length || 0 },
+                                { name: 'Assigned to me', icon: UserPlus, count: dashboards?.filter((d: any) => d.assignedTo?.includes(user?.id)).length || 0 },
+                                { name: 'Private', icon: EyeOff, count: dashboards?.filter((d: any) => d.isPrivate).length || 0 },
+                                { name: 'Favorites', icon: Star, count: dashboards?.filter((d: any) => d.isFavorite).length || 0 },
+                            ].map((item) => {
+                                const isActive = pathname.includes(`/dashboards?filter=${item.name.toLowerCase()}`)
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        href={`/dashboards?filter=${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                                        className={cn(
+                                            'flex items-center justify-between px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <item.icon
+                                                className={cn(
+                                                    'w-4 h-4',
+                                                    isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                                )}
+                                            />
+                                            <span className={cn(
+                                                'text-sm',
+                                                isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            )}>
+                                                {item.name}
+                                            </span>
+                                        </div>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">{item.count}</span>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+
+                        {dashboards && dashboards.length > 0 && (
+                            <div className="space-y-2">
+                                <div className="px-2 py-1">
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Recents</p>
+                                </div>
+                                {dashboards.slice(0, 3).map((dashboard: any) => (
+                                    <Link
+                                        key={dashboard.id}
+                                        href={`/dashboards/${dashboard.id}`}
+                                        className="flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    >
+                                        <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{dashboard.name}</span>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ) : displayCategory === 'team' ? (
+                    <div className="space-y-3">
+                        {type === 'agency' && (
+                            <Link href={`/agency/${currentAgencyId}/team?openAdd=true`} className="block">
+                                <Button
+                                    className="w-full justify-start gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                                    size="sm"
+                                >
+                                    <UserPlus className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Add Team Member</span>
+                                </Button>
+                            </Link>
+                        )}
+
+                        <div className="space-y-0.5">
+                            {filteredOptions.map((option) => {
+                                const result = icons.find(icon => icon.value === option.icon)
+                                const IconComponent = result?.path || Settings
+                                const isActive = pathname.includes(option.link)
+
+                                return (
+                                    <Link
+                                        key={option.id}
+                                        href={option.link}
+                                        className={cn(
+                                            'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                        )}
+                                    >
+                                        <IconComponent
+                                            className={cn(
+                                                'w-4 h-4',
+                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                            )}
+                                        />
+                                        <span className={cn(
+                                            'text-sm',
+                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                        )}>
+                                            {option.name}
+                                        </span>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+
+                        {teamMembers && teamMembers.length > 0 && (
+                            <div className="space-y-2">
+                                <div className="px-2 py-1">
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Team Members ({teamMembers.length})</p>
+                                </div>
+                                {teamMembers.slice(0, 5).map((member: any) => (
+                                    <div
+                                        key={member.id}
+                                        className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    >
+                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
+                                            {member.name?.charAt(0).toUpperCase() || 'U'}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{member.name}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{member.email}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ) : displayCategory === 'clients' ? (
+                    <div className="space-y-3">
+                        {type === 'agency' && (
+                            <Link href={`/agency/${currentAgencyId}/all-subaccounts?openAdd=true`} className="block">
+                                <Button
+                                    className="w-full justify-start gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
+                                    size="sm"
+                                >
+                                    <PlusCircleIcon className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Add Client</span>
+                                </Button>
+                            </Link>
+                        )}
+
+                        <div className="space-y-0.5">
+                            {filteredOptions.map((option) => {
+                                const result = icons.find(icon => icon.value === option.icon)
+                                const IconComponent = result?.path || Settings
+                                const isActive = pathname.includes(option.link)
+
+                                return (
+                                    <Link
+                                        key={option.id}
+                                        href={option.link}
+                                        className={cn(
+                                            'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                        )}
+                                    >
+                                        <IconComponent
+                                            className={cn(
+                                                'w-4 h-4',
+                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                            )}
+                                        />
+                                        <span className={cn(
+                                            'text-sm',
+                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                        )}>
+                                            {option.name}
+                                        </span>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+
+                        {subAccounts && subAccounts.length > 0 && (
+                            <div className="space-y-2">
+                                <div className="px-2 py-1">
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Clients ({subAccounts.length})</p>
+                                </div>
+                                {subAccounts.slice(0, 5).map((subaccount: any) => (
+                                    <Link
+                                        key={subaccount.id}
+                                        href={`/subaccount/${subaccount.id}`}
+                                        className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                                    >
+                                        <div className="w-6 h-6 relative flex-shrink-0 rounded overflow-hidden">
+                                            <Image
+                                                src={subaccount.subAccountLogo || '/assets/chapabiz-logo.png'}
+                                                alt={subaccount.name}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm text-gray-700 dark:text-gray-300 truncate font-medium">{subaccount.name}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{subaccount.address}</p>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ) : displayCategory === 'inventory' ? (
                     <div className="space-y-3">
                         <Link href={`/subaccount/${details?.id || 'id'}/inventory?openAdd=true`} className="block">
                             <Button
@@ -239,7 +454,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             {[
                                 { name: 'product Dashboard', icon: LayoutGrid, link: `/subaccount/${details?.id || 'id'}/inventory` },
                                 { name: 'Inventory', icon: Package, link: `/subaccount/${details?.id || 'id'}/inventory` },
-                                { name: 'Order', icon: Receipt, link: `/subaccount/${details?.id || 'id'}/inventory/orders` },
+                                { name: 'Orders', icon: Receipt, link: `/subaccount/${details?.id || 'id'}/orders` },
                                 { name: 'Customer Details', icon: Users, link: `/subaccount/${details?.id || 'id'}/inventory/customers` },
                                 { name: 'Revenue Analytics', icon: TrendingUp, link: `/subaccount/${details?.id || 'id'}/inventory/analytics` },
                             ].map((item) => {
@@ -264,6 +479,82 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                             isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
                                         )}>
                                             {item.name}
+                                        </span>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+                    </div>
+                ) : displayCategory === 'upgrade' ? (
+                    <div className="space-y-3">
+                        <div className="space-y-2">
+                            <div className="px-2 py-1">
+                                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Plan Management</p>
+                            </div>
+                            {filteredOptions.filter((opt: any) =>
+                                ['Current Plan', 'Available Plans', 'Add-ons'].includes(opt.name)
+                            ).map((option) => {
+                                const result = icons.find(icon => icon.value === option.icon)
+                                const IconComponent = result?.path || Settings
+                                const isActive = pathname.includes(option.link)
+
+                                return (
+                                    <Link
+                                        key={option.id}
+                                        href={option.link}
+                                        className={cn(
+                                            'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                        )}
+                                    >
+                                        <IconComponent
+                                            className={cn(
+                                                'w-4 h-4',
+                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                            )}
+                                        />
+                                        <span className={cn(
+                                            'text-sm',
+                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                        )}>
+                                            {option.name}
+                                        </span>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="px-2 py-1">
+                                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Billing & Payments</p>
+                            </div>
+                            {filteredOptions.filter((opt: any) =>
+                                ['Billing History', 'Invoices', 'Payment Methods'].includes(opt.name)
+                            ).map((option) => {
+                                const result = icons.find(icon => icon.value === option.icon)
+                                const IconComponent = result?.path || Settings
+                                const isActive = pathname.includes(option.link)
+
+                                return (
+                                    <Link
+                                        key={option.id}
+                                        href={option.link}
+                                        className={cn(
+                                            'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                        )}
+                                    >
+                                        <IconComponent
+                                            className={cn(
+                                                'w-4 h-4',
+                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                            )}
+                                        />
+                                        <span className={cn(
+                                            'text-sm',
+                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                        )}>
+                                            {option.name}
                                         </span>
                                     </Link>
                                 )

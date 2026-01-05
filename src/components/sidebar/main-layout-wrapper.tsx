@@ -15,8 +15,10 @@ const MainLayoutWrapper = ({ children }: Props) => {
     return (
         <div
             className={cn(
-                "transition-all duration-200 ease-out flex flex-col h-full pt-[50px]",
-                isPanelCollapsed ? "pl-[50px] md:pl-[60px]" : "pl-[50px] md:pl-[260px]"
+                "transition-all duration-300 ease-out flex flex-col h-full pt-[50px]",
+                // On mobile: always just icon dock width
+                // On desktop: icon dock (50px) + submenu panel (240px) when expanded
+                isPanelCollapsed ? "pl-[50px]" : "pl-[50px] md:pl-[290px]"
             )}
         >
             {children}

@@ -135,8 +135,8 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           },
           {
             id: `sub-sidebar-${id}-inventory-order`,
-            name: 'Order',
-            link: `/subaccount/${id}/inventory/orders`,
+            name: 'Orders',
+            link: `/subaccount/${id}/orders`,
             icon: 'receipt',
             subAccountId: id,
             createdAt: new Date().toISOString(),
@@ -403,7 +403,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
     const inventoryOptions = [
       { name: 'product Dashboard', icon: 'chart', link: `/subaccount/${details?.id}/inventory` },
       { name: 'Inventory', icon: 'package', link: `/subaccount/${details?.id}/inventory` },
-      { name: 'Order', icon: 'receipt', link: `/subaccount/${details?.id}/inventory/orders` },
+      { name: 'Orders', icon: 'receipt', link: `/subaccount/${details?.id}/orders` },
       { name: 'Customer Details', icon: 'person', link: `/subaccount/${details?.id}/inventory/customers` },
       { name: 'Revenue Analytics', icon: 'analytics', link: `/subaccount/${details?.id}/inventory/analytics` },
     ]
@@ -768,7 +768,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
       const inventoryFallbackOptions = [
         { name: 'product Dashboard', icon: 'chart', link: `/subaccount/${id}/inventory` },
         { name: 'Inventory', icon: 'package', link: `/subaccount/${id}/inventory` },
-        { name: 'Order', icon: 'receipt', link: `/subaccount/${id}/inventory/orders` },
+        { name: 'Orders', icon: 'receipt', link: `/subaccount/${id}/orders` },
         { name: 'Customer Details', icon: 'person', link: `/subaccount/${id}/inventory/customers` },
         { name: 'Revenue Analytics', icon: 'analytics', link: `/subaccount/${id}/inventory/analytics` },
       ]
@@ -817,7 +817,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
     const invItems = [
       { name: 'product Dashboard', icon: 'chart', link: `/subaccount/${id}/inventory` },
       { name: 'Inventory', icon: 'package', link: `/subaccount/${id}/inventory` },
-      { name: 'Order', icon: 'receipt', link: `/subaccount/${id}/inventory/orders` },
+      { name: 'Orders', icon: 'receipt', link: `/subaccount/${id}/orders` },
       { name: 'Customer Details', icon: 'person', link: `/subaccount/${id}/inventory/customers` },
       { name: 'Revenue Analytics', icon: 'analytics', link: `/subaccount/${id}/inventory/analytics` },
     ]
