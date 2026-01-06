@@ -28,6 +28,9 @@ import { Label } from '@/components/ui/label'
 import ChatSidebar, { InboxItem } from '@/components/global/chat/chat-sidebar'
 import ChatWindow from '@/components/global/chat/chat-window'
 import { useToast } from '@/components/ui/use-toast'
+import { NotificationQueue, InAppNotification } from '@/components/global/chat/message-notification'
+import { NotificationSettingsDialog } from '@/components/global/chat/notification-settings'
+import { showMessageNotification, playNotificationSound, isInConversation, getNotificationPermission } from '@/lib/notifications'
 
 type Props = {
   params: { agencyId: string }
@@ -100,6 +103,39 @@ const AgencyMessagesPage = ({ params }: Props) => {
   const [groupDescription, setGroupDescription] = useState('')
   const [groupIcon, setGroupIcon] = useState('')
   const [selectedGroupUsers, setSelectedGroupUsers] = useState<string[]>([])
+
+  // Notification state
+  const [inAppNotifications, setInAppNotifications] = useState<InAppNotification[]>([])
+  const [notificationSettings, setNotificationSettings] = useState({
+    browserNotifications: false,
+    soundEnabled: true,
+    inAppNotifications: true
+  })
+
+  // Load notification settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('messageNotificationSettings')
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings)
+        setNotificationSettings(parsed)
+      } catch (e) {
+        console.error('Failed to parse notification settings:', e)
+      }
+    } else {
+      // Check if browser notifications are already granted
+      const permission = getNotificationPermission()
+      if (permission.granted) {
+        setNotificationSettings(prev => ({ ...prev, browserNotifications: true }))
+      }
+    }
+  }, [])
+
+  // Save notification settings to localStorage
+  const handleNotificationSettingsChange = (settings: typeof notificationSettings) => {
+    setNotificationSettings(settings)
+    localStorage.setItem('messageNotificationSettings', JSON.stringify(settings))
+  }
 
   // Fetch agency users for new message dialog
   useEffect(() => {
@@ -204,6 +240,23 @@ const AgencyMessagesPage = ({ params }: Props) => {
   useEffect(() => {
     loadConversations()
   }, [loadConversations])
+
+  // Handle notification clicks
+  useEffect(() => {
+    const handleNotificationClick = (event: any) => {
+      const { conversationId } = event.detail
+      if (conversationId) {
+        setSelectedConversationId(conversationId)
+        // Clear notifications for this conversation
+        setInAppNotifications(prev => prev.filter(n => n.conversationId !== conversationId))
+      }
+    }
+
+    window.addEventListener('notification-click', handleNotificationClick)
+    return () => {
+      window.removeEventListener('notification-click', handleNotificationClick)
+    }
+  }, [])
 
   // Realtime subscription for inbox updates
   useEffect(() => {
@@ -315,11 +368,42 @@ const AgencyMessagesPage = ({ params }: Props) => {
               }
             ])
 
-            // Play notification sound for messages from others
+            // Handle notifications for messages from others
             if (m.senderId !== user?.id) {
-              const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE')
-              audio.volume = 0.5
-              audio.play().catch(e => console.log('Audio play failed:', e))
+              const senderUser = agencyUsers.find(u => u.id === m.senderId)
+              const messageData = {
+                conversationId: selectedConversationId,
+                messageId: m.id,
+                senderName: senderUser?.name || 'Unknown',
+                senderAvatar: senderUser?.avatarUrl,
+                messageText: m.content,
+                timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              }
+
+              // Play sound if enabled
+              if (notificationSettings.soundEnabled) {
+                playNotificationSound(0.5)
+              }
+
+              // Show in-app notification if enabled and not in current conversation
+              if (notificationSettings.inAppNotifications && !isInConversation(selectedConversationId, selectedConversationId)) {
+                const notification: InAppNotification = {
+                  id: m.id,
+                  ...messageData,
+                  onReply: () => {
+                    setSelectedConversationId(selectedConversationId)
+                  },
+                  onDismiss: () => {
+                    setInAppNotifications(prev => prev.filter(n => n.id !== m.id))
+                  }
+                }
+                setInAppNotifications(prev => [...prev, notification])
+              }
+
+              // Show browser notification if enabled and page not visible
+              if (notificationSettings.browserNotifications && document.visibilityState !== 'visible') {
+                showMessageNotification(messageData)
+              }
             }
           } else if (payload.eventType === 'UPDATE') {
             const m = payload.new as any
@@ -821,6 +905,16 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
   return (
     <div className="flex h-[calc(100vh-80px)] bg-white dark:bg-background">
+      {/* Notification Queue */}
+      <NotificationQueue
+        notifications={inAppNotifications}
+        onClose={(id) => setInAppNotifications(prev => prev.filter(n => n.id !== id))}
+        onReply={(conversationId) => {
+          setSelectedConversationId(conversationId)
+          setInAppNotifications([])
+        }}
+      />
+
       {/* Sidebar */}
       <div className="w-[300px] border-r border-gray-200 dark:border-gray-800 h-full">
         <ChatSidebar
@@ -839,6 +933,12 @@ const AgencyMessagesPage = ({ params }: Props) => {
           onlineUsers={onlineUsers}
           onNewMessage={() => setShowNewMessageDialog(true)}
           onNewGroup={() => setShowNewGroupDialog(true)}
+          notificationSettings={
+            <NotificationSettingsDialog
+              settings={notificationSettings}
+              onSettingsChange={handleNotificationSettingsChange}
+            />
+          }
         />
       </div>
 

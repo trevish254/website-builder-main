@@ -50,6 +50,7 @@ interface ChatSidebarProps {
     onlineUsers?: Set<string>
     onNewMessage?: () => void
     onNewGroup?: () => void
+    notificationSettings?: React.ReactNode
 }
 
 const ChatSidebar = ({
@@ -64,7 +65,8 @@ const ChatSidebar = ({
     agencyUsers = [],
     onlineUsers = new Set(),
     onNewMessage,
-    onNewGroup
+    onNewGroup,
+    notificationSettings
 }: ChatSidebarProps) => {
     // Filter messages based on search and tabs
     const filteredMessages = inboxItems.filter(msg => {
@@ -96,6 +98,7 @@ const ChatSidebar = ({
                 <div className="flex items-center justify-between mb-2">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Message</h2>
                     <div className="flex items-center gap-1">
+                        {notificationSettings}
                         <Button
                             variant="ghost"
                             size="icon"
