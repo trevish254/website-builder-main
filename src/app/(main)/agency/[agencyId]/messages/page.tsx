@@ -311,10 +311,12 @@ const AgencyMessagesPage = ({ params }: Props) => {
         console.log('[MESSAGES] Loading messages for direct user:', selectedItem.participantInfo.name)
 
         // Find all conversations where BOTH the current user and the target user are participants
+        // IMPORTANT: We filter by Conversation!inner(type) to ensure we ONLY merge 'direct' messages
         const { data: participations } = await supabase
           .from('ConversationParticipant')
-          .select('conversationId')
+          .select('conversationId, Conversation!inner(type)')
           .eq('userId', selectedItem.participantInfo.id)
+          .eq('Conversation.type', 'direct')
 
         if (participations && participations.length > 0) {
           const possibleIds = participations.map(p => p.conversationId)
@@ -379,8 +381,9 @@ const AgencyMessagesPage = ({ params }: Props) => {
       if (selectedItem.type === 'direct' && selectedItem.participantInfo?.id) {
         const { data: participations } = await supabase
           .from('ConversationParticipant')
-          .select('conversationId')
+          .select('conversationId, Conversation!inner(type)')
           .eq('userId', selectedItem.participantInfo.id)
+          .eq('Conversation.type', 'direct')
 
         if (participations && participations.length > 0) {
           const possibleIds = participations.map(p => p.conversationId)
