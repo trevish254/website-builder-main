@@ -97,6 +97,9 @@ const AgencyMessagesPage = ({ params }: Props) => {
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null)
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null)
 
+  // Track all user details discovered in conversations to avoid "Unknown" labels
+  const [chatParticipants, setChatParticipants] = useState<Map<string, { id: string, name: string, avatarUrl: string }>>(new Map())
+
   // Group creation state
   const [showNewGroupDialog, setShowNewGroupDialog] = useState(false)
   const [groupTitle, setGroupTitle] = useState('')
@@ -232,6 +235,17 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
     console.log('[INBOX] Final grouped items:', groupedItems.length)
 
+    // Update participants map from all discovered participants
+    const participantMap = new Map()
+    items.forEach(item => {
+      item.participants?.forEach((p: any) => {
+        if (p.id && p.name) {
+          participantMap.set(p.id, { id: p.id, name: p.name, avatarUrl: p.avatarUrl })
+        }
+      })
+    })
+    setChatParticipants(participantMap)
+
     setInboxItems(groupedItems)
     setLoading(false)
   }, [user?.id, params.agencyId])
@@ -330,7 +344,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
       const mappedMessages: ChatMessage[] = sortedMessages.map(m => {
         const isMe = m.senderId === user?.id
-        const senderUser = isMe ? user : agencyUsers.find(u => u.id === m.senderId)
+        const senderUser = isMe ? user : (agencyUsers.find(u => u.id === m.senderId) || chatParticipants.get(m.senderId))
         const metadata = m.metadata as any
 
         return {
@@ -338,8 +352,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
           sender: isMe ? 'me' : 'other',
           text: m.content,
           timestamp: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-          senderName: isMe ? user?.name : senderUser?.name || 'Unknown',
-          senderAvatar: isMe ? user?.avatarUrl : senderUser?.avatarUrl,
+          senderName: isMe ? user?.name : senderUser?.name || 'Unknown User',
+          senderAvatar: isMe ? user?.avatarUrl : (senderUser as any)?.avatarUrl,
           isEdited: m.isEdited || false,
           attachments: metadata?.attachments || [],
           replyTo: metadata?.replyingTo
@@ -350,7 +364,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
       if (user?.id) await markConversationRead(selectedConversationId, user.id)
     }
     loadMessages()
-  }, [selectedConversationId, user?.id, inboxItems, agencyUsers, params.agencyId])
+  }, [selectedConversationId, user?.id, inboxItems, agencyUsers, params.agencyId, chatParticipants])
 
   // Realtime subscription for messages in ALL relevant conversations for this user
   useEffect(() => {
@@ -407,7 +421,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
                 const metadata = m.metadata as any
                 const isMe = m.senderId === user?.id
-                const senderUser = isMe ? user : agencyUsers.find(u => u.id === m.senderId)
+                const senderUser = isMe ? user : (agencyUsers.find(u => u.id === m.senderId) || chatParticipants.get(m.senderId))
 
                 return [
                   ...prev,
@@ -416,8 +430,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
                     sender: isMe ? 'me' : 'other',
                     text: m.content,
                     timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    senderName: isMe ? user?.name : senderUser?.name || 'Unknown',
-                    senderAvatar: isMe ? user?.avatarUrl : senderUser?.avatarUrl,
+                    senderName: isMe ? user?.name : senderUser?.name || 'Unknown User',
+                    senderAvatar: isMe ? user?.avatarUrl : (senderUser as any)?.avatarUrl,
                     attachments: metadata?.attachments || [],
                     replyTo: metadata?.replyingTo,
                     isEdited: m.isEdited
@@ -427,12 +441,12 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
               // Handle notifications for messages from others
               if (m.senderId !== user?.id) {
-                const senderUser = agencyUsers.find(u => u.id === m.senderId)
+                const senderUser = agencyUsers.find(u => u.id === m.senderId) || chatParticipants.get(m.senderId)
                 const messageData = {
                   conversationId: selectedConversationId, // Link to the active UI ID
                   messageId: m.id,
-                  senderName: senderUser?.name || 'Unknown',
-                  senderAvatar: senderUser?.avatarUrl,
+                  senderName: senderUser?.name || 'Unknown User',
+                  senderAvatar: (senderUser as any)?.avatarUrl,
                   messageText: m.content,
                   timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }
