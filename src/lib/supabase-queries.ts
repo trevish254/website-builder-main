@@ -492,7 +492,7 @@ export const getConversationMessages = async (conversationId: string | string[],
   let query = supabase
     .from('Message')
     .select('*')
-    .order('createdAt', { ascending: true })
+    .order('createdAt', { ascending: false }) // Fetch NEWEST first
     .limit(limit)
 
   if (Array.isArray(conversationId)) {

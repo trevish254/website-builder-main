@@ -295,12 +295,25 @@ const AgencyMessagesPage = ({ params }: Props) => {
       // 1. If it's a DIRECT conversation, find ALL conversation IDs with this user to merge bubbles
       if (selectedItem.type === 'direct' && selectedItem.participantInfo?.id) {
         console.log('[MESSAGES] Loading messages for direct user:', selectedItem.participantInfo.name)
-        const allConversations = await getConversationsWithParticipants(user.id, {})
-        const userConversations = allConversations.filter((c: any) =>
-          c.type === 'direct' &&
-          c.ConversationParticipant?.some((p: any) => p.userId === selectedItem.participantInfo?.id)
-        )
-        relevantConversationIds = userConversations.map((c: any) => c.id)
+
+        // Find all conversations where BOTH the current user and the target user are participants
+        const { data: participations } = await supabase
+          .from('ConversationParticipant')
+          .select('conversationId')
+          .eq('userId', selectedItem.participantInfo.id)
+
+        if (participations && participations.length > 0) {
+          const possibleIds = participations.map(p => p.conversationId)
+          const { data: myParticipations } = await supabase
+            .from('ConversationParticipant')
+            .select('conversationId')
+            .eq('userId', user.id)
+            .in('conversationId', possibleIds)
+
+          if (myParticipations) {
+            relevantConversationIds = myParticipations.map(p => p.conversationId)
+          }
+        }
       } else {
         console.log('[MESSAGES] Loading messages for group/other conversation:', selectedItem.title)
       }
@@ -310,7 +323,12 @@ const AgencyMessagesPage = ({ params }: Props) => {
       // 2. Load all messages for these IDs
       const messages = await getConversationMessages(relevantConversationIds, 100)
 
-      const mappedMessages: ChatMessage[] = messages.map(m => {
+      // Sort messages by creation time before mapping
+      const sortedMessages = messages.sort((a: any, b: any) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )
+
+      const mappedMessages: ChatMessage[] = sortedMessages.map(m => {
         const isMe = m.senderId === user?.id
         const senderUser = isMe ? user : agencyUsers.find(u => u.id === m.senderId)
         const metadata = m.metadata as any
@@ -334,108 +352,125 @@ const AgencyMessagesPage = ({ params }: Props) => {
     loadMessages()
   }, [selectedConversationId, user?.id, inboxItems, agencyUsers, params.agencyId])
 
-  // Realtime subscription for new messages in selected conversation
+  // Realtime subscription for messages in ALL relevant conversations for this user
   useEffect(() => {
-    if (!selectedConversationId) return
+    if (!selectedConversationId || !user?.id) return
 
-    console.log('[REALTIME] Setting up realtime subscription for conversation:', selectedConversationId)
+    const setupSubscription = async () => {
+      // Find all IDs to listen to
+      const selectedItem = inboxItems.find(i => i.id === selectedConversationId)
+      if (!selectedItem) return
 
-    const channel = supabase
-      .channel(`messages:${selectedConversationId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'Message', filter: `conversationId=eq.${selectedConversationId}` },
-        (payload) => {
-          console.log('[REALTIME] message change received:', payload)
-          if (payload.eventType === 'INSERT') {
-            const m = payload.new as any
-            const metadata = m.metadata as any
-            const isMe = m.senderId === user?.id
-            const senderUser = isMe ? user : agencyUsers.find(u => u.id === m.senderId)
+      let relevantIds = [selectedConversationId]
+      if (selectedItem.type === 'direct' && selectedItem.participantInfo?.id) {
+        const { data: participations } = await supabase
+          .from('ConversationParticipant')
+          .select('conversationId')
+          .eq('userId', selectedItem.participantInfo.id)
 
-            setChatMessages((prev) => [
-              ...prev,
-              {
-                id: m.id,
-                sender: isMe ? 'me' : 'other',
-                text: m.content,
-                timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                senderName: isMe ? user?.name : senderUser?.name || 'Unknown',
-                senderAvatar: isMe ? user?.avatarUrl : senderUser?.avatarUrl,
-                attachments: metadata?.attachments || [],
-                replyTo: metadata?.replyingTo,
-                isEdited: m.isEdited
-              }
-            ])
+        if (participations && participations.length > 0) {
+          const possibleIds = participations.map(p => p.conversationId)
+          const { data: myParticipations } = await supabase
+            .from('ConversationParticipant')
+            .select('conversationId')
+            .eq('userId', user.id)
+            .in('conversationId', possibleIds)
 
-            // Handle notifications for messages from others
-            if (m.senderId !== user?.id) {
-              const senderUser = agencyUsers.find(u => u.id === m.senderId)
-              const messageData = {
-                conversationId: selectedConversationId,
-                messageId: m.id,
-                senderName: senderUser?.name || 'Unknown',
-                senderAvatar: senderUser?.avatarUrl,
-                messageText: m.content,
-                timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              }
-
-              // Play sound if enabled
-              if (notificationSettings.soundEnabled) {
-                playNotificationSound(0.5)
-              }
-
-              // Show in-app notification if enabled and not in current conversation
-              if (notificationSettings.inAppNotifications && !isInConversation(selectedConversationId, selectedConversationId)) {
-                const notification: InAppNotification = {
-                  id: m.id,
-                  ...messageData,
-                  onReply: () => {
-                    setSelectedConversationId(selectedConversationId)
-                  },
-                  onDismiss: () => {
-                    setInAppNotifications(prev => prev.filter(n => n.id !== m.id))
-                  }
-                }
-                setInAppNotifications(prev => [...prev, notification])
-              }
-
-              // Show browser notification if enabled and page not visible
-              if (notificationSettings.browserNotifications && document.visibilityState !== 'visible') {
-                showMessageNotification(messageData)
-              }
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            const m = payload.new as any
-            setChatMessages(prev => prev.map(msg =>
-              msg.id === m.id ? { ...msg, text: m.content, isEdited: m.isEdited } : msg
-            ))
+          if (myParticipations) {
+            relevantIds = myParticipations.map(p => p.conversationId)
           }
-
-          console.log('[REALTIME] Message added to chat')
         }
-      )
-      .subscribe((status) => {
-        console.log('[REALTIME] Subscription status:', status)
-      })
+      }
 
-    const readChannel = supabase
-      .channel(`participants:${selectedConversationId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'ConversationParticipant', filter: `conversationId=eq.${selectedConversationId}` },
-        (payload) => {
-          console.log('Read receipt update:', payload)
-        }
-      )
-      .subscribe()
+      console.log('[REALTIME] Subscribing to messages in IDs:', relevantIds)
+
+      // Subscribe to all relevant IDs using IN operator
+      const channel = supabase
+        .channel(`merged-messages:${selectedConversationId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'Message',
+            // Listen to any message whose conversationId is in our list
+            filter: `conversationId=in.(${relevantIds.join(',')})`
+          },
+          (payload) => {
+            console.log('[REALTIME] message change received for merged list:', payload)
+            if (payload.eventType === 'INSERT') {
+              const m = payload.new as any
+
+              // Only add if not already in list (prevent duplicates)
+              setChatMessages((prev) => {
+                if (prev.some(existing => existing.id === m.id)) return prev
+
+                const metadata = m.metadata as any
+                const isMe = m.senderId === user?.id
+                const senderUser = isMe ? user : agencyUsers.find(u => u.id === m.senderId)
+
+                return [
+                  ...prev,
+                  {
+                    id: m.id,
+                    sender: isMe ? 'me' : 'other',
+                    text: m.content,
+                    timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    senderName: isMe ? user?.name : senderUser?.name || 'Unknown',
+                    senderAvatar: isMe ? user?.avatarUrl : senderUser?.avatarUrl,
+                    attachments: metadata?.attachments || [],
+                    replyTo: metadata?.replyingTo,
+                    isEdited: m.isEdited
+                  }
+                ]
+              })
+
+              // Handle notifications for messages from others
+              if (m.senderId !== user?.id) {
+                const senderUser = agencyUsers.find(u => u.id === m.senderId)
+                const messageData = {
+                  conversationId: selectedConversationId, // Link to the active UI ID
+                  messageId: m.id,
+                  senderName: senderUser?.name || 'Unknown',
+                  senderAvatar: senderUser?.avatarUrl,
+                  messageText: m.content,
+                  timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }
+
+                if (notificationSettings.soundEnabled) playNotificationSound(0.5)
+
+                if (notificationSettings.inAppNotifications && !isInConversation(selectedConversationId, selectedConversationId)) {
+                  setInAppNotifications(prev => [...prev, { id: m.id, ...messageData, onReply: () => setSelectedConversationId(selectedConversationId) }])
+                }
+
+                if (notificationSettings.browserNotifications && document.visibilityState !== 'visible') {
+                  showMessageNotification(messageData)
+                }
+              }
+            } else if (payload.eventType === 'UPDATE') {
+              const m = payload.new as any
+              setChatMessages(prev => prev.map(msg =>
+                msg.id === m.id ? { ...msg, text: m.content, isEdited: m.isEdited } : msg
+              ))
+            }
+          }
+        )
+        .subscribe()
+
+      return channel
+    }
+
+    const channelPromise = setupSubscription()
 
     return () => {
-      console.log('🔕 Cleaning up realtime subscriptions')
-      supabase.removeChannel(channel)
-      supabase.removeChannel(readChannel)
+      channelPromise.then(channel => {
+        if (channel) {
+          console.log('🔕 Cleaning up merged realtime subscription')
+          supabase.removeChannel(channel)
+        }
+      })
     }
-  }, [selectedConversationId, user?.id])
+  }, [selectedConversationId, user?.id, inboxItems, agencyUsers, notificationSettings])
 
   // Presence and Typing Indicators
   useEffect(() => {
@@ -524,7 +559,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
         setNewMessage('')
         setReplyingTo(null)
 
-        // Optimistic update for inbox
+        // Optimistic update for inbox ONLY (keeps sidebar snappy)
         setInboxItems(prev => {
           const updatedInbox = [...prev]
           const currentConvIndex = updatedInbox.findIndex(i => i.id === selectedConversationId)

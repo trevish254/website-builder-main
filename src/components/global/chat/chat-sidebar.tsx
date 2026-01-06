@@ -88,8 +88,30 @@ const ChatSidebar = ({
         return true
     })
 
-    // Get online users list
-    const onlineAgencyUsers = agencyUsers.filter(user => onlineUsers.has(user.id) || user.email === 'chrismalik378@gmail.com')
+    // Get a comprehensive list of all online users we know about (from agency OR conversations)
+    const onlineAgencyUsers = React.useMemo(() => {
+        const usersMap = new Map<string, { id: string, name: string, avatarUrl?: string }>()
+
+        // 1. Add tracked agency users
+        agencyUsers.forEach(u => {
+            if (onlineUsers.has(u.id)) {
+                usersMap.set(u.id, { id: u.id, name: u.name, avatarUrl: u.avatarUrl })
+            }
+        })
+
+        // 2. Add tracked participants from all conversations
+        inboxItems.forEach(item => {
+            if (item.participantInfo?.id && onlineUsers.has(item.participantInfo.id)) {
+                usersMap.set(item.participantInfo.id, {
+                    id: item.participantInfo.id,
+                    name: item.participantInfo.name,
+                    avatarUrl: item.participantInfo.avatarUrl
+                })
+            }
+        })
+
+        return Array.from(usersMap.values())
+    }, [agencyUsers, inboxItems, onlineUsers])
 
     return (
         <div className="lg:col-span-1 flex flex-col h-full bg-white dark:bg-background border-r">
@@ -207,8 +229,9 @@ const ChatSidebar = ({
                                                     : message.participantInfo?.name?.charAt(0) || message.title?.charAt(0) || 'U'}
                                             </AvatarFallback>
                                         </Avatar>
-                                        {message.isOnline && (
-                                            <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border-2 border-white dark:border-background rounded-full"></span>
+                                        {/* Dynamically check if participant is online */}
+                                        {(message.type !== 'group' && message.participantInfo?.id && onlineUsers.has(message.participantInfo.id)) && (
+                                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-background rounded-full animate-pulse shadow-sm"></span>
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
