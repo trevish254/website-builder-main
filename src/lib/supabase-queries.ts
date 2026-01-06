@@ -560,6 +560,28 @@ export const sendMessage = async (payload: {
   return data as Message
 }
 
+export const updateMessage = async (messageId: string, content: string) => {
+  console.log('[QUERY] updateMessage called:', messageId)
+
+  const { data, error } = await supabase
+    .from('Message')
+    .update({
+      content,
+      isEdited: true,
+      updatedAt: new Date().toISOString()
+    })
+    .eq('id', messageId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('[QUERY] Error updating message:', error)
+    return null
+  }
+
+  return data as Message
+}
+
 export const markConversationRead = async (conversationId: string, userId: string) => {
   const { error } = await supabase
     .from('ConversationParticipant')
@@ -687,6 +709,58 @@ export const ensureDirectConversation = async (params: {
 
   if (partErr) {
     console.error('Error adding participants:', partErr)
+    return null
+  }
+
+  return conversationId
+}
+
+export const createGroupConversation = async (params: {
+  agencyId: string
+  title: string
+  userIds: string[]
+  description?: string
+  iconUrl?: string
+  subAccountId?: string | null
+}) => {
+  console.log('[QUERY] createGroupConversation called:', params.title)
+
+  const conversationId = crypto.randomUUID()
+  const { error: convErr } = await supabase
+    .from('Conversation')
+    .insert({
+      id: conversationId,
+      type: 'group',
+      title: params.title,
+      description: params.description || null,
+      iconUrl: params.iconUrl || null,
+      agencyId: params.agencyId,
+      subAccountId: params.subAccountId ?? null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastMessageAt: null,
+    })
+
+  if (convErr) {
+    console.error('Error creating group conversation:', convErr)
+    return null
+  }
+
+  const participants = params.userIds.map((uid) => ({
+    id: crypto.randomUUID(),
+    conversationId,
+    userId: uid,
+    role: 'member',
+    joinedAt: new Date().toISOString(),
+    lastReadAt: null as string | null,
+  }))
+
+  const { error: partErr } = await supabase
+    .from('ConversationParticipant')
+    .insert(participants)
+
+  if (partErr) {
+    console.error('Error adding group participants:', partErr)
     return null
   }
 

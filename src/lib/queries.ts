@@ -578,7 +578,7 @@ export const getConversationsWithParticipants = async (
     // 3. Fetch all participants
     const { data: allParticipants, error: partDetailError } = await supabaseAdmin
       .from('ConversationParticipant')
-      .select('conversationId, userId, joinedAt, lastReadAt')
+      .select('conversationId, userId, joinedAt, lastReadAt, role')
       .in('conversationId', conversationIds)
 
     if (partDetailError) {

@@ -7,18 +7,24 @@ import {
   MessageSquare,
   Search,
   Plus,
-  User
+  User,
+  Camera,
+  Check,
+  Info
 } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase/client'
 import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
-import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getAgencyUsers, ensureDirectConversation, getConversationWithParticipantsManual, deleteConversation, searchAgenciesByEmail, getAgencyOwner } from '@/lib/supabase-queries'
+import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getAgencyUsers, ensureDirectConversation, getConversationWithParticipantsManual, deleteConversation, searchAgenciesByEmail, getAgencyOwner, updateMessage, createGroupConversation } from '@/lib/supabase-queries'
 import { getConversationsWithParticipants, getMessagesForConversation, sendMessage } from '@/lib/queries'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import ChatSidebar, { InboxItem } from '@/components/global/chat/chat-sidebar'
 import ChatWindow from '@/components/global/chat/chat-window'
 import { useToast } from '@/components/ui/use-toast'
@@ -36,6 +42,7 @@ interface ChatMessage {
   senderName?: string
   senderAvatar?: string
   isRead?: boolean
+  isEdited?: boolean
 }
 
 const AgencyMessagesPage = ({ params }: Props) => {
@@ -64,7 +71,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'all' | 'team' | 'personal'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'team' | 'groups'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -84,6 +91,15 @@ const AgencyMessagesPage = ({ params }: Props) => {
   const [selectedAgency, setSelectedAgency] = useState<any | null>(null)
   const [agencyAdmins, setAgencyAdmins] = useState<any[]>([])
   const [dialogTab, setDialogTab] = useState<'team' | 'agencies'>('team')
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null)
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null)
+
+  // Group creation state
+  const [showNewGroupDialog, setShowNewGroupDialog] = useState(false)
+  const [groupTitle, setGroupTitle] = useState('')
+  const [groupDescription, setGroupDescription] = useState('')
+  const [groupIcon, setGroupIcon] = useState('')
+  const [selectedGroupUsers, setSelectedGroupUsers] = useState<string[]>([])
 
   // Fetch agency users for new message dialog
   useEffect(() => {
@@ -125,6 +141,15 @@ const AgencyMessagesPage = ({ params }: Props) => {
         pinned: false,
         avatar: otherParticipant?.User?.avatarUrl,
         email: otherParticipant?.User?.email,
+        type: c.type,
+        iconUrl: c.iconUrl,
+        description: c.description,
+        participants: participants.map((p: any) => ({
+          id: p.User?.id,
+          name: p.User?.name,
+          email: p.User?.email,
+          avatarUrl: p.User?.avatarUrl
+        })).filter((p: any) => p.name), // Ensure we only get valid users
         participantInfo: otherParticipant?.User ? {
           id: otherParticipant.User.id,
           name: otherParticipant.User.name,
@@ -139,14 +164,14 @@ const AgencyMessagesPage = ({ params }: Props) => {
     // Group items by participant ID to merge duplicate conversations
     // IMPORTANT: Don't filter out items without participantInfo here, as they might be valid conversations
     const groupedItems = items.reduce((acc, item) => {
-      // If no participant info, still add it (might be a group conversation or data issue)
-      if (!item.participantInfo?.id) {
-        console.log('[INBOX] Adding conversation without participant info:', item.id, item.title)
+      // Group conversations are never merged based on participant
+      if (item.type === 'group' || !item.participantInfo?.id) {
         acc.push(item)
         return acc
       }
 
-      const existing = acc.find(i => i.participantInfo?.id === item.participantInfo?.id)
+      // Only merge direct conversations with the same person
+      const existing = acc.find(i => i.type === 'direct' && i.participantInfo?.id === item.participantInfo?.id)
       if (existing) {
         // Update existing item if this one is newer
         const existingDate = new Date(existing.timestamp || 0)
@@ -154,7 +179,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
         if (newDate > existingDate) {
           existing.timestamp = item.timestamp
           existing.preview = item.preview
-          existing.id = item.id // Keep the ID of the most recent conversation as the "primary" one
+          existing.id = item.id
         }
       } else {
         acc.push(item)
@@ -210,58 +235,51 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
       // Find the selected item to get the participant ID
       const selectedItem = inboxItems.find(i => i.id === selectedConversationId)
-      if (!selectedItem?.participantInfo?.id) return
+      if (!selectedItem) return
 
-      console.log('[MESSAGES] Loading messages for user:', selectedItem.participantInfo.name)
+      let relevantConversationIds = [selectedConversationId]
 
-      // 1. Find ALL conversation IDs with this user
-      // Use server action to bypass RLS
-      const allConversations = await getConversationsWithParticipants(user.id, {})
-
-      const relevantConversationIds = []
-      for (const conv of allConversations) {
-        // We now have the participants directly in the conversation object
-        const participants = (conv as any).ConversationParticipant || []
-        const hasUser = participants.some((p: any) => p.userId === selectedItem.participantInfo?.id)
-        if (hasUser) {
-          relevantConversationIds.push(conv.id)
-        }
+      // 1. If it's a DIRECT conversation, find ALL conversation IDs with this user to merge bubbles
+      if (selectedItem.type === 'direct' && selectedItem.participantInfo?.id) {
+        console.log('[MESSAGES] Loading messages for direct user:', selectedItem.participantInfo.name)
+        const allConversations = await getConversationsWithParticipants(user.id, {})
+        const userConversations = allConversations.filter((c: any) =>
+          c.type === 'direct' &&
+          c.ConversationParticipant?.some((p: any) => p.userId === selectedItem.participantInfo?.id)
+        )
+        relevantConversationIds = userConversations.map((c: any) => c.id)
+      } else {
+        console.log('[MESSAGES] Loading messages for group/other conversation:', selectedItem.title)
       }
 
-      console.log('[MESSAGES] Found relevant conversation IDs:', relevantConversationIds)
+      console.log('[MESSAGES] Relevant IDs:', relevantConversationIds)
 
-      // Use server action to bypass RLS for messages
-      const msgs = await getMessagesForConversation(relevantConversationIds, 200)
-      console.log('[MESSAGES] Fetched messages:', msgs.length, 'messages')
+      // 2. Load all messages for these IDs
+      const messages = await getConversationMessages(relevantConversationIds, 100)
 
-      const mapped: ChatMessage[] = msgs.map((m) => {
-        const metadata = m.metadata as any
+      const mappedMessages: ChatMessage[] = messages.map(m => {
         const isMe = m.senderId === user?.id
-
-        let avatarUrl = ''
-        if (isMe) {
-          avatarUrl = user.avatarUrl || ''
-        } else {
-          avatarUrl = selectedItem.participantInfo?.avatarUrl || ''
-        }
+        const senderUser = isMe ? user : agencyUsers.find(u => u.id === m.senderId)
+        const metadata = m.metadata as any
 
         return {
           id: m.id,
           sender: isMe ? 'me' : 'other',
           text: m.content,
-          timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          senderName: isMe ? user?.name : senderUser?.name || 'Unknown',
+          senderAvatar: isMe ? user?.avatarUrl : senderUser?.avatarUrl,
+          isEdited: m.isEdited || false,
           attachments: metadata?.attachments || [],
-          isRead: true,
-          senderName: isMe ? user.name : selectedItem.participantInfo?.name,
-          senderAvatar: avatarUrl
+          replyTo: metadata?.replyingTo
         }
       })
 
-      setChatMessages(mapped)
+      setChatMessages(mappedMessages)
       if (user?.id) await markConversationRead(selectedConversationId, user.id)
     }
     loadMessages()
-  }, [selectedConversationId, user?.id, inboxItems, params.agencyId])
+  }, [selectedConversationId, user?.id, inboxItems, agencyUsers, params.agencyId])
 
   // Realtime subscription for new messages in selected conversation
   useEffect(() => {
@@ -273,27 +291,41 @@ const AgencyMessagesPage = ({ params }: Props) => {
       .channel(`messages:${selectedConversationId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'Message', filter: `conversationId=eq.${selectedConversationId}` },
+        { event: '*', schema: 'public', table: 'Message', filter: `conversationId=eq.${selectedConversationId}` },
         (payload) => {
-          console.log('[REALTIME] New message received via realtime:', payload)
-          const m = payload.new as any
-          const metadata = m.metadata as any
-          setChatMessages((prev) => [
-            ...prev,
-            {
-              id: m.id,
-              sender: m.senderId === user?.id ? 'me' : 'other',
-              text: m.content,
-              timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              attachments: metadata?.attachments || []
-            }
-          ])
+          console.log('[REALTIME] message change received:', payload)
+          if (payload.eventType === 'INSERT') {
+            const m = payload.new as any
+            const metadata = m.metadata as any
+            const isMe = m.senderId === user?.id
+            const senderUser = isMe ? user : agencyUsers.find(u => u.id === m.senderId)
 
-          // Play notification sound for messages from others
-          if (m.senderId !== user?.id) {
-            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE')
-            audio.volume = 0.5
-            audio.play().catch(e => console.log('Audio play failed:', e))
+            setChatMessages((prev) => [
+              ...prev,
+              {
+                id: m.id,
+                sender: isMe ? 'me' : 'other',
+                text: m.content,
+                timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                senderName: isMe ? user?.name : senderUser?.name || 'Unknown',
+                senderAvatar: isMe ? user?.avatarUrl : senderUser?.avatarUrl,
+                attachments: metadata?.attachments || [],
+                replyTo: metadata?.replyingTo,
+                isEdited: m.isEdited
+              }
+            ])
+
+            // Play notification sound for messages from others
+            if (m.senderId !== user?.id) {
+              const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE')
+              audio.volume = 0.5
+              audio.play().catch(e => console.log('Audio play failed:', e))
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const m = payload.new as any
+            setChatMessages(prev => prev.map(msg =>
+              msg.id === m.id ? { ...msg, text: m.content, isEdited: m.isEdited } : msg
+            ))
           }
 
           console.log('[REALTIME] Message added to chat')
@@ -379,15 +411,34 @@ const AgencyMessagesPage = ({ params }: Props) => {
     if (!newMessage.trim() || !selectedConversationId || !user?.id) return
 
     try {
+      if (editingMessage) {
+        // Handle Edit
+        const updated = await updateMessage(editingMessage.id, newMessage)
+        if (updated) {
+          setChatMessages(prev => prev.map(m => m.id === editingMessage.id ? { ...m, text: updated.content } : m))
+          setNewMessage('')
+          setEditingMessage(null)
+          toast({ title: 'Message updated' })
+        }
+        return
+      }
+
       const response = await sendMessageApi({
         conversationId: selectedConversationId,
         senderId: user.id,
         content: newMessage,
-        metadata: {}
+        metadata: replyingTo ? {
+          replyingTo: {
+            id: replyingTo.id,
+            text: replyingTo.text,
+            senderName: replyingTo.senderName
+          }
+        } : {}
       })
 
       if (response) {
         setNewMessage('')
+        setReplyingTo(null)
 
         // Optimistic update for inbox
         setInboxItems(prev => {
@@ -445,11 +496,10 @@ const AgencyMessagesPage = ({ params }: Props) => {
     })
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !selectedConversationId || !user?.id) return
+  const handleFileUpload = async (files: File[]) => {
+    if (files.length === 0 || !selectedConversationId || !user?.id) return
     setIsUploading(true)
 
-    const files = Array.from(e.target.files)
     const attachments = []
 
     for (const file of files) {
@@ -467,22 +517,21 @@ const AgencyMessagesPage = ({ params }: Props) => {
       await sendMessageApi({
         conversationId: selectedConversationId,
         senderId: user.id,
-        content: 'Sent an attachment',
+        content: attachments.some(a => a.type.startsWith('audio')) ? 'Sent a voice note' : 'Sent an attachment',
         metadata: { attachments }
       })
       toast({
         title: 'Success',
-        description: 'File sent successfully'
+        description: 'Sent successfully'
       })
     } else {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to upload file'
+        description: 'Failed to upload'
       })
     }
     setIsUploading(false)
-    if (e.target) e.target.value = ''
   }
 
   const selectedMsg = useMemo(() => {
@@ -636,13 +685,34 @@ const AgencyMessagesPage = ({ params }: Props) => {
     }
   }
 
+  // Combine agency users and inbox participants for comprehensive user list
+  const allAvailableUsers = useMemo(() => {
+    // Start with agency users
+    const usersMap = new Map<string, any>()
+
+    agencyUsers.forEach(u => {
+      usersMap.set(u.id, u)
+    })
+
+    // Add any missing users from inbox items (e.g. external users, past conversations)
+    inboxItems.forEach(item => {
+      if (item.type === 'direct' && item.participantInfo?.id && item.participantInfo.id !== user?.id) {
+        if (!usersMap.has(item.participantInfo.id)) {
+          usersMap.set(item.participantInfo.id, item.participantInfo)
+        }
+      }
+    })
+
+    return Array.from(usersMap.values())
+  }, [agencyUsers, inboxItems, user?.id])
+
   const filteredUsers = useMemo(() => {
-    if (!searchUserQuery) return agencyUsers
-    return agencyUsers.filter(u =>
+    if (!searchUserQuery) return allAvailableUsers
+    return allAvailableUsers.filter(u =>
       u.name?.toLowerCase().includes(searchUserQuery.toLowerCase()) ||
       u.email?.toLowerCase().includes(searchUserQuery.toLowerCase())
     )
-  }, [agencyUsers, searchUserQuery])
+  }, [allAvailableUsers, searchUserQuery])
 
   // Handle agency search
   const handleAgencySearch = async (email: string) => {
@@ -673,19 +743,72 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   const handleReplyMessage = (messageId: string) => {
-    console.log('Reply to message:', messageId)
-    toast({
-      title: 'Reply',
-      description: 'Reply feature coming soon'
-    })
+    const msg = chatMessages.find(m => m.id === messageId)
+    if (msg) {
+      setReplyingTo(msg)
+    }
+  }
+
+  const handleCreateGroup = async () => {
+    if (!groupTitle.trim() || selectedGroupUsers.length === 0 || !user?.id) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please provide a title and select at least one member.'
+      })
+      return
+    }
+
+    try {
+      const allParticipants = [user.id, ...selectedGroupUsers]
+      const conversationId = await createGroupConversation({
+        agencyId: params.agencyId,
+        title: groupTitle,
+        description: groupDescription,
+        iconUrl: groupIcon,
+        userIds: allParticipants
+      })
+
+      if (conversationId) {
+        setShowNewGroupDialog(false)
+        setGroupTitle('')
+        setGroupDescription('')
+        setGroupIcon('')
+        setSelectedGroupUsers([])
+        setSelectedConversationId(conversationId)
+
+        // Reload conversations to show the new group
+        await loadConversations()
+
+        toast({
+          title: 'Group Created',
+          description: `"${groupTitle}" has been created successfully.`
+        })
+      }
+    } catch (error) {
+      console.error('Error creating group:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to create group.'
+      })
+    }
+  }
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedGroupUsers(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    )
   }
 
   const handleEditMessage = (messageId: string) => {
-    console.log('Edit message:', messageId)
-    toast({
-      title: 'Edit Message',
-      description: 'Edit feature coming soon'
-    })
+    const msg = chatMessages.find(m => m.id === messageId)
+    if (msg) {
+      setEditingMessage(msg)
+      setNewMessage(msg.text)
+    }
   }
 
   const handleForwardMessage = (messageId: string) => {
@@ -699,7 +822,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
   return (
     <div className="flex h-[calc(100vh-80px)] bg-white dark:bg-background">
       {/* Sidebar */}
-      <div className="w-[380px] border-r border-gray-200 dark:border-gray-800 h-full">
+      <div className="w-[300px] border-r border-gray-200 dark:border-gray-800 h-full">
         <ChatSidebar
           inboxItems={inboxItems}
           selectedConversationId={selectedConversationId || ''}
@@ -715,6 +838,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
           agencyUsers={agencyUsers}
           onlineUsers={onlineUsers}
           onNewMessage={() => setShowNewMessageDialog(true)}
+          onNewGroup={() => setShowNewGroupDialog(true)}
         />
       </div>
 
@@ -742,6 +866,14 @@ const AgencyMessagesPage = ({ params }: Props) => {
           onReplyMessage={handleReplyMessage}
           onEditMessage={handleEditMessage}
           onForwardMessage={handleForwardMessage}
+          activeTab={activeTab}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
+          editingMessage={editingMessage}
+          onCancelEdit={() => {
+            setEditingMessage(null)
+            setNewMessage('')
+          }}
         />
       </div>
 
@@ -907,6 +1039,166 @@ const AgencyMessagesPage = ({ params }: Props) => {
               </ScrollArea>
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group Creation Dialog */}
+      <Dialog open={showNewGroupDialog} onOpenChange={setShowNewGroupDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <Plus className="h-6 w-6 text-amber-500" />
+              Create Group Channel
+            </DialogTitle>
+            <DialogDescription>
+              Set up a new space for your team or project. Groups support multiple members, descriptions, and custom icons.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+            {/* Left Column: Group Info */}
+            <div className="space-y-6">
+              <div className="flex flex-col items-center gap-3">
+                <div
+                  className="relative group cursor-pointer"
+                  onClick={() => {
+                    const url = prompt('Enter image URL for group icon (Simulation):')
+                    if (url) setGroupIcon(url)
+                  }}
+                >
+                  <div className="h-24 w-24 rounded-2xl bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center overflow-hidden transition-all group-hover:border-amber-500">
+                    {groupIcon ? (
+                      <img src={groupIcon} alt="Group Icon" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center text-gray-400 group-hover:text-amber-500">
+                        <Camera className="h-8 w-8 mb-1" />
+                        <span className="text-[10px] font-medium uppercase">Set Icon</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 bg-amber-500 text-white p-1.5 rounded-lg shadow-lg">
+                    <Plus className="h-3 w-3" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-500 text-center">Click to set group avatar</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="groupTitle" className="text-sm font-semibold flex items-center gap-1.5">
+                    Group Title <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="groupTitle"
+                    placeholder="e.g., Marketing Team, Project Alpha..."
+                    value={groupTitle}
+                    onChange={(e) => setGroupTitle(e.target.value)}
+                    className="h-10"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="groupDesc" className="text-sm font-semibold flex items-center gap-1.5">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="groupDesc"
+                    placeholder="What is this group for? Add goals or key info..."
+                    value={groupDescription}
+                    onChange={(e) => setGroupDescription(e.target.value)}
+                    className="min-h-[100px] resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Member Selection */}
+            <div className="flex flex-col space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">
+                  Select Members ({selectedGroupUsers.length})
+                </Label>
+                {selectedGroupUsers.length > 0 && (
+                  <button
+                    onClick={() => setSelectedGroupUsers([])}
+                    className="text-[11px] text-red-500 hover:underline font-medium"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchUserQuery}
+                  onChange={(e) => setSearchUserQuery(e.target.value)}
+                  className="pl-10 h-9 bg-gray-50 dark:bg-gray-900 border-none"
+                />
+              </div>
+
+              <ScrollArea className="flex-1 min-h-[250px] max-h-[300px] border rounded-xl p-2 bg-gray-50/50 dark:bg-gray-900/50">
+                <div className="space-y-1">
+                  {filteredUsers.map((agencyUser) => (
+                    <div
+                      key={agencyUser.id}
+                      className={`flex items-center space-x-3 p-2 rounded-lg transition-all cursor-pointer hover:bg-white dark:hover:bg-gray-800 shadow-none hover:shadow-sm ${selectedGroupUsers.includes(agencyUser.id) ? 'bg-white dark:bg-gray-800 ring-1 ring-amber-500/30' : ''
+                        }`}
+                      onClick={() => toggleUserSelection(agencyUser.id)}
+                    >
+                      <Checkbox
+                        id={`user-${agencyUser.id}`}
+                        checked={selectedGroupUsers.includes(agencyUser.id)}
+                        onCheckedChange={() => toggleUserSelection(agencyUser.id)}
+                        className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                      />
+                      <Label
+                        htmlFor={`user-${agencyUser.id}`}
+                        className="flex items-center gap-3 cursor-pointer flex-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Avatar className="h-9 w-9 ring-2 ring-white dark:ring-gray-900">
+                          <AvatarImage src={agencyUser.avatarUrl || ''} />
+                          <AvatarFallback className="bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+                            {agencyUser.name?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate leading-none mb-1">{agencyUser.name}</p>
+                          <p className="text-[11px] text-gray-500 truncate">{agencyUser.email}</p>
+                        </div>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+
+              {selectedGroupUsers.length === 0 && (
+                <div className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-900/30">
+                  <Info className="h-4 w-4 text-amber-600 shrink-0" />
+                  <p className="text-[10px] text-amber-700 dark:text-amber-400">You must select at least one other member besides yourself.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2 border-t mt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setShowNewGroupDialog(false)}
+              className="px-6"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateGroup}
+              disabled={!groupTitle.trim() || selectedGroupUsers.length === 0}
+              className="bg-amber-500 hover:bg-amber-600 text-white px-8 h-10 shadow-lg shadow-amber-500/20"
+            >
+              Create Group Channel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

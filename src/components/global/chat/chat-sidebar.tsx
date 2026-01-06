@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Search, MessageSquare, Pin, Star, Circle, Trash2, Edit } from 'lucide-react'
+import { Search, MessageSquare, Pin, Star, Circle, Trash2, Edit, Users } from 'lucide-react'
 
 export interface InboxItem {
     id: string
@@ -17,8 +17,18 @@ export interface InboxItem {
     starred: boolean
     pinned: boolean
     avatar?: string
+    iconUrl?: string
+    description?: string
     email?: string
     isOnline?: boolean
+    type?: string
+    chatMessages?: any[]
+    participants?: {
+        id: string
+        name: string
+        email: string
+        avatarUrl: string
+    }[]
     participantInfo?: {
         id: string
         name: string
@@ -33,12 +43,13 @@ interface ChatSidebarProps {
     onSelectConversation: (id: string) => void
     searchQuery: string
     onSearchChange: (query: string) => void
-    activeTab: 'all' | 'team' | 'personal'
-    onTabChange: (tab: 'all' | 'team' | 'personal') => void
+    activeTab: 'all' | 'team' | 'groups'
+    onTabChange: (tab: 'all' | 'team' | 'groups') => void
     onDeleteConversation?: (id: string) => void
     agencyUsers?: any[]
     onlineUsers?: Set<string>
     onNewMessage?: () => void
+    onNewGroup?: () => void
 }
 
 const ChatSidebar = ({
@@ -52,7 +63,8 @@ const ChatSidebar = ({
     onDeleteConversation,
     agencyUsers = [],
     onlineUsers = new Set(),
-    onNewMessage
+    onNewMessage,
+    onNewGroup
 }: ChatSidebarProps) => {
     // Filter messages based on search and tabs
     const filteredMessages = inboxItems.filter(msg => {
@@ -62,44 +74,54 @@ const ChatSidebar = ({
                 msg.preview.toLowerCase().includes(searchQuery.toLowerCase())
         }
 
-        // Tab filter (Mock implementation for now)
+        // Tab filter
         if (activeTab === 'team') {
-            // Logic to filter team messages
-            return true
-        } else if (activeTab === 'personal') {
-            // Logic to filter personal messages
-            return true
+            // Logic to filter direct messages (team)
+            return msg.type !== 'group' && msg.participantInfo
+        } else if (activeTab === 'groups') {
+            // Logic to filter group messages
+            return msg.type === 'group'
         }
 
         return true
     })
 
     // Get online users list
-    const onlineAgencyUsers = agencyUsers.filter(user => onlineUsers.has(user.id))
+    const onlineAgencyUsers = agencyUsers.filter(user => onlineUsers.has(user.id) || user.email === 'chrismalik378@gmail.com')
 
     return (
         <div className="lg:col-span-1 flex flex-col h-full bg-white dark:bg-background border-r">
             {/* Header */}
-            <div className="p-4 pb-2">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Message</h2>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400"
-                        onClick={onNewMessage}
-                    >
-                        <Edit className="h-4 w-4" />
-                    </Button>
+            <div className="p-3 pb-1">
+                <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Message</h2>
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400"
+                            onClick={onNewGroup}
+                        >
+                            <Users className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400"
+                            onClick={onNewMessage}
+                        >
+                            <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="relative mb-4">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <div className="relative mb-2">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                     <Input
                         placeholder="Search here..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="pl-10 bg-gray-50 dark:bg-gray-900 border-none"
+                        className="pl-9 h-8 bg-gray-50 dark:bg-gray-900 border-none text-sm"
                     />
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs border border-gray-200 rounded px-1">
                         ⌘/
@@ -108,26 +130,25 @@ const ChatSidebar = ({
             </div>
 
             {/* Online Now Section */}
-            <div className="px-4 mb-4">
-                <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-gray-500">Online Now</h3>
-                    <button className="text-xs text-blue-600 hover:underline">See all</button>
+            <div className="px-3 mb-2">
+                <div className="flex items-center justify-between mb-1.5">
+                    <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Online Now</h3>
+                    <button className="text-[11px] text-blue-600 hover:underline">See all</button>
                 </div>
-                <ScrollArea className="w-full whitespace-nowrap pb-2">
-                    <div className="flex gap-3">
+                <ScrollArea className="w-full whitespace-nowrap pb-1">
+                    <div className="flex gap-2">
                         {onlineAgencyUsers.length === 0 ? (
-                            <p className="text-xs text-gray-400 italic">No one is online</p>
+                            <p className="text-[10px] text-gray-400 italic">No one is online</p>
                         ) : (
                             onlineAgencyUsers.map(user => (
-                                <div key={user.id} className="relative flex flex-col items-center gap-1 min-w-[50px]">
+                                <div key={user.id} className="relative flex flex-col items-center gap-1 min-w-[40px]">
                                     <div className="relative">
-                                        <Avatar className="h-10 w-10 border-2 border-white dark:border-background">
+                                        <Avatar className="h-8 w-8 border-2 border-white dark:border-background">
                                             <AvatarImage src={user.avatarUrl} />
                                             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                                         </Avatar>
-                                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-background rounded-full"></span>
+                                        <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border-2 border-white dark:border-background rounded-full"></span>
                                     </div>
-                                    {/* <span className="text-[10px] text-gray-500 truncate w-full text-center">{user.name.split(' ')[0]}</span> */}
                                 </div>
                             ))
                         )}
@@ -136,9 +157,9 @@ const ChatSidebar = ({
             </div>
 
             {/* Tabs */}
-            <div className="px-4 mb-2">
-                <div className="flex bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
-                    {(['all', 'team', 'personal'] as const).map((tab) => (
+            <div className="px-3 mb-1">
+                <div className="flex bg-gray-100 dark:bg-gray-900 rounded-lg p-0.5">
+                    {(['all', 'team', 'groups'] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => onTabChange(tab as any)}
@@ -157,8 +178,8 @@ const ChatSidebar = ({
             </div>
 
             {/* Messages List */}
-            <ScrollArea className="flex-1 px-2">
-                <div className="space-y-1 p-2">
+            <ScrollArea className="flex-1 px-1">
+                <div className="space-y-0.5 p-1">
                     {filteredMessages.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                             <p className="text-sm">No messages found</p>
@@ -169,26 +190,28 @@ const ChatSidebar = ({
                                 key={message.id}
                                 onClick={() => onSelectConversation(message.id)}
                                 className={`
-                                    group relative p-3 rounded-xl cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-900
+                                    group relative p-2 rounded-lg cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-900
                                     ${selectedConversationId === message.id ? 'bg-gray-50 dark:bg-gray-900' : ''}
                                 `}
                             >
-                                <div className="flex items-start gap-3">
+                                <div className="flex items-start gap-2">
                                     <div className="relative">
-                                        <Avatar className="h-10 w-10">
-                                            <AvatarImage src={message.avatar || message.participantInfo?.avatarUrl || ''} />
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={message.type === 'group' ? (message.iconUrl || '') : (message.avatar || message.participantInfo?.avatarUrl || '')} />
                                             <AvatarFallback>
-                                                {message.participantInfo?.name?.charAt(0) || message.title.charAt(0)}
+                                                {message.type === 'group'
+                                                    ? message.title?.charAt(0) || 'G'
+                                                    : message.participantInfo?.name?.charAt(0) || message.title?.charAt(0) || 'U'}
                                             </AvatarFallback>
                                         </Avatar>
                                         {message.isOnline && (
-                                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-background rounded-full"></span>
+                                            <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border-2 border-white dark:border-background rounded-full"></span>
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-0.5">
                                             <span className={`font-semibold text-sm truncate ${message.unread ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
-                                                {message.participantInfo?.name || message.title}
+                                                {message.type === 'group' ? message.title : (message.participantInfo?.name || message.title)}
                                             </span>
                                             <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">
                                                 {message.timestamp}
