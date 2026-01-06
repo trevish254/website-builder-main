@@ -892,17 +892,6 @@ const AgencyMessagesPage = ({ params }: Props) => {
     setAgencyAdmins(admins)
   }
 
-  // Message action handlers
-  const handleDeleteMessage = async (id: string) => {
-    const success = await deleteMessage(id)
-    if (success) {
-      setChatMessages(prev => prev.filter(m => m.id !== id))
-      toast({ title: 'Message deleted' })
-    } else {
-      toast({ variant: 'destructive', title: 'Failed to delete message' })
-    }
-  }
-
   const handleReplyMessage = (messageId: string) => {
     const msg = chatMessages.find(m => m.id === messageId)
     if (msg) {
