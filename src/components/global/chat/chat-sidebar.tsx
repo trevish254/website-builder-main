@@ -51,6 +51,7 @@ interface ChatSidebarProps {
     onNewMessage?: () => void
     onNewGroup?: () => void
     notificationSettings?: React.ReactNode
+    typingStates?: Record<string, Set<string>>
 }
 
 const ChatSidebar = ({
@@ -66,7 +67,8 @@ const ChatSidebar = ({
     onlineUsers = new Set(),
     onNewMessage,
     onNewGroup,
-    notificationSettings
+    notificationSettings,
+    typingStates = {}
 }: ChatSidebarProps) => {
     // Filter messages based on search and tabs
     const filteredMessages = inboxItems.filter(msg => {
@@ -244,7 +246,11 @@ const ChatSidebar = ({
                                             </span>
                                         </div>
                                         <p className={`text-xs truncate ${message.unread ? 'font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500'}`}>
-                                            {message.preview || 'No messages yet'}
+                                            {typingStates[message.id]?.size > 0 ? (
+                                                <span className="text-blue-600 dark:text-blue-400 italic animate-pulse">typing...</span>
+                                            ) : (
+                                                message.preview || 'No messages yet'
+                                            )}
                                         </p>
                                     </div>
                                     {message.unread && (

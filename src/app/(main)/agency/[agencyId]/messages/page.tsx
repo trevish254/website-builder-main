@@ -18,7 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase/client'
 import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
-import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getAgencyUsers, ensureDirectConversation, getConversationWithParticipantsManual, deleteConversation, searchAgenciesByEmail, getAgencyOwner, updateMessage, createGroupConversation } from '@/lib/supabase-queries'
+import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getAgencyUsers, ensureDirectConversation, getConversationWithParticipantsManual, deleteConversation, searchAgenciesByEmail, getAgencyOwner, updateMessage, createGroupConversation, deleteMessage } from '@/lib/supabase-queries'
 import { getConversationsWithParticipants, getMessagesForConversation, sendMessage } from '@/lib/queries'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -84,7 +84,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
   const [agencyUsers, setAgencyUsers] = useState<any[]>([])
   const [searchUserQuery, setSearchUserQuery] = useState('')
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
-  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set())
+  // Track typing status per conversation: { conversationId: Set<userId> }
+  const [typingStates, setTypingStates] = useState<Record<string, Set<string>>>({})
   const [isUploading, setIsUploading] = useState(false)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -508,22 +509,32 @@ const AgencyMessagesPage = ({ params }: Props) => {
     })
 
     channel.on('broadcast', { event: 'typing' }, ({ payload }) => {
-      if (payload.conversationId === selectedConversationId && payload.userId !== user.id) {
-        setTypingUsers((prev) => {
-          const newSet = new Set(prev)
-          newSet.add(payload.userId)
-          return newSet
-        })
+      const { conversationId, userId } = payload
+      if (userId === user.id) return
 
-        // Clear typing status after 3 seconds
-        setTimeout(() => {
-          setTypingUsers((prev) => {
-            const newSet = new Set(prev)
-            newSet.delete(payload.userId)
-            return newSet
-          })
-        }, 3000)
-      }
+      setTypingStates((prev) => {
+        const newStates = { ...prev }
+        const conversationTyping = new Set(newStates[conversationId] || [])
+        conversationTyping.add(userId)
+        newStates[conversationId] = conversationTyping
+        return newStates
+      })
+
+      // Clear typing status after some time
+      setTimeout(() => {
+        setTypingStates((prev) => {
+          const newStates = { ...prev }
+          if (!newStates[conversationId]) return prev
+          const conversationTyping = new Set(newStates[conversationId])
+          conversationTyping.delete(userId)
+          if (conversationTyping.size === 0) {
+            delete newStates[conversationId]
+          } else {
+            newStates[conversationId] = conversationTyping
+          }
+          return newStates
+        })
+      }, 3000)
     })
 
     channel.subscribe(async (status) => {
@@ -619,10 +630,12 @@ const AgencyMessagesPage = ({ params }: Props) => {
   const handleTyping = () => {
     if (!selectedConversationId || !user?.id) return
 
-    // Debounce typing events
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
+    // Limit broadcast frequency
+    const now = Date.now()
+    if ((window as any).lastTypingBroadcast && now - (window as any).lastTypingBroadcast < 1500) {
+      return
     }
+    (window as any).lastTypingBroadcast = now
 
     const channel = supabase.channel('online-users')
     channel.send({
@@ -630,6 +643,16 @@ const AgencyMessagesPage = ({ params }: Props) => {
       event: 'typing',
       payload: { conversationId: selectedConversationId, userId: user.id }
     })
+  }
+
+  const handleDeleteMessage = async (id: string) => {
+    const success = await deleteMessage(id)
+    if (success) {
+      setChatMessages(prev => prev.filter(m => m.id !== id))
+      toast({ title: 'Message deleted' })
+    } else {
+      toast({ variant: 'destructive', title: 'Failed to delete message' })
+    }
   }
 
   const handleFileUpload = async (files: File[]) => {
@@ -870,12 +893,14 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   // Message action handlers
-  const handleDeleteMessage = (messageId: string) => {
-    console.log('Delete message:', messageId)
-    toast({
-      title: 'Delete Message',
-      description: 'Message deletion coming soon'
-    })
+  const handleDeleteMessage = async (id: string) => {
+    const success = await deleteMessage(id)
+    if (success) {
+      setChatMessages(prev => prev.filter(m => m.id !== id))
+      toast({ title: 'Message deleted' })
+    } else {
+      toast({ variant: 'destructive', title: 'Failed to delete message' })
+    }
   }
 
   const handleReplyMessage = (messageId: string) => {
@@ -991,6 +1016,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
               onSettingsChange={handleNotificationSettingsChange}
             />
           }
+          typingStates={typingStates}
         />
       </div>
 
@@ -1007,7 +1033,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
           onSendMessage={handleSendMessage}
           onFileUpload={handleFileUpload}
           isUploading={isUploading}
-          isTyping={typingUsers.has(selectedMsg?.participantInfo?.id || '')}
+          typingUsers={selectedConversationId ? typingStates[selectedConversationId] : new Set()}
+          chatParticipants={chatParticipants}
           onInputKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()

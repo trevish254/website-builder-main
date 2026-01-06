@@ -582,6 +582,22 @@ export const updateMessage = async (messageId: string, content: string) => {
   return data as Message
 }
 
+export const deleteMessage = async (messageId: string) => {
+  console.log('[QUERY] deleteMessage called:', messageId)
+
+  const { error } = await supabase
+    .from('Message')
+    .delete()
+    .eq('id', messageId)
+
+  if (error) {
+    console.error('[QUERY] Error deleting message:', error)
+    return false
+  }
+
+  return true
+}
+
 export const markConversationRead = async (conversationId: string, userId: string) => {
   const { error } = await supabase
     .from('ConversationParticipant')
