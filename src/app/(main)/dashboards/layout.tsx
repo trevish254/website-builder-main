@@ -53,6 +53,7 @@ const DashboardsLayout = async ({ children }: Props) => {
                     subAccountId={type === 'subaccount' ? id : undefined}
                     agencyLogo={agencyLogo}
                     agencyName={agencyName}
+                    userData={user}
                 />
                 <Sidebar
                     id={id}

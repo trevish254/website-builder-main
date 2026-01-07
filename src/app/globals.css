@@ -40,6 +40,8 @@
     --chart-5: 27 87% 67%;
 
     --radius: 0.5rem;
+    --color-background: #ffffff;
+    --color-text: #0a0a0a;
     --color-amber-500: #f59e0b;
     --color-blue-500: #3b82f6;
     --color-rose-500: #f43f5e;
@@ -81,6 +83,8 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --color-background: #0a0a0a;
+    --color-text: #ffffff;
   }
 }
 
@@ -230,4 +234,68 @@
 
 .ce-toolbox__button:hover {
   @apply bg-gray-100 dark:bg-gray-800;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full hover:bg-gray-400 dark:hover:bg-gray-600;
+}
+
+/* Rotating Gradient Animation */
+@property --r {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.rotatingGradient {
+  background: conic-gradient(from var(--r), #ff1b6b, #45caff, #ff1b6b);
+  animation: rotate 4s linear infinite;
+  box-shadow: 0 0 20px rgba(69, 202, 255, 0.15);
+  transition: box-shadow 0.3s ease;
+}
+
+@keyframes rotate {
+  from {
+    --r: 0deg;
+  }
+
+  to {
+    --r: 360deg;
+  }
+}
+
+.rotatingGradient:hover {
+  animation-duration: 2s;
+  box-shadow: 0 0 30px rgba(255, 27, 107, 0.3);
+}
+
+.rotatingGradient .label {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  50% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }

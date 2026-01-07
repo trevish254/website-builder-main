@@ -26,6 +26,8 @@ import { Input } from '../ui/input'
 import { Button } from '../ui/button'
 import { useToast } from '../ui/use-toast'
 import QuickInvite from './quick-invite'
+import AccountSwitcher from './account-switcher'
+import { getAuthUserDetails } from '@/lib/queries'
 
 type Props = {
   notifications: NotificationWithUser | []
@@ -35,9 +37,11 @@ type Props = {
   agencyId?: string
   agencyLogo?: string
   agencyName?: string
+  userData?: any
 }
 
-const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agencyLogo, agencyName }: Props) => {
+const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agencyLogo, agencyName, userData }: Props) => {
+  const [currentUserData, setCurrentUserData] = useState(userData)
   // Ensure notifications is always an array
   const safeNotifications = Array.isArray(notifications) ? notifications : []
   const [allNotifications, setAllNotifications] = useState(safeNotifications)
@@ -285,6 +289,17 @@ const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agenc
     }
   }, [user?.id])
 
+  // Load user data if not provided
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!userData) {
+        const data = await getAuthUserDetails()
+        if (data) setCurrentUserData(data)
+      }
+    }
+    fetchUserData()
+  }, [userData])
+
   // Load conversations on mount
   useEffect(() => {
     loadConversations()
@@ -435,27 +450,19 @@ const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agenc
     <>
       <div
         className={twMerge(
-          'fixed z-[20] top-0 left-0 right-0 h-[50px] p-4 bg-background/80 backdrop-blur-md flex gap-4 items-center border-b-[1px]',
+          'fixed z-[20] top-0 left-0 right-0 h-16 px-0 bg-transparent bg-gradient-to-b from-white/10 to-transparent dark:from-white/5 dark:to-transparent backdrop-blur-xl flex gap-4 items-center border-b border-white/20 dark:border-white/10',
           className
         )}
       >
-        <div className="flex items-center gap-2 pl-4">
-          {agencyLogo && (
-            <div className="relative w-8 h-8">
-              <img
-                src={agencyLogo}
-                alt="Agency Logo"
-                className="w-full h-full object-cover rounded-md"
-              />
-            </div>
-          )}
-          {agencyName && (
-            <span className="font-bold text-xl hidden md:block">
-              {agencyName}
-            </span>
-          )}
+        <div className="flex items-center">
+          <AccountSwitcher
+            user={currentUserData}
+            currentId={subAccountId || agencyId}
+            currentLogo={agencyLogo}
+            currentName={agencyName}
+          />
         </div>
-        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md hidden md:block" ref={searchRef}>
+        <div className="flex-1 flex items-center justify-center gap-4 px-4" ref={searchRef}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <input
@@ -508,26 +515,28 @@ const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agenc
           )}
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1"></div>
+
 
         {/* Icons on the far right */}
         <div className="flex items-center gap-3">
           {/* Messages */}
           <Sheet>
             <SheetTrigger>
-              <div className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all hover:scale-110 relative">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+              <div className="w-8 h-8 rounded-full bg-muted dark:bg-white/10 hover:bg-muted/80 flex items-center justify-center transition-all hover:scale-110 relative">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-foreground dark:text-blue-50">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
                 {conversations.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-destructive text-white text-xs rounded-full w-4 h-4 flex items-center justify-center text-[10px] border border-background">
                     {conversations.length}
                   </span>
                 )}
               </div>
             </SheetTrigger>
-            <SheetContent className="mt-4 mr-4 pr-4 overflow-scroll bg-background/40 backdrop-blur-xl border-l border-border/50">
+            <SheetContent
+              className="mt-16 pr-4 overflow-scroll bg-background/40 backdrop-blur-xl border-l border-border/50 h-[calc(100vh-64px)]"
+              overlayClassName="top-16"
+            >
               <SheetHeader className="text-left">
                 <SheetTitle>Messages</SheetTitle>
                 <SheetDescription className="text-muted-foreground">
@@ -632,8 +641,8 @@ const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agenc
           {/* Tasks */}
           <Sheet>
             <SheetTrigger>
-              <div className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all hover:scale-110">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+              <div className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all hover:scale-110">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                   <path d="M9 11l3 3L22 4"></path>
                 </svg>
@@ -685,8 +694,8 @@ const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agenc
           {/* Calendar */}
           <Sheet>
             <SheetTrigger>
-              <div className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all hover:scale-110">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+              <div className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all hover:scale-110">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                   <line x1="16" y1="2" x2="16" y2="6"></line>
                   <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -744,22 +753,22 @@ const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agenc
             <QuickInvite agencyId={agencyId || (subAccountId as string)} />
           )}
 
-          {/* Account */}
-          <UserButton />
-
           {/* Notifications */}
           <Sheet>
             <SheetTrigger>
-              <div className="rounded-full w-9 h-9 bg-primary flex items-center justify-center text-white relative">
-                <Bell size={17} />
+              <div className="rounded-full w-8 h-8 bg-muted dark:bg-white/10 hover:bg-muted/80 flex items-center justify-center transition-all hover:scale-110 relative">
+                <Bell size={15} className="text-foreground dark:text-blue-50" />
                 {hasNotifications && (
-                  <span className="absolute -top-1 -right-1 bg-destructive text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-destructive text-white text-xs rounded-full w-4 h-4 flex items-center justify-center text-[10px] border border-background">
                     {notificationCount}
                   </span>
                 )}
               </div>
             </SheetTrigger>
-            <SheetContent className="mt-4 mr-4 pr-4 overflow-scroll">
+            <SheetContent
+              className="mt-16 pr-4 overflow-scroll h-[calc(100vh-64px)]"
+              overlayClassName="top-16"
+            >
               <SheetHeader className="text-left">
                 <SheetTitle>Notifications</SheetTitle>
                 <SheetDescription className="text-muted-foreground">
@@ -836,6 +845,7 @@ const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agenc
 
           {/* Theme Toggle */}
           <ModeToggle />
+          <UserButton />
         </div>
       </div>
     </>

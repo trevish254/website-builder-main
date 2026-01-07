@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
-import { 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Plus, 
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Plus,
   MoreHorizontal,
   Copy,
   Clock,
@@ -34,6 +34,8 @@ import CreateNoteForm from './create-note-form'
 import CreateEmployeeForm from './create-employee-form'
 import CreateReportForm from './create-report-form'
 import UploadFileForm from './upload-file-form'
+import GradientButton from '@/components/ui/button-1'
+import { ShimmerButton } from '@/components/ui/shimmer-button'
 
 type Props = {
   subaccountId?: string
@@ -41,10 +43,7 @@ type Props = {
 }
 
 const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
-  console.log('🎯 SubAccountDetailsPanel rendered!')
-  console.log('📋 SubaccountId:', subaccountId)
-  console.log('📋 AgencyId:', agencyId)
-  
+
   const [subaccount, setSubaccount] = useState<SubAccount | null>(null)
   const [notes, setNotes] = useState<SubAccountNote[]>([])
   const [files, setFiles] = useState<SubAccountFile[]>([])
@@ -56,26 +55,33 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
   const [showCreateEmployee, setShowCreateEmployee] = useState(false)
   const [showCreateReport, setShowCreateReport] = useState(false)
   const [showUploadFile, setShowUploadFile] = useState(false)
+  const [notesError, setNotesError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) setUserId(session.user.id)
+    }
+    fetchSession()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUserId(session.user.id)
+      } else {
+        setUserId('')
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     if (subaccountId) {
-      fetchUserDetails()
       fetchSubaccountDetails()
     } else {
       setLoading(false)
     }
   }, [subaccountId])
-
-  const fetchUserDetails = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-      }
-    } catch (error) {
-      console.error('Error fetching user details:', error)
-    }
-  }
 
   const fetchSubaccountDetails = async () => {
     console.log('🔍 fetchSubaccountDetails called with subaccountId:', subaccountId)
@@ -87,7 +93,7 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
     try {
       setLoading(true)
       console.log('📡 Fetching subaccount details...')
-      
+
       // Fetch subaccount details
       const { data: subaccountData } = await supabase
         .from('SubAccount')
@@ -114,24 +120,60 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
   }
 
   const fetchNotes = async () => {
-    const { data } = await supabase
-      .from('SubAccountNote')
-      .select(`
-        *,
-        User:userId (
-          id,
-          name,
-          avatarUrl
-        )
-      `)
-      .eq('subAccountId', subaccountId)
-      .order('createdAt', { ascending: false })
-    
-    setNotes(data || [])
+    if (!subaccountId) return
+    console.log('📝 FETCH LOG: Starting note fetch for ID:', subaccountId)
+    setNotesError(null)
+
+    try {
+      // Primary attempt with specific column join
+      const { data, error } = await supabase
+        .from('SubAccountNote')
+        .select(`
+          *,
+          User:userId (
+            id,
+            name,
+            avatarUrl
+          )
+        `)
+        .eq('subAccountId', subaccountId)
+        .order('createdAt', { ascending: false })
+
+      if (error) {
+        console.warn('⚠️ FETCH LOG: JOIN query failed, trying standard join:', error.message)
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('SubAccountNote')
+          .select('*, User (id, name, avatarUrl)')
+          .eq('subAccountId', subaccountId)
+          .order('createdAt', { ascending: false })
+
+        if (fallbackError) {
+          console.error('❌ FETCH LOG: Both JOINs failed, falling back to simple select.')
+          const { data: simpleData } = await supabase
+            .from('SubAccountNote')
+            .select('*')
+            .eq('subAccountId', subaccountId)
+            .order('createdAt', { ascending: false })
+
+          setNotes(simpleData || [])
+          setNotesError('Loading partial attribution...')
+        } else {
+          setNotes(fallbackData || [])
+        }
+      } else {
+        console.log('✅ FETCH LOG: Notes successfully fetched with JOIN')
+        setNotes(data || [])
+      }
+    } catch (err: any) {
+      console.error('❌ FETCH LOG: Fatal fetch error:', err)
+      setNotesError(`Connection Error: ${err.message}`)
+    }
   }
 
   const fetchFiles = async () => {
-    const { data } = await supabase
+    if (!subaccountId) return
+    console.log('📡 FETCH LOG: Fetching files for subaccount:', subaccountId)
+    const { data, error } = await supabase
       .from('SubAccountFile')
       .select(`
         *,
@@ -143,29 +185,34 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
       `)
       .eq('subAccountId', subaccountId)
       .order('createdAt', { ascending: false })
-    
+
+    if (error) {
+      console.error('❌ FETCH LOG: Error fetching files:', error)
+      return
+    }
+
     setFiles(data || [])
   }
 
   const fetchEmployees = async () => {
     console.log('🔍 Fetching employees for subaccount:', subaccountId)
-    
+
     // First, let's test if the table exists and we can query it
     console.log('🧪 Testing basic table access...')
     const { data: testData, error: testError } = await supabase
       .from('SubAccountEmployee')
       .select('*')
       .limit(1)
-    
+
     if (testError) {
       console.error('❌ Basic table access failed:', testError)
       console.error('❌ This suggests the table might not exist or RLS is blocking access')
       setEmployees([])
       return
     }
-    
+
     console.log('✅ Basic table access successful, test data:', testData)
-    
+
     // Now try the full query with joins
     const { data, error } = await supabase
       .from('SubAccountEmployee')
@@ -181,7 +228,7 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
       .eq('subAccountId', subaccountId)
       .eq('isActive', true)
       .order('assignedAt', { ascending: false })
-    
+
     if (error) {
       console.error('❌ Error fetching employees with joins:', error)
       console.error('❌ Error details:', JSON.stringify(error, null, 2))
@@ -192,7 +239,7 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
         console.log('📋 First employee structure:', JSON.stringify(data[0], null, 2))
       }
     }
-    
+
     setEmployees(data || [])
   }
 
@@ -217,7 +264,7 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
       `)
       .eq('subAccountId', subaccountId)
       .order('createdAt', { ascending: false })
-    
+
     setReports(data || [])
   }
 
@@ -305,7 +352,15 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-6 border-b border-white/10 sticky top-0 z-20 bg-transparent overflow-hidden shadow-[0_20px_50px_-20px_rgba(0,0,0,0.7)] transition-all duration-300">
+        {/* Animated Neon Top-Edge */}
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-500/60 to-transparent" />
+
+        {/* Bottom Crystal Reflection (The 'Edge' that content passes under) */}
+        <div className="absolute bottom-0 left-0 w-full h-[1px] bg-white/10 shadow-[0_-1px_10px_rgba(255,255,255,0.1)]" />
+
+        {/* Moving Sheen Effect */}
+        <div className="absolute inset-0 w-[200%] h-full -translate-x-full animate-[shimmer-sweep_6s_infinite] bg-gradient-to-r from-transparent via-white/[0.04] to-transparent pointer-events-none" />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="relative w-12 h-12">
@@ -313,27 +368,33 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
                 src={subaccount.subAccountLogo}
                 alt={subaccount.name}
                 fill
-                className="rounded-lg object-cover"
+                className="rounded-lg object-cover shadow-lg"
               />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
                 {subaccount.name}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Subaccounts / {subaccount.name}
+              <p className="text-xs text-gray-400 font-medium tracking-wide">
+                SUBACCOUNTS / {subaccount.name}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
             <Link href={`/subaccount/${subaccountId}`}>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Settings className="h-4 w-4 mr-2" />
-                Manage
-              </Button>
+              <GradientButton
+                width="180px"
+                height="50px"
+                className="shadow-xl shadow-blue-500/10"
+              >
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span>MANAGE</span>
+                </div>
+              </GradientButton>
             </Link>
-            <Button variant="ghost" size="sm">
-              <MoreHorizontal className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-400">
+              <MoreHorizontal className="h-5 w-5" />
             </Button>
           </div>
         </div>
@@ -342,35 +403,50 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* Company Info */}
-        <Card>
+        <Card className="bg-white/[0.03] dark:bg-white/[0.01] backdrop-blur-2xl border-white/10 shadow-xl overflow-hidden">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-gray-100">
+              <Building2 className="h-5 w-5 text-blue-400" />
               Company Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Phone className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-2 p-4 bg-white/[0.05] border border-white/5 rounded-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-blue-400 font-bold text-[10px] uppercase tracking-widest">
+                  <Phone className="h-3 w-3" />
+                  Phone
+                </div>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-500 hover:text-white transition-colors">
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <span className="text-sm font-semibold text-gray-200">
                 {subaccount.companyPhone}
               </span>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                <Copy className="h-3 w-3" />
-              </Button>
             </div>
-            <div className="flex items-center gap-3">
-              <Mail className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
+
+            <div className="flex flex-col gap-2 p-4 bg-white/[0.05] border border-white/5 rounded-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-[10px] uppercase tracking-widest">
+                  <Mail className="h-3 w-3" />
+                  Email
+                </div>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-500 hover:text-white transition-colors">
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <span className="text-sm font-semibold text-gray-200">
                 {subaccount.companyEmail}
               </span>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                <Copy className="h-3 w-3" />
-              </Button>
             </div>
-            <div className="flex items-center gap-3">
-              <MapPin className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
+
+            <div className="flex flex-col gap-2 p-4 bg-white/[0.05] border border-white/5 rounded-2xl">
+              <div className="flex items-center gap-2 text-red-500 font-bold text-[10px] uppercase tracking-widest">
+                <MapPin className="h-3 w-3" />
+                Address
+              </div>
+              <span className="text-xs font-semibold text-gray-200 leading-relaxed">
                 {subaccount.address}, {subaccount.city}, {subaccount.state} {subaccount.zipCode}
               </span>
             </div>
@@ -378,65 +454,94 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
         </Card>
 
         {/* Notes */}
-        <Card>
+        <Card className="bg-white/[0.03] dark:bg-white/[0.01] backdrop-blur-2xl border-white/10 shadow-xl overflow-hidden">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+                <FileText className="h-5 w-5 text-blue-400" />
                 Notes
               </CardTitle>
-              <Dialog open={showCreateNote} onOpenChange={setShowCreateNote}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create New
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <CreateNoteForm
-                    subaccountId={subaccountId}
-                    userId={userId}
-                    onNoteAdded={(note) => {
-                      setNotes(prev => [note, ...prev])
-                      setShowCreateNote(false)
-                    }}
-                    onClose={() => setShowCreateNote(false)}
-                  />
-                </DialogContent>
-              </Dialog>
+              {userId ? (
+                <Dialog open={showCreateNote} onOpenChange={setShowCreateNote}>
+                  <DialogTrigger asChild>
+                    <ShimmerButton
+                      borderRadius="12px"
+                      className="h-11 px-8 text-sm font-semibold"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create New
+                    </ShimmerButton>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <CreateNoteForm
+                      subaccountId={subaccountId}
+                      userId={userId}
+                      onNoteAdded={(note) => {
+                        setNotes(prev => [note, ...prev])
+                        setShowCreateNote(false)
+                      }}
+                      onClose={() => setShowCreateNote(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                  <Clock className="h-3 w-3 animate-spin text-gray-400" />
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Authenticating</span>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            {notes.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No notes available</p>
+            {notesError && (
+              <div className="flex items-center justify-center gap-2 p-2 mb-4 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-[10px] italic">
+                <Clock className="h-3 w-3" />
+                {notesError}
+              </div>
+            )}
+            {notes.length === 0 && !notesError ? (
+              <p className="text-gray-500 dark:text-gray-400 text-sm text-center py-8">No notes available</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {notes.map((note) => (
-                  <div key={note.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{note.title}</h4>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 w-6 p-0"
+                  <div key={note.id} className="group relative p-4 bg-white/[0.05] dark:bg-white/5 border border-white/10 rounded-xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-semibold text-gray-100 group-hover:text-blue-400 transition-colors uppercase tracking-tight text-sm">{note.title}</h4>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-500 hover:bg-red-500/10"
                           onClick={() => {
                             if (confirm('Are you sure you want to delete this note?')) {
                               // TODO: Implement delete note functionality
                               console.log('Delete note:', note.id)
                             }
                           }}
-                          title="Delete note"
                         >
-                          <Trash2 className="h-3 w-3 text-red-500" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{note.content}</p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
-                      <span>By {note.User?.name || 'Unknown'}</span>
-                      <span>•</span>
-                      <span>{formatDate(note.createdAt)}</span>
+                    <p className="text-sm text-gray-400 leading-relaxed mb-4">{note.content}</p>
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                      <div className="flex items-center gap-2">
+                        {note.User?.avatarUrl ? (
+                          <div className="relative w-5 h-5 rounded-full overflow-hidden border border-white/10">
+                            <Image src={note.User.avatarUrl} alt={note.User.name} fill className="object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                            <Users className="h-3 w-3 text-blue-400" />
+                          </div>
+                        )}
+                        <span className="text-[11px] font-medium text-gray-500">
+                          {note.User?.name || 'Unknown'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+                        {formatDate(note.createdAt)}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -446,71 +551,81 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
         </Card>
 
         {/* Attached Files */}
-        <Card>
+        <Card className="bg-white/[0.03] dark:bg-white/[0.01] backdrop-blur-2xl border-white/10 shadow-xl overflow-hidden">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-100">
+                <Download className="h-5 w-5 text-emerald-400" />
                 Attached Files
               </CardTitle>
-              <Dialog open={showUploadFile} onOpenChange={setShowUploadFile}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Attach New
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <UploadFileForm
-                    subaccountId={subaccountId}
-                    userId={userId}
-                    onFileAdded={(file) => {
-                      setFiles(prev => [file, ...prev])
-                      setShowUploadFile(false)
-                    }}
-                    onClose={() => setShowUploadFile(false)}
-                  />
-                </DialogContent>
-              </Dialog>
+              {userId ? (
+                <Dialog open={showUploadFile} onOpenChange={setShowUploadFile}>
+                  <DialogTrigger asChild>
+                    <ShimmerButton
+                      borderRadius="12px"
+                      className="h-11 px-8 text-sm font-semibold"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Attach New
+                    </ShimmerButton>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md p-0 overflow-hidden border-none bg-transparent">
+                    <UploadFileForm
+                      subaccountId={subaccountId}
+                      userId={userId}
+                      onFileAdded={(file: any) => {
+                        setFiles(prev => [file, ...prev])
+                        setShowUploadFile(false)
+                      }}
+                      onClose={() => setShowUploadFile(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                  <Clock className="h-3 w-3 animate-spin text-gray-400" />
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Authenticating</span>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
             {files.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No files attached</p>
+              <div className="text-center py-10 opacity-30">
+                <Download className="h-10 w-10 mx-auto mb-2 text-gray-500" />
+                <p className="text-sm font-medium">No files attached</p>
+              </div>
             ) : (
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {files.map((file) => (
-                  <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{file.originalName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {(file.size / 1024).toFixed(1)} KB • {formatDate(file.createdAt)} • Uploaded by {file.User?.name || 'Unknown'}
-                        </p>
-                      </div>
+                  <div key={file.id} className="group flex items-center gap-3 p-3 bg-white/[0.05] border border-white/10 rounded-xl hover:bg-white/[0.08] transition-all">
+                    <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                      <FileText className="h-5 w-5 text-emerald-400" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-200 truncate leading-tight">{file.originalName}</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-0.5">
+                        {(file.size / 1024).toFixed(1)} KB • {formatDate(file.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-gray-400 hover:text-emerald-400 hover:bg-emerald-400/10"
                         onClick={() => window.open(file.url, '_blank')}
-                        title="Download file"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-gray-400 hover:text-red-500 hover:bg-red-500/10"
                         onClick={() => {
                           if (confirm('Are you sure you want to delete this file?')) {
-                            // TODO: Implement delete functionality
                             console.log('Delete file:', file.id)
                           }
                         }}
-                        title="Delete file"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -523,124 +638,28 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
         </Card>
 
         {/* Employees */}
-        <Card>
+        <Card className="bg-white/[0.03] dark:bg-white/[0.01] backdrop-blur-2xl border-white/10 shadow-xl overflow-hidden">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Employees ({employees.length})
+              <CardTitle className="flex items-center gap-2 text-gray-100">
+                <Users className="h-5 w-5 text-violet-400" />
+                Team Members ({employees.length})
               </CardTitle>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    console.log('🔧 Manual fetch test')
-                    fetchEmployees()
-                  }}
-                >
-                  🔧 Debug Fetch
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={async () => {
-                    console.log('🧪 Testing database connection...')
-                    try {
-                      // Test basic connection
-                      const { data: connectionTest, error: connectionError } = await supabase
-                        .from('SubAccountEmployee')
-                        .select('count')
-                        .limit(1)
-                      
-                      if (connectionError) {
-                        console.error('❌ Connection test failed:', connectionError)
-                      } else {
-                        console.log('✅ Connection test passed:', connectionTest)
-                      }
-                      
-                      // Test table contents
-                      const { data: allEmployees, error: allError } = await supabase
-                        .from('SubAccountEmployee')
-                        .select('*')
-                        .limit(10)
-                      
-                      if (allError) {
-                        console.error('❌ Table query failed:', allError)
-                      } else {
-                        console.log('📊 All employees in table:', allEmployees)
-                        console.log('📊 Count:', allEmployees?.length || 0)
-                      }
-                      
-                      // Test specific subaccount
-                      const { data: subEmployees, error: subError } = await supabase
-                        .from('SubAccountEmployee')
-                        .select('*')
-                        .eq('subAccountId', subaccountId)
-                      
-                      if (subError) {
-                        console.error('❌ Subaccount query failed:', subError)
-                      } else {
-                        console.log(`📊 Employees for subaccount ${subaccountId}:`, subEmployees)
-                        console.log(`📊 Count for this subaccount:`, subEmployees?.length || 0)
-                      }
-                      
-                      // Test manual insert
-                      console.log('🧪 Testing manual insert...')
-                      const { data: insertTest, error: insertError } = await supabase
-                        .from('SubAccountEmployee')
-                        .insert({
-                          id: crypto.randomUUID(),
-                          subAccountId: subaccountId,
-                          userId: 'user_34FxujtkgcsuWikpzCsX78HDEjD', // Your user ID from logs
-                          role: 'MEMBER',
-                          assignedAt: new Date().toISOString(),
-                          isActive: true,
-                          createdAt: new Date().toISOString(),
-                          updatedAt: new Date().toISOString()
-                        })
-                        .select()
-                        .single()
-                      
-                      if (insertError) {
-                        console.error('❌ Manual insert failed:', insertError)
-                      } else {
-                        console.log('✅ Manual insert successful:', insertTest)
-                      }
-                      
-                    } catch (error) {
-                      console.error('❌ Test failed:', error)
-                    }
-                  }}
-                >
-                  🧪 Test DB
-                </Button>
-              </div>
-              <Dialog open={showCreateEmployee} onOpenChange={(open) => {
-                console.log('🔘 Dialog state changed:', open)
-                setShowCreateEmployee(open)
-              }}>
+              <Dialog open={showCreateEmployee} onOpenChange={setShowCreateEmployee}>
                 <DialogTrigger asChild>
-                  <Button 
-                    size="sm" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => {
-                      console.log('🔘 Create New button clicked!')
-                      console.log('📋 Dialog state:', { showCreateEmployee })
-                    }}
+                  <ShimmerButton
+                    borderRadius="12px"
+                    className="h-11 px-8 text-sm font-semibold"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Create New
-                  </Button>
+                    Manage Team
+                  </ShimmerButton>
                 </DialogTrigger>
                 <DialogContent>
                   <CreateEmployeeForm
                     subaccountId={subaccountId}
                     agencyId={agencyId}
-                    onEmployeeAdded={(employee) => {
-                      console.log('🎉 Employee assigned successfully:', employee)
-                      console.log('🔄 Refreshing employees list...')
-                      // Refresh employees list to get the latest data with proper joins
+                    onEmployeeAdded={() => {
                       fetchEmployees()
                       setShowCreateEmployee(false)
                     }}
@@ -651,52 +670,43 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
             </div>
           </CardHeader>
           <CardContent>
-            {console.log('📋 Current employees state:', employees)}
             {employees.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No employees added</p>
+              <div className="text-center py-10 opacity-30">
+                <Users className="h-10 w-10 mx-auto mb-2 text-gray-500" />
+                <p className="text-sm font-medium">No team members assigned</p>
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {employees.map((employee) => (
-                  <div key={employee.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="relative w-10 h-10">
+                  <div key={employee.id} className="group relative flex items-center gap-3 p-4 bg-white/[0.05] border border-white/10 rounded-2xl hover:bg-white/[0.08] transition-all">
+                    <div className="relative h-12 w-12 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-violet-500/50 transition-colors">
                       {employee.User?.avatarUrl ? (
-                        <Image
-                          src={employee.User.avatarUrl}
-                          alt={employee.User.name}
-                          fill
-                          className="rounded-full object-cover"
-                        />
+                        <Image src={employee.User.avatarUrl} alt={employee.User.name} fill className="object-cover" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
-                          {employee.User?.name?.charAt(0) || 'U'}
+                        <div className="w-full h-full bg-violet-500/20 flex items-center justify-center">
+                          <span className="text-sm font-bold text-violet-400">{employee.User?.name?.charAt(0) || 'U'}</span>
                         </div>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{employee.User?.name || 'Unknown User'}</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{employee.role} • {employee.User?.email}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Assigned {formatDate(employee.assignedAt)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {employee.role}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-100 leading-none mb-1">{employee.User?.name || 'Unknown'}</p>
+                      <p className="text-[10px] text-gray-500 truncate mb-1 uppercase tracking-tight font-medium">{employee.role}</p>
+                      <Badge variant="outline" className="text-[9px] h-4 px-1 py-0 border-white/5 bg-white/5 text-gray-500 tracking-tighter">
+                        Active
                       </Badge>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                        onClick={() => {
-                          if (confirm('Are you sure you want to remove this employee from this subaccount?')) {
-                            removeEmployee(employee.id)
-                          }
-                        }}
-                        title="Remove employee"
-                      >
-                        <XCircle className="h-4 w-4 text-red-500" />
-                      </Button>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-500 hover:bg-red-500/10"
+                      onClick={() => {
+                        if (confirm('Remove employee from this subaccount?')) {
+                          removeEmployee(employee.id)
+                        }
+                      }}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -705,19 +715,22 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
         </Card>
 
         {/* Reports */}
-        <Card>
+        <Card className="bg-white/[0.03] dark:bg-white/[0.01] backdrop-blur-2xl border-white/10 shadow-xl overflow-hidden">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-100">
+                <FileText className="h-5 w-5 text-orange-400" />
                 Reports
               </CardTitle>
               <Dialog open={showCreateReport} onOpenChange={setShowCreateReport}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <ShimmerButton
+                    borderRadius="12px"
+                    className="h-11 px-8 text-sm font-semibold"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     New Report
-                  </Button>
+                  </ShimmerButton>
                 </DialogTrigger>
                 <DialogContent>
                   <CreateReportForm
@@ -736,54 +749,61 @@ const SubAccountDetailsPanel = ({ subaccountId, agencyId }: Props) => {
           </CardHeader>
           <CardContent>
             {reports.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No reports available</p>
+              <div className="text-center py-10 opacity-30">
+                <FileText className="h-10 w-10 mx-auto mb-2 text-gray-500" />
+                <p className="text-sm font-medium">No reports filed yet</p>
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {reports.map((report) => (
-                  <div key={report.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{report.title}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{report.description}</p>
+                  <div key={report.id} className="group p-5 bg-white/[0.05] border border-white/10 rounded-2xl hover:bg-white/[0.08] transition-all">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h4 className="font-bold text-gray-100 uppercase tracking-tight text-sm mb-1 group-hover:text-orange-400 transition-colors">{report.title}</h4>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">{report.type}</span>
+                          <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {report.dueDate ? formatDate(report.dueDate) : 'No due date'}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge className={getStatusColor(report.status)}>
-                          <div className="flex items-center gap-1">
-                            {getStatusIcon(report.status)}
-                            {report.status}
-                          </div>
+                        <Badge className={cn(
+                          "text-[9px] font-bold uppercase py-0 h-5 px-2 border-none",
+                          report.status === 'COMPLETED' ? "bg-emerald-500/10 text-emerald-400" : "bg-orange-500/10 text-orange-400"
+                        )}>
+                          {report.status}
                         </Badge>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 w-6 p-0"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-500"
                           onClick={() => {
-                            if (confirm('Are you sure you want to delete this report?')) {
-                              // TODO: Implement delete report functionality
+                            if (confirm('Delete this report?')) {
                               console.log('Delete report:', report.id)
                             }
                           }}
-                          title="Delete report"
                         >
-                          <Trash2 className="h-3 w-3 text-red-500" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>Due: {report.dueDate ? formatDate(report.dueDate) : 'No due date'}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        <span>Created by: {report.User?.name || 'Unknown'}</span>
-                      </div>
-                      {report.SubAccountEmployee?.User && (
-                        <div className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" />
-                          <span>Assigned to: {report.SubAccountEmployee.User.name}</span>
+                    {report.description && (
+                      <p className="text-sm text-gray-400 leading-relaxed mb-4 line-clamp-2">{report.description}</p>
+                    )}
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+                          <Users className="h-3 w-3 text-orange-400" />
                         </div>
-                      )}
+                        <span className="text-[11px] font-medium text-gray-500">
+                          By {report.User?.name || 'Unknown'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+                        Ref: {report.id.slice(0, 8)}
+                      </span>
                     </div>
                   </div>
                 ))}

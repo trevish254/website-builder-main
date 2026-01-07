@@ -51,7 +51,6 @@ const formSchema = z.object({
   state: z.string().min(1, { message: 'State is required.' }),
   country: z.string().min(1, { message: 'Country is required.' }),
   subAccountType: z.enum(['AGENCY', 'TEAM', 'INDIVIDUAL', 'ORGANIZATION']).default('AGENCY'),
-  companyName: z.string().optional(),
 })
 
 //CHALLENGE Give access for Subaccount Guest they should see a different view maybe a form that allows them to create tickets
@@ -88,7 +87,6 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
       country: details?.country || '',
       subAccountLogo: details?.subAccountLogo || '',
       subAccountType: (details as any)?.subAccountType || 'AGENCY',
-      companyName: (details as any)?.companyName || '',
     },
   })
 
@@ -164,7 +162,6 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
         connectAccountId: '',
         goal: 5000,
         subAccountType: actualValues.subAccountType,
-        companyName: actualValues.companyName,
       }
 
       console.log('🏢 Attempting to save subaccount to database...')
@@ -288,26 +285,6 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
                 </FormItem>
               )}
             />
-            {['AGENCY', 'ORGANIZATION'].includes(subAccountType) && (
-              <FormField
-                disabled={isLoading}
-                control={form.control}
-                name="companyName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Company Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Company Name"
-                        className="h-14 rounded-2xl border-border focus:ring-primary/20 bg-muted/20 font-bold"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
             <div className="flex md:flex-row gap-4">
               <FormField
                 disabled={isLoading}

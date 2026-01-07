@@ -13,6 +13,7 @@ import {
 
 import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
+import UserButton from '@/components/global/user-button'
 
 type SidebarOption = {
     id: string
@@ -120,12 +121,6 @@ const MENU_CATEGORIES = [
         icon: 'calendar',
         label: 'Calendar',
         matchNames: ['Calendar']
-    },
-    {
-        id: 'settings',
-        icon: 'settings',
-        label: 'Settings',
-        matchNames: ['Settings']
     }
 ]
 
@@ -191,11 +186,11 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
 
     return (
         <div
-            className="fixed left-0 top-[50px] h-[calc(100vh-50px)] w-[50px] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 z-50 transition-all duration-300"
+            className="fixed left-0 top-16 h-[calc(100vh-64px)] w-[50px] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 z-50 transition-all duration-300"
             onMouseLeave={handleMouseLeave}
         >
             {/* Sidebar Toggle */}
-            <div className="w-full hidden md:flex justify-center mb-4">
+            <div className="w-full flex justify-center mb-4">
                 <button
                     onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
                     className="h-6 w-6 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
@@ -233,16 +228,10 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                 })}
             </div>
 
-            {/* User Avatar at Bottom */}
-            <div className="pt-3 border-t border-gray-200 dark:border-gray-800 w-full px-2" >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold mx-auto overflow-hidden">
-                    {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="User" className="w-full h-full object-cover" />
-                    ) : user ? (
-                        user.name?.slice(0, 2).toUpperCase() || 'U'
-                    ) : (
-                        'U'
-                    )}
+            {/* User Avatar at Bottom (Mini Control) */}
+            <div className="pt-3 border-t border-gray-200 dark:border-gray-800 w-full px-2">
+                <div className="w-10 h-10 mx-auto">
+                    <UserButton user={user} />
                 </div>
             </div>
         </div>

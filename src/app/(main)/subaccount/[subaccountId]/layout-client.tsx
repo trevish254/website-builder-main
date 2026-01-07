@@ -44,6 +44,7 @@ const SubaccountLayoutClient = ({
                     agencyId={subaccountDetails?.agencyId}
                     agencyLogo={logo}
                     agencyName={name}
+                    userData={userDetails}
                 />
                 {sidebar}
 

@@ -126,7 +126,7 @@ const MENU_CATEGORIES_RAW = [
 
 const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyId, type, teamMembers = [], dashboards = [] }: Props) => {
     const currentAgencyId = agencyId || (details as any)?.agencyId
-    const { hoveredMenuItem, activeCategory, setHoveredMenuItem, isPanelCollapsed, panelTop } = useSidebar()
+    const { hoveredMenuItem, activeCategory, setHoveredMenuItem, isPanelCollapsed, setIsPanelCollapsed, panelTop } = useSidebar()
     const pathname = usePathname()
     const [searchQuery, setSearchQuery] = useState('')
     const panelRef = useRef<HTMLDivElement>(null)
@@ -204,7 +204,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
             className={cn(
                 "fixed z-20 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
                 (hoveredMenuItem ? "w-[240px] left-[50px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800 h-auto max-h-[calc(100vh-80px)] rounded-[4px] border-b border-b-gray-200 dark:border-b-gray-800" : "w-0 opacity-0 pointer-events-none bottom-0"),
-                !isPanelCollapsed && "md:w-[240px] md:left-[50px] md:bottom-0 md:top-[50px] md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto md:max-h-[calc(100vh-50px)]"
+                !isPanelCollapsed && "md:w-[240px] md:left-[50px] md:bottom-0 md:top-16 md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto md:max-h-[calc(100vh-64px)]"
             )}
         >
             <div className="p-4 border-b border-gray-200 dark:border-gray-800">
@@ -212,6 +212,12 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                     <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {getCategoryLabel()}
                     </h2>
+                    <button
+                        onClick={() => setIsPanelCollapsed(true)}
+                        className="h-6 w-6 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+                    >
+                        <ChevronsLeft size={14} />
+                    </button>
                 </div>
                 <div className="relative group">
                     <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />

@@ -13,22 +13,22 @@ const AllSubaccountsPage = async ({ params, searchParams }: Props) => {
   console.log('🎯 AllSubaccountsPage rendered!')
   console.log('📋 Params:', params)
   console.log('📋 SearchParams:', searchParams)
-  
+
   const user = await getAuthUserDetails()
   if (!user) return null
 
   const subaccounts = (user as any).Agency?.SubAccount || []
   const selectedSubaccountId = searchParams.subaccountId
-  
+
   console.log('📋 Subaccounts:', subaccounts.length)
   console.log('📋 Selected Subaccount ID:', selectedSubaccountId)
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-[calc(100vh-65px)] bg-gray-50/50 dark:bg-black/20 p-4 gap-4 overflow-hidden">
       {/* Left Panel - Subaccount List */}
-      <div className="w-1/3 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <Suspense fallback={<div className="p-4">Loading...</div>}>
-          <SubAccountListPanel 
+      <div className="w-[400px] flex flex-col bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+        <Suspense fallback={<div className="p-4 animate-pulse">Loading list...</div>}>
+          <SubAccountListPanel
             subaccounts={subaccounts}
             agencyId={params.agencyId}
             selectedSubaccountId={selectedSubaccountId}
@@ -37,9 +37,9 @@ const AllSubaccountsPage = async ({ params, searchParams }: Props) => {
       </div>
 
       {/* Right Panel - Subaccount Details */}
-      <div className="flex-1 bg-white dark:bg-gray-800">
-        <Suspense fallback={<div className="p-4">Loading...</div>}>
-          <SubAccountDetailsPanel 
+      <div className="flex-1 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+        <Suspense fallback={<div className="p-4 animate-pulse">Loading details...</div>}>
+          <SubAccountDetailsPanel
             subaccountId={selectedSubaccountId}
             agencyId={params.agencyId}
           />

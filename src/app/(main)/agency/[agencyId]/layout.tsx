@@ -136,6 +136,7 @@ const layout = async ({ children, params }: Props) => {
           agencyId={params.agencyId}
           agencyLogo={agencyLogo}
           agencyName={agencyName}
+          userData={userDetails}
         />
         <Sidebar
           id={params.agencyId}
