@@ -19,7 +19,7 @@ import {
     Keyboard,
     HelpCircle,
     Bell,
-    UserIcon,
+    User as UserLucide,
     Mail,
     CreditCard,
     Shield
@@ -68,7 +68,7 @@ const UserButton = ({ user: initialUser }: Props) => {
 
     return (
         <Sheet>
-            <SheetTrigger asChild>
+            <SheetTrigger>
                 <Avatar className="cursor-pointer hover:scale-105 transition-transform border-2 border-transparent hover:border-primary/50">
                     <AvatarImage src={user.user_metadata?.avatar_url || user.avatarUrl} />
                     <AvatarFallback className="bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-bold">
@@ -158,7 +158,7 @@ const UserButton = ({ user: initialUser }: Props) => {
                                 </Button>
                                 <Button variant="ghost" className="w-full justify-start h-12 gap-3 text-base font-normal hover:bg-white/5 border border-transparent hover:border-white/5 rounded-xl">
                                     <div className="p-1.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100">
-                                        <UserIcon size={18} />
+                                        <UserLucide size={18} />
                                     </div>
                                     Profile Settings
                                 </Button>
