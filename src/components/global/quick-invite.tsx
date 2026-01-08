@@ -25,7 +25,7 @@ const QuickInvite = ({ agencyId, children }: Props) => {
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger>
                 {children || (
                     <Button variant="ghost" size="icon" className="rounded-full w-8 h-8 bg-muted hover:bg-muted/80 flex items-center justify-center transition-all hover:scale-110">
                         <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />

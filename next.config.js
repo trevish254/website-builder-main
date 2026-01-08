@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Force restart
 const nextConfig = {
   typescript: {
     // Allow production builds to successfully complete even if there are type errors.

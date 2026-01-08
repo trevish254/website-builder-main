@@ -59,6 +59,18 @@ const ACHIEVEMENTS = [
         description: "System Uptime",
         bg: "rgb(135,95,195)",
     },
+    {
+        id: "achivement-5",
+        title: "Global",
+        description: "Support Teams",
+        bg: "rgb(236, 72, 153)",
+    },
+    {
+        id: "achivement-6",
+        title: "Secure",
+        description: "Enterprise Safety",
+        bg: "rgb(34, 211, 238)",
+    },
 ]
 
 const Process = () => {
@@ -88,7 +100,7 @@ const Process = () => {
                                 index={index}
                                 incrementY={60} // Vertical offset for each card in the stack
                                 incrementZ={10}
-                                className="w-full max-w-sm rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md p-6 mb-[40vh] last:mb-[10vh]"
+                                className="w-full max-w-sm rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md p-6 md:mb-[40vh] mb-[15vh] last:mb-[10vh]"
                                 style={{
                                     background: achievement.bg,
                                     top: 300 + (index * 60) // Starting sticky position below the header
@@ -106,13 +118,13 @@ const Process = () => {
                 </div>
 
                 {/* Right Side: Main Process Phases */}
-                <ContainerScroll className="min-h-[400vh] space-y-8 py-12">
+                <ContainerScroll className="md:min-h-[400vh] min-h-[200vh] space-y-8 py-12">
                     {PROCESS_PHASES.map((phase, index) => (
                         <CardSticky
                             key={phase.id}
                             index={index}
                             incrementY={80}
-                            className="rounded-2xl border p-8 shadow-md backdrop-blur-md bg-white/80 dark:bg-stone-800/80 mb-[20vh]"
+                            className="rounded-2xl border p-8 shadow-md backdrop-blur-md bg-white/80 dark:bg-stone-800/80 md:mb-[20vh] mb-[10vh]"
                             style={{ top: 100 + (index * 20) }}
                         >
                             <div className="flex items-center justify-between gap-4">

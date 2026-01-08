@@ -61,12 +61,20 @@ export function ZoomParallaxDemo() {
                         'blur-[30px]',
                     )}
                 />
-                <h1 className="text-center text-4xl font-bold">
-                    Scroll Down for Zoom Parallax
+                <h1 className="text-center text-5xl md:text-7xl font-bold tracking-tighter z-10">
+                    Visualizing <br /> <span className="text-primary">The Future</span>
                 </h1>
             </div>
             <ZoomParallax images={images} />
-            <div className="h-[50vh]" />
+
+            <div className="py-20 flex flex-col items-center justify-center bg-background relative z-10 -mt-[10vh]">
+                <div className="max-w-4xl mx-auto px-6 text-center">
+                    <h3 className="text-3xl md:text-5xl font-bold mb-6">Built for scale, designed for impact.</h3>
+                    <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                        Every pixel of your agency's presence should tell a story. With Chapabiz, we ensure that story is one of competence, elegance, and unyielding performance. From the first impression to the final conversion, we orchestrate the digital experience to be flawless.
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }

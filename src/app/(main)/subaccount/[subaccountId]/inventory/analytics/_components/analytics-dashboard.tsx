@@ -31,8 +31,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Card as Card2, CardHeader as CardHeader2, CardTitle as CardTitle2, CardToolbar, CardContent as CardContent2 } from '@/components/ui/card-2'
 import { Badge } from '@/components/ui/badge-2'
-import { Button } from '@/components/ui/button-1' // Button-1 used in stats card
-import { Button as ButtonDefault } from '@/components/ui/button' // Regular button used elsewhere
+import { Button } from '@/components/ui/button' // Regular button used everywhere
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -234,7 +233,7 @@ const AnalyticsDashboard = ({ subaccountId }: { subaccountId: string }) => {
                 <Card className="shadow-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">Revenue By Sales Channel</CardTitle>
-                        <ButtonDefault variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-50"><MoreVertical className="w-4 h-4 text-slate-400" /></ButtonDefault>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-50"><MoreVertical className="w-4 h-4 text-slate-400" /></Button>
                     </CardHeader>
                     <CardContent>
                         <div className="h-[220px] w-full relative mt-4">
@@ -279,19 +278,19 @@ const AnalyticsDashboard = ({ subaccountId }: { subaccountId: string }) => {
                 <Card className="shadow-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-0 overflow-hidden">
                     <CardHeader className="flex flex-row items-center justify-between pb- px-6 pt-6">
                         <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">Sales Calender</CardTitle>
-                        <ButtonDefault variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-50"><MoreVertical className="w-4 h-4 text-slate-400" /></ButtonDefault>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-50"><MoreVertical className="w-4 h-4 text-slate-400" /></Button>
                     </CardHeader>
                     <CardContent className="p-0">
                         {/* Date Strip */}
                         <div className="flex items-center justify-between px-2 py-4">
-                            <ButtonDefault variant="ghost" size="icon" className="h-6 w-6 text-slate-400"><ChevronLeft className="w-4 h-4" /></ButtonDefault>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400"><ChevronLeft className="w-4 h-4" /></Button>
                             <div className="flex gap-2">
                                 <div className="px-3 py-1 rounded-lg text-xs font-medium text-slate-400">Sun 5</div>
                                 <div className="px-3 py-1 rounded-lg text-xs font-bold text-[#EF4444] bg-red-50 dark:bg-red-900/10">Mon 6</div>
                                 <div className="px-3 py-1 rounded-lg text-xs font-medium text-slate-400">Tue 7</div>
                                 <div className="px-3 py-1 rounded-lg text-xs font-medium text-slate-400">Wed 8</div>
                             </div>
-                            <ButtonDefault variant="ghost" size="icon" className="h-6 w-6 text-slate-400"><ChevronRight className="w-4 h-4" /></ButtonDefault>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400"><ChevronRight className="w-4 h-4" /></Button>
                         </div>
 
                         {/* Tabs */}
@@ -339,7 +338,7 @@ const AnalyticsDashboard = ({ subaccountId }: { subaccountId: string }) => {
                 <Card className="shadow-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">Revenue By Sales Channel</CardTitle>
-                        <ButtonDefault variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-50"><MoreVertical className="w-4 h-4 text-slate-400" /></ButtonDefault>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-50"><MoreVertical className="w-4 h-4 text-slate-400" /></Button>
                     </CardHeader>
                     <CardContent className="space-y-7 pt-4">
                         {salesChannelsList.map((channel, i) => (

@@ -18,8 +18,14 @@ import { HeroScrollDemo } from '@/components/site/hero-scroll-demo'
 import { ZoomParallaxDemo } from '@/components/site/zoom-parallax-demo'
 import { ThreeDPhotoCarouselDemo } from '@/components/site/3d-carousel-demo'
 import { Logos3Demo } from '@/components/site/logos3-demo'
+import { TextCarouselDemo } from '@/components/site/text-carousel'
+import { MorphingText } from '@/components/ui/morphing-text'
+import { BigStackDemo } from '@/components/site/big-stack-demo'
 import { DisplayCardsDemo } from '@/components/site/display-cards-demo'
+import AnimatedCardStack from '@/components/ui/animate-card-animation'
 import { Process } from '@/components/site/cards-stack-demo'
+import { ClientOnboardingTimeline } from '@/components/site/client-onboarding-timeline'
+import { IntroductionVideoDemo } from '@/components/site/introduction-video'
 import ReleaseTimeLineDemo from '@/components/site/release-time-line-demo'
 import ContactCardDemo from '@/components/site/contact-card-demo'
 import BentoCardsAbout from '@/components/site/bento-cards-about'
@@ -37,25 +43,26 @@ export default async function Home() {
         <div className="w-full relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-24 items-center">
             <div className="flex flex-col gap-6 text-left px-4 md:pl-20 2xl:pl-40 lg:-mt-24">
-              <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary font-medium w-fit">
+              <div className="inline-block rounded-full bg-white/10 px-3 py-1 text-sm text-white/80 font-medium w-fit">
                 Run your agency, in one place
               </div>
-              <h1 className="text-4xl md:text-7xl font-bold tracking-tighter">
-                The All-in-One <span className="bg-gradient-to-r from-primary to-secondary-foreground text-transparent bg-clip-text">Agency Solution</span>
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white">
+                The All-in-One <br className="hidden md:block" />
+                Agency Solution
               </h1>
-              <p className="text-muted-foreground text-xl max-w-[600px]">
+              <p className="text-slate-300 text-xl max-w-[600px]">
                 Scale your operations, manage pipelines, and build high-converting funnels with the platform designed for modern agency owners.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-row gap-4 mt-6">
                 <Link
                   href="/agency"
-                  className="bg-primary text-primary-foreground p-4 px-8 rounded-md hover:bg-primary/80 text-lg font-semibold text-center"
+                  className="bg-white text-black p-3 px-8 rounded-md hover:bg-white/90 text-lg font-semibold text-center w-[200px]"
                 >
                   Start Free Trial
                 </Link>
                 <Link
                   href="#pricing"
-                  className="border border-primary text-primary p-4 px-8 rounded-md hover:bg-primary/10 text-lg font-semibold text-center"
+                  className="bg-transparent border border-white text-white p-3 px-8 rounded-md hover:bg-white/10 text-lg font-semibold text-center w-[200px]"
                 >
                   View Pricing
                 </Link>
@@ -69,10 +76,26 @@ export default async function Home() {
             </div>
           </div>
         </div>
+        <div className="absolute bottom-0 left-0 w-full h-24 md:h-32 bg-gradient-to-t from-background to-transparent z-20"></div>
       </section>
 
+      <div className="flex flex-col justify-center items-center relative w-full px-4 md:px-0 mt-32 mb-20 z-30">
+        <div className="mb-10 w-full max-w-4xl">
+          <MorphingText texts={["Welcome to", "CHAPABIZ"]} className="text-white" />
+        </div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-primary/40 w-[80%] h-[60%] blur-[120px] rounded-full pointer-events-none"></div>
+        <Image
+          src="/assets/preview.png"
+          alt="Dashboard Preview"
+          width={1200}
+          height={800}
+          className="rounded-xl border border-white/10 shadow-2xl relative z-10"
+        />
+        <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-background to-transparent z-20 pointer-events-none"></div>
+      </div>
+
       <div className="w-full overflow-hidden">
-        <Logos3Demo />
+        <TextCarouselDemo />
       </div>
 
       <div className="w-full overflow-hidden">
@@ -126,16 +149,33 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
       <section className="flex justify-center items-center flex-col gap-4 md:!mt-20 mt-[-60px] w-full overflow-hidden">
         <HeroScrollDemo />
+      </section>
+
+      <section className="w-full">
+        <IntroductionVideoDemo />
       </section>
 
       <div className="w-full space-y-20">
         <Process />
       </div>
 
-      <section className="mt-[-60px]">
+      <section className="w-full py-20">
+        <AnimatedCardStack />
+      </section>
+
+      <section className="mt-[-60px] w-full">
         <ZoomParallaxDemo />
+      </section>
+
+      <section className="w-full">
+        <BigStackDemo />
+      </section>
+
+      <section className="w-full">
+        <ClientOnboardingTimeline />
       </section>
 
       <ReleaseTimeLineDemo />
@@ -261,6 +301,6 @@ export default async function Home() {
         <ContactCardDemo />
       </div>
       <Footer />
-    </main>
+    </main >
   )
 }
