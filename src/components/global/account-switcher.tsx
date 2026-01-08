@@ -83,7 +83,7 @@ const AccountSwitcher = ({ user, currentId, currentLogo, currentName }: Props) =
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
+            <PopoverTrigger>
                 <Button
                     variant="ghost"
                     role="combobox"
