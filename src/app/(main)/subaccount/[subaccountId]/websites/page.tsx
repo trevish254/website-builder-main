@@ -12,6 +12,7 @@ import {
 import Link from 'next/link'
 import BlurPage from '@/components/global/blur-page'
 import { getWebsites } from '@/lib/website-queries'
+import { getWebsiteTemplates } from '@/lib/export-actions'
 import CreateWebsiteBtn from './_components/create-website-btn'
 import DeleteWebsiteBtn from './_components/delete-website-btn'
 
@@ -27,15 +28,49 @@ const WebsitesPage = async ({ params, searchParams }: Props) => {
     console.log('✅ Fetched websites:', existingProjects?.length || 0)
 
 
-    const templates = [
-        { id: 't1', name: 'Agency Portfolio', description: 'Modern agency landing page', color: 'bg-blue-100 dark:bg-blue-900/20' },
-        { id: 't2', name: 'SaaS Startup', description: 'Clean SaaS product showcase', color: 'bg-purple-100 dark:bg-purple-900/20' },
-        { id: 't3', name: 'E-commerce Store', description: 'Featured products and cart', color: 'bg-green-100 dark:bg-green-900/20' },
-        { id: 't4', name: 'Restaurant Menu', description: 'Elegant Italian restaurant', color: 'bg-orange-100 dark:bg-orange-900/20' },
-        { id: 't5', name: 'Personal Portfolio', description: 'Designer & developer showcase', color: 'bg-slate-100 dark:bg-slate-900/20' },
-        { id: 't6', name: 'Blog/Magazine', description: 'Article-focused publication', color: 'bg-red-100 dark:bg-red-900/20' },
-        { id: 't7', name: 'Fitness/Gym', description: 'Classes and membership plans', color: 'bg-teal-100 dark:bg-teal-900/20' },
+    // Fetch community templates
+    const dbTemplates = await getWebsiteTemplates()
+    console.log('✅ Fetched dbTemplates:', dbTemplates?.length || 0)
+
+
+    const staticTemplates = [
+        { id: 'manufacturing', name: 'Manufacturing Excellence', description: 'Premium business template for industrial and tech companies', color: 'bg-emerald-100 dark:bg-emerald-900/20', isCommunity: false, thumbnail: 'C:/Users/TREV/.gemini/antigravity/brain/c0f54b9e-9cfe-4c90-8136-1d8852f03504/manufacturing_template_thumbnail_1768111055670.png' },
+        { id: 'renewable', name: 'Renewable Future', description: 'Clean energy and sustainability template with high-impact visuals', color: 'bg-green-50 dark:bg-green-900/10', isCommunity: false, thumbnail: 'C:/Users/TREV/.gemini/antigravity/brain/c0f54b9e-9cfe-4c90-8136-1d8852f03504/renewable_energy_template_thumbnail_1768111468207.png' },
+        { id: 'legal', name: 'Law & Tax Advisor', description: 'Sophisticated legal and consultancy template for high-trust brands', color: 'bg-slate-100 dark:bg-slate-900/20', isCommunity: false, thumbnail: 'C:/Users/TREV/.gemini/antigravity/brain/c0f54b9e-9cfe-4c90-8136-1d8852f03504/legal_template_thumbnail_1768112248203.png' },
+        { id: 't1', name: 'Agency Portfolio', description: 'Modern agency landing page', color: 'bg-blue-100 dark:bg-blue-900/20', isCommunity: false },
+        { id: 't2', name: 'SaaS Startup', description: 'Clean SaaS product showcase', color: 'bg-purple-100 dark:bg-purple-900/20', isCommunity: false },
+        { id: 't3', name: 'E-commerce Store', description: 'Featured products and cart', color: 'bg-green-100 dark:bg-green-900/20', isCommunity: false },
+        { id: 't4', name: 'Restaurant Menu', description: 'Elegant Italian restaurant', color: 'bg-orange-100 dark:bg-orange-900/20', isCommunity: false },
+        { id: 't5', name: 'Personal Portfolio', description: 'Designer & developer showcase', color: 'bg-slate-100 dark:bg-slate-900/20', isCommunity: false },
+        { id: 't6', name: 'Blog/Magazine', description: 'Article-focused publication', color: 'bg-red-100 dark:bg-red-900/20', isCommunity: false },
+        { id: 't7', name: 'Fitness/Gym', description: 'Classes and membership plans', color: 'bg-teal-100 dark:bg-teal-900/20', isCommunity: false },
     ]
+
+    const allTemplates = [
+        ...staticTemplates.map(t => ({ ...t, isPremium: true })),
+        ...dbTemplates.map(t => ({
+            id: t.id,
+            name: t.name,
+            description: t.description || '',
+            thumbnail: t.thumbnail,
+            color: t.category === 'Business' ? 'bg-emerald-100 dark:bg-emerald-900/20' : 'bg-muted',
+            isCommunity: t.createdBy !== null,
+            isPremium: t.createdBy === null
+        }))
+    ]
+
+    // Sort to put High Priority templates first, then Premium/System, then Community
+    allTemplates.sort((a, b) => {
+        // Manufacturing Excellence should be at the very top
+        if (a.name === 'Manufacturing Excellence') return -1
+        if (b.name === 'Manufacturing Excellence') return 1
+
+        // Then other Premium/System templates
+        if (a.isPremium && !b.isPremium) return -1
+        if (!a.isPremium && b.isPremium) return 1
+
+        return 0
+    })
 
     return (
         <BlurPage>
@@ -129,26 +164,46 @@ const WebsitesPage = async ({ params, searchParams }: Props) => {
                         <LayoutTemplate size={20} /> Start with a Template
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {templates.map(temp => (
+                        {allTemplates.map(temp => (
                             <Card key={temp.id} className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group overflow-hidden border-muted">
                                 <div className={`aspect-[4/3] ${temp.color} relative overflow-hidden`}>
-                                    {/* Placeholder for template visually */}
-                                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/50 group-hover:scale-105 transition-transform duration-500">
-                                        <LayoutTemplate size={48} opacity={0.5} />
+                                    {/* Thumbnail or Placeholder */}
+                                    {temp.thumbnail ? (
+                                        <img
+                                            src={temp.thumbnail}
+                                            alt={temp.name}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/50 group-hover:scale-105 transition-transform duration-500">
+                                            <LayoutTemplate size={48} opacity={0.5} />
+                                        </div>
+                                    )}
+
+                                    {/* Badges */}
+                                    <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
+                                        {temp.isPremium && (
+                                            <span className="bg-emerald-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm backdrop-blur-sm">
+                                                Premium
+                                            </span>
+                                        )}
+                                        {temp.isCommunity && (
+                                            <span className="bg-primary/90 text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm backdrop-blur-sm">
+                                                Community
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Overlay */}
-                                    <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                                        <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                                            <CreateWebsiteBtn
-                                                subaccountId={params.subaccountId}
-                                                templateId={temp.id}
-                                                size="sm"
-                                                className="gap-2 shadow-lg"
-                                            >
-                                                Use Template
-                                            </CreateWebsiteBtn>
-                                        </div>
+                                    <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm z-30">
+                                        <CreateWebsiteBtn
+                                            subaccountId={params.subaccountId}
+                                            templateId={temp.id}
+                                            size="sm"
+                                            className="gap-2 shadow-lg"
+                                        >
+                                            Use Template
+                                        </CreateWebsiteBtn>
                                     </div>
                                 </div>
                                 <CardHeader className="p-4">

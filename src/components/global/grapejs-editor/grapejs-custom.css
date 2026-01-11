@@ -249,82 +249,109 @@
 
 /* ===== BLOCKS CONTAINER ===== */
 .gjs-blocks-container {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Aggressively target the real container and all its path elements */
+.gjs-blocks-container *,
+.gjs-blocks-container div,
+.gjs-blocks-container [class*="gjs-"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    justify-content: flex-start !important;
+}
+
+/* Define the two-column layout on the direct parent of blocks */
+.gjs-blocks-container [class*="gjs-blocks-c"],
+.gjs-blocks-container>div {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    flex-direction: row !important;
+    width: 100% !important;
     padding: 12px !important;
+    gap: 12px !important;
+    justify-content: flex-start !important;
+    align-content: flex-start !important;
+}
+
+/* Hide internal headers and empty placeholders */
+.gjs-block-category,
+.gjs-blocks-container .gjs-title,
+.gjs-blocks-container .gjs-blocks-category,
+.gjs-blocks-container .gjs-blocks-header,
+.gjs-blocks-container [class*="header"],
+.gjs-blocks-container>div:empty {
+    display: none !important;
 }
 
 .gjs-blocks-container .gjs-block {
-    width: 100% !important;
-    min-height: 90px !important;
-    padding: 12px !important;
+    width: calc(50% - 6px) !important;
+    flex: 0 0 calc(50% - 6px) !important;
+    min-height: 110px !important;
+    padding: 16px 4px !important;
+    /* Minimal horizontal padding inside block */
     margin: 0 !important;
     border: 1px solid hsl(var(--border)) !important;
-    border-radius: 8px !important;
+    border-radius: 12px !important;
     background: hsl(var(--card)) !important;
     cursor: move !important;
-    transition: all 0.2s !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
-    gap: 8px !important;
+    gap: 12px !important;
 }
 
 .gjs-blocks-container .gjs-block:hover {
     background: hsl(var(--accent)) !important;
     border-color: hsl(var(--primary)) !important;
     transform: translateY(-2px) !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
 }
 
 .gjs-blocks-container .gjs-block__media {
-    width: 40px !important;
-    height: 40px !important;
+    width: 64px !important;
+    /* Larger icon container */
+    height: 64px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     background: hsl(var(--primary) / 0.1) !important;
-    border-radius: 6px !important;
-    margin-bottom: 4px !important;
+    border-radius: 12px !important;
 }
 
 .gjs-blocks-container .gjs-block__media svg,
 .gjs-blocks-container .gjs-block__media i {
     color: hsl(var(--primary)) !important;
-    font-size: 20px !important;
+    font-size: 36px !important;
+    /* Larger icon */
+    width: 36px !important;
+    height: 36px !important;
 }
 
 .gjs-blocks-container .gjs-block__label {
     color: hsl(var(--foreground)) !important;
-    font-weight: 500 !important;
-    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    font-size: 0.8125rem !important;
     line-height: 1.2 !important;
-    word-break: break-word !important;
+    width: 100% !important;
+    padding: 0 4px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
 .gjs-blocks-container .gjs-block.gjs-bdrag {
     opacity: 0.5 !important;
     transform: scale(0.95) !important;
-}
-
-/* Category styling */
-.gjs-blocks-container .gjs-block-category {
-    grid-column: 1 / -1 !important;
-    margin-top: 12px !important;
-    margin-bottom: 4px !important;
-}
-
-.gjs-blocks-container .gjs-block-category .gjs-title {
-    font-size: 0.75rem !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    color: hsl(var(--muted-foreground)) !important;
-    letter-spacing: 0.5px !important;
-    padding: 4px 0 !important;
-    border-bottom: 1px solid hsl(var(--border)) !important;
 }
 
 /* ===== CANVAS CENTERING & DEVICE FRAMES ===== */

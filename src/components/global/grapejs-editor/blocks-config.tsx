@@ -1,17 +1,12 @@
-import {
-  LayoutGrid,
-  Type,
-  Image,
-  Video,
-  Square,
-  Columns,
+﻿import {
+  Frame,
+  Link2,
   Heading1,
   AlignLeft,
   List,
   Quote,
   FileImage,
   Film,
-  Grid3x3,
   FormInput,
   TextCursorInput,
   MousePointerClick,
@@ -20,7 +15,6 @@ import {
   Sparkles,
   Megaphone,
   Mail,
-  Link,
   BoxSelect,
   AppWindow,
   ImagePlus,
@@ -28,8 +22,84 @@ import {
   ChevronsDown,
   Circle,
   CheckSquare,
-  Layers
+  Layers,
+  LayoutGrid,
+  Type,
+  Image,
+  Video
 } from 'lucide-react'
+
+// Custom Layout Icons based on user designs
+export const SectionIcon = ({ size = 24, strokeWidth = 2, ...props }: any) => (
+  <svg
+    {...props}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="5" height="18" rx="1" />
+    <rect x="11" y="3" width="10" height="8" rx="1" />
+    <rect x="11" y="13" width="10" height="8" rx="1" />
+  </svg>
+)
+
+export const ThreeColumnsIcon = ({ size = 24, strokeWidth = 2, ...props }: any) => (
+  <svg
+    {...props}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="2" y="3" width="5" height="18" rx="1" />
+    <rect x="9.5" y="3" width="5" height="18" rx="1" />
+    <rect x="17" y="3" width="5" height="18" rx="1" />
+  </svg>
+)
+
+export const RowIcon = ({ size = 24, strokeWidth = 2, ...props }: any) => (
+  <svg
+    {...props}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="2" width="18" height="5" rx="1" />
+    <rect x="3" y="9.5" width="18" height="5" rx="1" />
+    <rect x="3" y="17" width="18" height="5" rx="1" />
+  </svg>
+)
+
+export const TwoColumnsIcon = ({ size = 24, strokeWidth = 2, ...props }: any) => (
+  <svg
+    {...props}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="7" height="18" rx="1" />
+    <rect x="14" y="3" width="7" height="18" rx="1" />
+  </svg>
+)
 
 export type BlockCategory = {
   id: string
@@ -59,7 +129,7 @@ export const customBlocks: CustomBlock[] = [
   {
     id: 'section',
     label: 'Section',
-    icon: Square,
+    icon: SectionIcon,
     category: 'layout',
     content: `
       <section style="padding: 50px 20px; min-height: 200px;">
@@ -72,7 +142,7 @@ export const customBlocks: CustomBlock[] = [
   {
     id: 'container',
     label: 'Container',
-    icon: Square,
+    icon: Frame,
     category: 'layout',
     content: `
       <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
@@ -83,7 +153,7 @@ export const customBlocks: CustomBlock[] = [
   {
     id: '2-columns',
     label: '2 Columns',
-    icon: Columns,
+    icon: TwoColumnsIcon,
     category: 'layout',
     content: `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px;">
@@ -99,7 +169,7 @@ export const customBlocks: CustomBlock[] = [
   {
     id: '3-columns',
     label: '3 Columns',
-    icon: Grid3x3,
+    icon: ThreeColumnsIcon,
     category: 'layout',
     content: `
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 20px;">
@@ -254,14 +324,14 @@ export const customBlocks: CustomBlock[] = [
     icon: CreditCard,
     category: 'components',
     content: `
-  < div style = "border: 1px solid #ddd; border-radius: 8px; padding: 20px; max-width: 350px;" >
-  <img src="https://via.placeholder.com/350x200" alt = "Card image" style = "width: 100%; border-radius: 4px; margin-bottom: 15px;" />
-  <h3 style="font-size: 1.5rem; margin-bottom: 10px;" > Card Title </h3>
-  < p style = "color: #666; margin-bottom: 15px;" > Card description goes here.Add your content.</p>
-  < button style = "padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;" >
-  Learn More
-  </button>
-  </div>
+      <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; max-width: 350px;">
+        <img src="https://via.placeholder.com/350x200" alt="Card image" style="width: 100%; border-radius: 4px; margin-bottom: 15px;" />
+        <h3 style="font-size: 1.5rem; margin-bottom: 10px;">Card Title</h3>
+        <p style="color: #666; margin-bottom: 15px;">Card description goes here. Add your content.</p>
+        <button style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          Learn More
+        </button>
+      </div>
     `,
   },
   {
@@ -270,16 +340,16 @@ export const customBlocks: CustomBlock[] = [
     icon: Megaphone,
     category: 'components',
     content: `
-  < section style = "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 100px 20px; text-align: center;" >
-  <div style="max-width: 800px; margin: 0 auto;" >
-  <h1 style="font-size: 3rem; font-weight: bold; margin-bottom: 20px;" > Welcome to Your Website </h1>
-  < p style = "font-size: 1.25rem; margin-bottom: 30px; opacity: 0.9;" > Create amazing experiences with our platform </p>
-    < button style = "padding: 15px 30px; background: white; color: #667eea; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: 600; cursor: pointer;" >
-      Get Started
-        </button>
+      <section style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 100px 20px; text-align: center;">
+        <div style="max-width: 800px; margin: 0 auto;">
+          <h1 style="font-size: 3rem; font-weight: bold; margin-bottom: 20px;">Welcome to Your Website</h1>
+          <p style="font-size: 1.25rem; margin-bottom: 30px; opacity: 0.9;">Create amazing experiences with our platform</p>
+          <button style="padding: 15px 30px; background: white; color: #667eea; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: 600; cursor: pointer;">
+            Get Started
+          </button>
         </div>
-        </section>
-          `,
+      </section>
+    `,
   },
   {
     id: 'cta',
@@ -287,16 +357,16 @@ export const customBlocks: CustomBlock[] = [
     icon: Mail,
     category: 'components',
     content: `
-        < section style = "background: #f8f9fa; padding: 60px 20px; text-align: center;" >
-          <div style="max-width: 600px; margin: 0 auto;" >
-            <h2 style="font-size: 2rem; margin-bottom: 15px;" > Ready to Get Started ? </h2>
-              < p style = "font-size: 1.1rem; color: #666; margin-bottom: 25px;" > Join thousands of satisfied customers today </p>
-                < button style = "padding: 15px 40px; background: #28a745; color: white; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: 600; cursor: pointer;" >
-                  Sign Up Now
-                    </button>
-                    </div>
-                    </section>
-                      `,
+      <section style="background: #f8f9fa; padding: 60px 20px; text-align: center;">
+        <div style="max-width: 600px; margin: 0 auto;">
+          <h2 style="font-size: 2rem; margin-bottom: 15px;">Ready to Get Started?</h2>
+          <p style="font-size: 1.1rem; color: #666; margin-bottom: 25px;">Join thousands of satisfied customers today</p>
+          <button style="padding: 15px 40px; background: #28a745; color: white; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: 600; cursor: pointer;">
+            Sign Up Now
+          </button>
+        </div>
+      </section>
+    `,
   },
   // Basic Layout
   {
@@ -309,14 +379,14 @@ export const customBlocks: CustomBlock[] = [
   {
     id: 'row',
     label: 'Row',
-    icon: Layers,
+    icon: RowIcon,
     category: 'layout',
     content: '<div style="display: flex; gap: 10px; padding: 10px; flex-wrap: wrap;"><div style="flex: 1; min-height: 50px; padding: 10px; border: 1px dashed #ddd;">Col 1</div><div style="flex: 1; min-height: 50px; padding: 10px; border: 1px dashed #ddd;">Col 2</div></div>',
   },
   {
     id: 'link-block',
     label: 'Link Block',
-    icon: Link,
+    icon: Link2,
     category: 'layout',
     content: '<a href="#" style="display: inline-block; padding: 10px; color: inherit; text-decoration: none;">Link Block</a>',
   },
@@ -380,7 +450,7 @@ export const customBlocks: CustomBlock[] = [
   {
     id: 'link-button',
     label: 'Link Button',
-    icon: Link,
+    icon: Link2,
     category: 'forms',
     content: '<a href="#" style="display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-size: 1rem; text-align: center;">Link Button</a>',
   },

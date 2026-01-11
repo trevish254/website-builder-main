@@ -29,9 +29,12 @@ import {
     Plus
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { blockCategories } from './blocks-config'
+import { blockCategories } from './blocks-config' // Blocks configuration
 import Link from 'next/link'
 import PagesTab from './pages-tab'
+import BrandKitTab from './brand-kit-tab'
+import { BrandKit } from './index'
+import { Website } from '@/lib/website-queries'
 
 type Props = {
     editor: any
@@ -43,6 +46,9 @@ type Props = {
     subaccountId: string
     funnelId: string
     activePageId: string
+    brandKit: BrandKit
+    setBrandKit: (kit: BrandKit) => void
+    website?: Website
 }
 
 const EditorSidebar = ({
@@ -54,7 +60,10 @@ const EditorSidebar = ({
     pages,
     subaccountId,
     funnelId,
-    activePageId
+    activePageId,
+    brandKit,
+    setBrandKit,
+    website,
 }: Props) => {
     const blocksContainerRef = useRef<HTMLDivElement>(null)
     const layerManagerRef = useRef<HTMLDivElement>(null)
@@ -190,7 +199,7 @@ const EditorSidebar = ({
                                 </Button>
                                 <span className="font-medium text-sm">{currentCategory?.label || 'Blocks'}</span>
                             </div>
-                            <div ref={blocksContainerRef} className="flex-1 overflow-y-auto p-4 gjs-blocks-container"></div>
+                            <div ref={blocksContainerRef} className="flex-1 overflow-y-auto gjs-blocks-container"></div>
                         </div>
                     )
                 }
@@ -203,6 +212,14 @@ const EditorSidebar = ({
                         </div>
                         <div ref={layerManagerRef} className="flex-1 overflow-y-auto p-4 gjs-layer-manager-container"></div>
                     </div>
+                )
+            case 'styles':
+                return (
+                    <BrandKitTab
+                        brandKit={brandKit}
+                        setBrandKit={setBrandKit}
+                        website={website}
+                    />
                 )
 
             default:
@@ -217,7 +234,7 @@ const EditorSidebar = ({
     return (
         <div className={cn(
             "flex h-full border-r bg-background transition-all duration-300 ease-in-out relative flex-shrink-0 z-40",
-            collapsed ? "w-[60px]" : "w-[300px]"
+            collapsed ? "w-[60px]" : "w-[320px]"
         )}>
             {/* Collapse Toggle */}
             <Button

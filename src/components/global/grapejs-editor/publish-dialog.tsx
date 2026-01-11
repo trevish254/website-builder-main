@@ -66,7 +66,7 @@ export default function PublishDialog({
     userId,
     currentDomain,
 }: PublishDialogProps) {
-    console.log('PublishDialog component rendered with open:', open)
+    console.log('!!! PUBLISH DIALOG MOUNTED !!! open:', open)
 
     const [activeTab, setActiveTab] = useState('template')
     const [loading, setLoading] = useState(false)
@@ -104,23 +104,107 @@ export default function PublishDialog({
             // Get project data from editor
             const projectData = editorInstance.getProjectData()
 
-            // Generate thumbnail
+            // Generate high-quality hero section thumbnail
             let thumbnail = ''
             try {
                 const html2canvas = (await import('html2canvas')).default
-                const iframe = document.querySelector('#gjs iframe') as HTMLIFrameElement
 
-                if (iframe?.contentDocument) {
+                // Try multiple selectors to find the GrapesJS iframe
+                const iframe = document.querySelector('#gjs iframe') as HTMLIFrameElement ||
+                    document.querySelector('iframe[class*="gjs"]') as HTMLIFrameElement ||
+                    document.querySelector('.gjs-frame') as HTMLIFrameElement
+
+                if (iframe?.contentDocument?.body) {
+                    // Scroll to top to capture hero section
+                    iframe.contentWindow?.scrollTo(0, 0)
+
+                    // Wait for any animations/images to load
+                    await new Promise(resolve => setTimeout(resolve, 500))
+
+                    // Capture the hero section (top portion) at high quality
+                    // We'll capture more height to ensure we get the full hero section
                     const canvas = await html2canvas(iframe.contentDocument.body, {
                         useCORS: true,
                         allowTaint: true,
-                        scale: 0.3,
+                        scale: 1, // Full scale for maximum quality
                         logging: false,
+                        height: 800, // Capture top 800px (typical hero section height)
+                        windowHeight: 800,
+                        y: 0, // Start from top
+                        scrollY: 0,
+                        scrollX: 0,
+                        backgroundColor: '#ffffff'
                     })
-                    thumbnail = canvas.toDataURL('image/jpeg', 0.6)
+
+                    // Create thumbnail with standard dimensions
+                    const THUMBNAIL_WIDTH = 400
+                    const THUMBNAIL_HEIGHT = 300
+
+                    const resizedCanvas = document.createElement('canvas')
+                    resizedCanvas.width = THUMBNAIL_WIDTH
+                    resizedCanvas.height = THUMBNAIL_HEIGHT
+
+                    const ctx = resizedCanvas.getContext('2d')
+                    if (ctx) {
+                        // Enable image smoothing for better quality
+                        ctx.imageSmoothingEnabled = true
+                        ctx.imageSmoothingQuality = 'high'
+
+                        // Fill with white background
+                        ctx.fillStyle = '#ffffff'
+                        ctx.fillRect(0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+
+                        // Calculate dimensions to maintain aspect ratio
+                        const sourceAspectRatio = canvas.width / canvas.height
+                        const targetAspectRatio = THUMBNAIL_WIDTH / THUMBNAIL_HEIGHT
+
+                        let sourceX = 0
+                        let sourceY = 0
+                        let sourceWidth = canvas.width
+                        let sourceHeight = canvas.height
+
+                        // Crop to match target aspect ratio (cover mode)
+                        if (sourceAspectRatio > targetAspectRatio) {
+                            // Source is wider - crop sides
+                            sourceWidth = canvas.height * targetAspectRatio
+                            sourceX = (canvas.width - sourceWidth) / 2
+                        } else {
+                            // Source is taller - crop top/bottom (keep top portion)
+                            sourceHeight = canvas.width / targetAspectRatio
+                            sourceY = 0 // Keep from top
+                        }
+
+                        // Draw the cropped and scaled image
+                        ctx.drawImage(
+                            canvas,
+                            sourceX, sourceY, sourceWidth, sourceHeight, // Source rectangle
+                            0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT // Destination rectangle
+                        )
+
+                        // Use higher quality JPEG encoding
+                        thumbnail = resizedCanvas.toDataURL('image/jpeg', 0.85)
+                        console.log('✓ High-quality hero section thumbnail generated')
+                    } else {
+                        // Fallback: simple resize
+                        const fallbackCanvas = document.createElement('canvas')
+                        fallbackCanvas.width = THUMBNAIL_WIDTH
+                        fallbackCanvas.height = THUMBNAIL_HEIGHT
+                        const fallbackCtx = fallbackCanvas.getContext('2d')
+                        if (fallbackCtx) {
+                            fallbackCtx.drawImage(canvas, 0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+                            thumbnail = fallbackCanvas.toDataURL('image/jpeg', 0.8)
+                        }
+                    }
+
+                    if (!thumbnail) {
+                        console.warn('Thumbnail generation produced empty result')
+                    }
+                } else {
+                    console.warn('Could not find GrapesJS iframe for thumbnail generation')
                 }
             } catch (err) {
                 console.error('Failed to generate thumbnail:', err)
+                // Don't throw - allow template creation to continue without thumbnail
             }
 
             const result = await createTemplateFromWebsite(

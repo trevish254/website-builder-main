@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { useRouter } from 'next/navigation'
 import { v4 } from 'uuid'
 import { templates } from '@/components/global/grapejs-editor/templates'
+import { getWebsiteTemplate } from '@/lib/export-actions'
 
 type Props = {
     subaccountId: string
@@ -93,12 +94,32 @@ const CreateWebsiteForm = ({ subaccountId, templateId }: { subaccountId: string,
 
             // Get template content if available
             let initialContent = null
-            if (templateId && templates[templateId]) {
-                // Wrap HTML string in component structure if needed, or pass as is 
-                // The editor loading logic now handles { components: ... } or just raw content checking.
-                // Let's use the structure { components: htmlString } to be safe and consistent
-                // with what we expect in the editor loader fallback.
-                initialContent = { components: templates[templateId] }
+            if (templateId) {
+                if (templateId === 'manufacturing') {
+                    // Import manufacturing template content directly
+                    const { createManufacturingTemplate } = await import('@/lib/templates/manufacturing-template')
+                    const templateData = createManufacturingTemplate()
+                    initialContent = templateData.content
+                } else if (templateId === 'renewable') {
+                    // Import renewable template content directly
+                    const { createRenewableEnergyTemplate } = await import('@/lib/templates/renewable-energy-template')
+                    const templateData = createRenewableEnergyTemplate()
+                    initialContent = templateData.content
+                } else if (templateId === 'legal') {
+                    // Import legal template content directly
+                    const { createLegalTemplate } = await import('@/lib/templates/legal-template')
+                    const templateData = createLegalTemplate()
+                    initialContent = templateData.content
+                } else if (templates[templateId]) {
+                    // Hardcoded HTML template
+                    initialContent = { components: templates[templateId] }
+                } else {
+                    // Try fetching from database
+                    const dbTemplate = await getWebsiteTemplate(templateId)
+                    if (dbTemplate) {
+                        initialContent = dbTemplate.content
+                    }
+                }
             }
 
             // Create Default Home Page

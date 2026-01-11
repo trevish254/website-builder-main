@@ -39,23 +39,56 @@ export async function createTemplateFromWebsite(
     try {
         const supabase = await createClient()
 
+        console.log('--- CREATING TEMPLATE ---')
+        console.log('Table: WebsiteTemplate')
+        const insertData: any = {
+            name: payload.name,
+            description: payload.description || null,
+            category: payload.category || 'General',
+            thumbnail: payload.thumbnail || null,
+            content: payload.content,
+            'isPublic': payload.isPublic,
+            'createdBy': userId,
+        }
+
+        // --- SCHEMA INTROSPECTION ---
+        console.log('--- SCHEMA INTROSPECTION ---')
+        const { data: schemaTest, error: schemaError } = await supabase
+            .from('WebsiteTemplate')
+            .select('*')
+            .limit(1)
+
+        if (schemaError) {
+            console.error('SCHEMA ERROR:', JSON.stringify(schemaError, null, 2))
+        } else if (schemaTest && schemaTest.length > 0) {
+            console.log('Detected Columns:', Object.keys(schemaTest[0]))
+        } else {
+            console.log('No existing rows to detect columns from.')
+        }
+
+        console.log('Payload (REVERTED TO camelCase):', JSON.stringify({
+            ...insertData,
+            content: 'PROJECT_DATA_HIDDEN',
+            thumbnail: insertData.thumbnail ? 'EXISTS' : 'NONE',
+        }, null, 2))
+
         const { data, error } = await supabase
             .from('WebsiteTemplate')
-            .insert({
-                name: payload.name,
-                description: payload.description || null,
-                category: payload.category || 'General',
-                thumbnail: payload.thumbnail || null,
-                content: payload.content,
-                isPublic: payload.isPublic,
-                createdBy: userId,
-            })
+            .insert(insertData)
             .select()
             .single()
 
         if (error) {
-            console.error('Error creating template:', error)
-            return { success: false, error: error.message }
+            console.error('SUPABASE ERROR:', JSON.stringify(error, null, 2))
+
+            // One last attempt to see column names if insert fails
+            const { data: cols } = await supabase.from('WebsiteTemplate').select('*').limit(1)
+            const colNames = cols && cols.length > 0 ? Object.keys(cols[0]).join(', ') : 'unknown'
+
+            return {
+                success: false,
+                error: `${error.message}${error.details ? ': ' + error.details : ''} (Expected columns: ${colNames})`
+            }
         }
 
         return { success: true, templateId: data.id }
@@ -209,5 +242,53 @@ export async function getProjectJsonExport(websiteId: string): Promise<{
     } catch (error) {
         console.error('Error getting project JSON:', error)
         return { success: false, error: 'Failed to get project JSON' }
+    }
+}
+
+/**
+ * Get all public website templates
+ */
+export async function getWebsiteTemplates(): Promise<WebsiteTemplate[]> {
+    try {
+        const supabase = await createClient()
+        const { data, error } = await supabase
+            .from('WebsiteTemplate')
+            .select('*')
+            .eq('isPublic', true)
+            .order('createdAt', { ascending: false })
+
+        if (error) {
+            console.error('Error fetching templates:', error)
+            return []
+        }
+
+        return data as WebsiteTemplate[]
+    } catch (error) {
+        console.error('Error fetching templates:', error)
+        return []
+    }
+}
+
+/**
+ * Get a single template by ID
+ */
+export async function getWebsiteTemplate(id: string): Promise<WebsiteTemplate | null> {
+    try {
+        const supabase = await createClient()
+        const { data, error } = await supabase
+            .from('WebsiteTemplate')
+            .select('*')
+            .eq('id', id)
+            .single()
+
+        if (error) {
+            console.error('Error fetching template:', error)
+            return null
+        }
+
+        return data as WebsiteTemplate
+    } catch (error) {
+        console.error('Error fetching template:', error)
+        return null
     }
 }

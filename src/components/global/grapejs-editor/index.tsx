@@ -6,14 +6,14 @@ import grapesjs from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft, Code } from 'lucide-react'
+import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft, Code, FileUp } from 'lucide-react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { customBlocks, blockCategories } from './blocks-config'
-import BlocksPanel from './blocks-panel' // Keeping for reference or fallback, but mostly replacing usage
+import BlocksPanel from './blocks-panel'
 import StylePanel from './style-panel'
 import './grapejs-custom.css'
 import { FunnelPage } from '@prisma/client'
-import { upsertWebsitePage, WebsitePage } from '@/lib/website-queries'
+import { upsertWebsitePage, WebsitePage, Website } from '@/lib/website-queries'
 import { toast } from '@/components/ui/use-toast'
 import EditorSidebar from './editor-sidebar'
 import PublishDialog from './publish-dialog'
@@ -26,9 +26,60 @@ type Props = {
     userId?: string
     websiteName?: string
     currentDomain?: string
+    website?: Website
 }
 
-const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, userId, websiteName, currentDomain }: Props) => {
+export interface BrandKit {
+    colors: {
+        primary: string
+        secondary: string
+        accent: string
+        background: string
+        text: string
+    }
+    typography: {
+        headingFont: string
+        bodyFont: string
+        baseFontSize: string
+    }
+    uiStyle: {
+        borderRadius: string
+        buttonRadius: string
+        shadowStrength: string
+    }
+    assets: {
+        logoLight: string
+        logoDark: string
+        favicon: string
+    }
+}
+
+const defaultBrandKit: BrandKit = {
+    colors: {
+        primary: '#3b82f6',
+        secondary: '#64748b',
+        accent: '#f59e0b',
+        background: '#ffffff',
+        text: '#000000',
+    },
+    typography: {
+        headingFont: 'Inter',
+        bodyFont: 'Inter',
+        baseFontSize: '16px',
+    },
+    uiStyle: {
+        borderRadius: '8px',
+        buttonRadius: '4px',
+        shadowStrength: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+    },
+    assets: {
+        logoLight: '',
+        logoDark: '',
+        favicon: '',
+    }
+}
+
+const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, userId, websiteName, currentDomain, website }: Props) => {
     const router = useRouter()
     const editorRef = useRef<HTMLDivElement>(null)
     const editorInstanceRef = useRef<any>(null)
@@ -44,24 +95,67 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
     // Publish Dialog State
     const [publishDialogOpen, setPublishDialogOpen] = useState(false)
 
+    // Brand Kit State
+    const [brandKit, setBrandKit] = useState<BrandKit>(() => {
+        if (website?.settings?.brandKit) {
+            return website.settings.brandKit
+        }
+        return defaultBrandKit
+    })
+
     // Debug: Log when publishDialogOpen changes
     useEffect(() => {
         console.log('publishDialogOpen changed to:', publishDialogOpen)
     }, [publishDialogOpen])
 
     // Helper function to update box-shadow from individual properties
-    const updateBoxShadow = (editor: any) => {
-        const selected = editor.getSelected()
-        if (!selected) return
+    const updateBoxShadow = (editor: any, changedProp?: string, changedVal?: any) => {
+        try {
+            // Critical safety check to prevent runtime errors during initialization/cleanup
+            if (!editor || typeof editor.getSelected !== 'function') return
 
-        const h = selected.getStyle()['box-shadow-h'] || '0px'
-        const v = selected.getStyle()['box-shadow-v'] || '0px'
-        const blur = selected.getStyle()['box-shadow-blur'] || '0px'
-        const spread = selected.getStyle()['box-shadow-spread'] || '0px'
-        const color = selected.getStyle()['box-shadow-color'] || 'rgba(0,0,0,0.5)'
+            // Verify editor is fully initialized
+            if (!editorReady || !editorInstanceRef.current) return
 
-        const boxShadow = `${h} ${v} ${blur} ${spread} ${color}`
-        selected.addStyle({ 'box-shadow': boxShadow })
+            const selected = editor.getSelected()
+            if (!selected || typeof selected.getStyle !== 'function' || typeof selected.addStyle !== 'function') return
+
+            // If a specific property was changed, we store it so getStyle() picks it up
+            if (changedProp) {
+                selected.addStyle({ [changedProp]: changedVal })
+            }
+
+            const style = selected.getStyle()
+            const h = style['shadow-h'] || '0px'
+            const v = style['shadow-v'] || '0px'
+            const blur = style['shadow-blur'] || '0px'
+            const spread = style['shadow-spread'] || '0px'
+            const color = style['shadow-color'] || '#000000'
+            const type = style['shadow-type'] || 'outset'
+            const opacity = style['shadow-opacity'] !== undefined ? style['shadow-opacity'] : '0.5'
+
+            let finalColor = color
+            if (color.startsWith('#')) {
+                // Convert HEX to RGBA with opacity
+                let hex = color.slice(1)
+                if (hex.length === 3) hex = hex.split('').map(s => s + s).join('')
+                const r = parseInt(hex.slice(0, 2), 16) || 0
+                const g = parseInt(hex.slice(2, 4), 16) || 0
+                const b = parseInt(hex.slice(4, 6), 16) || 0
+                finalColor = `rgba(${r}, ${g}, ${b}, ${opacity})`
+            } else if (color.startsWith('rgb')) {
+                // Adjust opacity in rgb/rgba strings
+                finalColor = color.replace(/rgba?\(([^,]+),([^,]+),([^,)]+)(?:,[^,)]+)?\)/, `rgba($1,$2,$3,${opacity})`)
+            }
+
+            const inset = type === 'inset' ? 'inset ' : ''
+            const boxShadowValue = `${inset}${h} ${v} ${blur} ${spread} ${finalColor}`.trim()
+
+            console.log('Updating box-shadow:', boxShadowValue)
+            selected.addStyle({ 'box-shadow': boxShadowValue })
+        } catch (error) {
+            console.error('Error in updateBoxShadow:', error)
+        }
     }
 
     useEffect(() => {
@@ -196,77 +290,88 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                         { property: 'border-style' },
                         { property: 'border-color', type: 'color' }
                     ]
+                }
+            ]
+        })
+        editor.StyleManager.addSector('shadows', {
+            name: 'Shadows',
+            open: false,
+            properties: [
+                {
+                    property: 'shadow-type',
+                    type: 'select',
+                    label: 'Type',
+                    defaults: 'outset',
+                    list: [
+                        { value: 'outset', name: 'Outset' },
+                        { value: 'inset', name: 'Inset' }
+                    ],
+                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-type', to)
                 },
                 {
-                    property: 'box-shadow',
-                    type: 'stack',
-                    properties: [
-                        {
-                            property: 'box-shadow-h',
-                            type: 'slider',
-                            label: 'Shadow X',
-                            min: -50,
-                            max: 50,
-                            step: 1,
-                            units: ['px'],
-                            unit: 'px',
-                            defaults: '0px',
-                            onChange: ({ property, to }: any) => {
-                                updateBoxShadow(editor)
-                            }
-                        },
-                        {
-                            property: 'box-shadow-v',
-                            type: 'slider',
-                            label: 'Shadow Y',
-                            min: -50,
-                            max: 50,
-                            step: 1,
-                            units: ['px'],
-                            unit: 'px',
-                            defaults: '0px',
-                            onChange: ({ property, to }: any) => {
-                                updateBoxShadow(editor)
-                            }
-                        },
-                        {
-                            property: 'box-shadow-blur',
-                            type: 'slider',
-                            label: 'Blur',
-                            min: 0,
-                            max: 100,
-                            step: 1,
-                            units: ['px'],
-                            unit: 'px',
-                            defaults: '0px',
-                            onChange: ({ property, to }: any) => {
-                                updateBoxShadow(editor)
-                            }
-                        },
-                        {
-                            property: 'box-shadow-spread',
-                            type: 'slider',
-                            label: 'Spread',
-                            min: -50,
-                            max: 50,
-                            step: 1,
-                            units: ['px'],
-                            unit: 'px',
-                            defaults: '0px',
-                            onChange: ({ property, to }: any) => {
-                                updateBoxShadow(editor)
-                            }
-                        },
-                        {
-                            property: 'box-shadow-color',
-                            type: 'color',
-                            label: 'Shadow Color',
-                            defaults: 'rgba(0,0,0,0.5)',
-                            onChange: ({ property, to }: any) => {
-                                updateBoxShadow(editor)
-                            }
-                        }
-                    ]
+                    property: 'shadow-h',
+                    type: 'slider',
+                    label: 'Offset X',
+                    min: -100,
+                    max: 100,
+                    step: 1,
+                    units: ['px'],
+                    unit: 'px',
+                    defaults: '0px',
+                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-h', to)
+                },
+                {
+                    property: 'shadow-v',
+                    type: 'slider',
+                    label: 'Offset Y',
+                    min: -100,
+                    max: 100,
+                    step: 1,
+                    units: ['px'],
+                    unit: 'px',
+                    defaults: '0px',
+                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-v', to)
+                },
+                {
+                    property: 'shadow-blur',
+                    type: 'slider',
+                    label: 'Blur',
+                    min: 0,
+                    max: 100,
+                    step: 1,
+                    units: ['px'],
+                    unit: 'px',
+                    defaults: '0px',
+                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-blur', to)
+                },
+                {
+                    property: 'shadow-spread',
+                    type: 'slider',
+                    label: 'Spread',
+                    min: -100,
+                    max: 100,
+                    step: 1,
+                    units: ['px'],
+                    unit: 'px',
+                    defaults: '0px',
+                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-spread', to)
+                },
+                {
+                    property: 'shadow-color',
+                    type: 'color',
+                    label: 'Color',
+                    defaults: '#000000',
+                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-color', to)
+                },
+                {
+                    property: 'shadow-opacity',
+                    type: 'slider',
+                    label: 'Opacity',
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    defaults: '0.5',
+                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-opacity', to)
                 }
             ]
         })
@@ -362,9 +467,21 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         })
 
         editorInstanceRef.current = editor
-        setEditorReady(true)
+
+        // Delay setting editorReady to ensure GrapesJS is fully initialized
+        // This prevents race conditions with internal selection events
+        setTimeout(() => {
+            // Verify editor has a valid wrapper before marking as ready
+            if (editor && editor.getWrapper && editor.getWrapper()) {
+                setEditorReady(true)
+            } else {
+                console.error('Editor wrapper not initialized properly')
+            }
+        }, 100)
 
         return () => {
+            setEditorReady(false)
+            editorInstanceRef.current = null
             editor.destroy()
         }
     }, [])
@@ -427,6 +544,69 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         }
     }, [pageDetails, editorReady])
 
+    // Inject Brand Kit Styles into Canvas
+    useEffect(() => {
+        if (!editorReady || !editorInstanceRef.current || !brandKit) return
+
+        const editor = editorInstanceRef.current
+        const canvas = editor.Canvas
+        const body = canvas.getBody()
+        if (!body) return
+
+        // Create or Update Brand Style Tag
+        let brandStyle = body.querySelector('#brand-kit-styles')
+        if (!brandStyle) {
+            brandStyle = document.createElement('style')
+            brandStyle.id = 'brand-kit-styles'
+            body.appendChild(brandStyle)
+        }
+
+        const cssVariables = `
+            :root {
+                --brand-primary: ${brandKit.colors.primary};
+                --brand-secondary: ${brandKit.colors.secondary};
+                --brand-accent: ${brandKit.colors.accent};
+                --brand-bg: ${brandKit.colors.background};
+                --brand-text: ${brandKit.colors.text};
+                --brand-heading-font: ${brandKit.typography.headingFont};
+                --brand-body-font: ${brandKit.typography.bodyFont};
+                --brand-base-size: ${brandKit.typography.baseFontSize};
+                --brand-radius: ${brandKit.uiStyle.borderRadius};
+                --brand-btn-radius: ${brandKit.uiStyle.buttonRadius};
+                --brand-shadow: ${brandKit.uiStyle.shadowStrength};
+            }
+
+            body {
+                font-family: var(--brand-body-font), sans-serif;
+                background-color: var(--brand-bg);
+                color: var(--brand-text);
+                font-size: var(--brand-base-size);
+            }
+
+            h1, h2, h3, h4, h5, h6 {
+                font-family: var(--brand-heading-font), sans-serif;
+            }
+        `
+        brandStyle.innerHTML = cssVariables
+
+        // Inject Fonts if needed (Assuming Google Fonts for simplicity now)
+        const doc = canvas.getDocument()
+        if (doc) {
+            const head = doc.head
+            let fontLink = head.querySelector('#brand-fonts')
+            if (!fontLink) {
+                fontLink = document.createElement('link')
+                fontLink.id = 'brand-fonts'
+                fontLink.rel = 'stylesheet'
+                head.appendChild(fontLink)
+            }
+            const fonts = [brandKit.typography.headingFont, brandKit.typography.bodyFont]
+            const uniqueFonts = Array.from(new Set(fonts)).map(f => f.replace(/\s+/g, '+'))
+            fontLink.href = `https://fonts.googleapis.com/css2?family=${uniqueFonts.join('&family=')}:wght@300;400;500;600;700&display=swap`
+        }
+
+    }, [brandKit, editorReady])
+
     // Update navigation trait options when pages change
     useEffect(() => {
         if (!editorReady || !editorInstanceRef.current || !websitePages) return
@@ -476,41 +656,78 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
 
             let previewImage = pageDetails.previewImage
             try {
-                const require = (window as any).require;
                 const html2canvas = (await import('html2canvas')).default
 
-                const iframe = editorRef.current.querySelector('iframe')
-                if (iframe && iframe.contentWindow && iframe.contentDocument) {
+                const iframe = editorRef.current?.querySelector('iframe') as HTMLIFrameElement
+                if (iframe?.contentWindow && iframe?.contentDocument?.body) {
+                    // Scroll to top to capture hero section
                     iframe.contentWindow.scrollTo(0, 0)
 
+                    // Wait for images and animations to load
+                    await new Promise(resolve => setTimeout(resolve, 500))
+
+                    // Capture hero section at full quality
                     const canvas = await html2canvas(iframe.contentDocument.body, {
                         useCORS: true,
                         allowTaint: true,
-                        scale: 0.5,
+                        scale: 1, // Full scale for maximum quality
                         logging: false,
-                        height: 1200,
-                        windowHeight: 1200,
-                        y: 0
+                        height: 800, // Capture top 800px (hero section)
+                        windowHeight: 800,
+                        y: 0,
+                        scrollY: 0,
+                        scrollX: 0,
+                        backgroundColor: '#ffffff'
                     })
 
-                    const MAX_WIDTH = 400
-                    let width = canvas.width
-                    let height = canvas.height
-
-                    if (width > MAX_WIDTH) {
-                        height = height * (MAX_WIDTH / width)
-                        width = MAX_WIDTH
-                    }
+                    // Create thumbnail with standard dimensions
+                    const THUMBNAIL_WIDTH = 400
+                    const THUMBNAIL_HEIGHT = 300
 
                     const resizedCanvas = document.createElement('canvas')
-                    resizedCanvas.width = width
-                    resizedCanvas.height = height
+                    resizedCanvas.width = THUMBNAIL_WIDTH
+                    resizedCanvas.height = THUMBNAIL_HEIGHT
+
                     const ctx = resizedCanvas.getContext('2d')
                     if (ctx) {
-                        ctx.drawImage(canvas, 0, 0, width, height)
-                        previewImage = resizedCanvas.toDataURL('image/jpeg', 0.6)
+                        // Enable high-quality image smoothing
+                        ctx.imageSmoothingEnabled = true
+                        ctx.imageSmoothingQuality = 'high'
+
+                        // Fill with white background
+                        ctx.fillStyle = '#ffffff'
+                        ctx.fillRect(0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+
+                        // Calculate dimensions for cover-style cropping
+                        const sourceAspectRatio = canvas.width / canvas.height
+                        const targetAspectRatio = THUMBNAIL_WIDTH / THUMBNAIL_HEIGHT
+
+                        let sourceX = 0
+                        let sourceY = 0
+                        let sourceWidth = canvas.width
+                        let sourceHeight = canvas.height
+
+                        // Crop to match target aspect ratio
+                        if (sourceAspectRatio > targetAspectRatio) {
+                            // Source is wider - crop sides
+                            sourceWidth = canvas.height * targetAspectRatio
+                            sourceX = (canvas.width - sourceWidth) / 2
+                        } else {
+                            // Source is taller - crop bottom (keep top/hero)
+                            sourceHeight = canvas.width / targetAspectRatio
+                            sourceY = 0
+                        }
+
+                        // Draw cropped and scaled image
+                        ctx.drawImage(
+                            canvas,
+                            sourceX, sourceY, sourceWidth, sourceHeight,
+                            0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT
+                        )
+
+                        previewImage = resizedCanvas.toDataURL('image/jpeg', 0.85)
                     } else {
-                        previewImage = canvas.toDataURL('image/jpeg', 0.6)
+                        previewImage = canvas.toDataURL('image/jpeg', 0.8)
                     }
                 }
             } catch (err) {
@@ -579,20 +796,9 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         }
     }
 
-    const handlePublish = async () => {
+    const handlePublish = () => {
         console.log('=== PUBLISH BUTTON CLICKED ===')
-        console.log('Current publishDialogOpen state:', publishDialogOpen)
-        console.log('Editor ready:', editorReady)
-        console.log('Editor instance:', !!editorInstanceRef.current)
-        console.log('UserId:', userId)
-        console.log('WebsiteName:', websiteName)
-
-        // Save before opening publish dialog
-        await handleSave()
-
-        console.log('Setting publishDialogOpen to true')
         setPublishDialogOpen(true)
-        console.log('publishDialogOpen set to true')
     }
 
     const handleFullPreview = async () => {
@@ -604,6 +810,38 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         if (!editorInstanceRef.current) return
         // Use GrapeJS's built-in code viewer
         editorInstanceRef.current.runCommand('core:open-code')
+    }
+
+    const handleImport = () => {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = '.json,.html'
+        input.onchange = async (e: any) => {
+            const file = e.target.files[0]
+            if (!file) return
+
+            const reader = new FileReader()
+            reader.onload = (event: any) => {
+                const content = event.target.result
+                if (!editorInstanceRef.current) return
+
+                try {
+                    if (file.name.endsWith('.json')) {
+                        const data = JSON.parse(content)
+                        editorInstanceRef.current.loadProjectData(data)
+                        toast({ title: 'Import Successful', description: 'Project data loaded from JSON file.' })
+                    } else if (file.name.endsWith('.html')) {
+                        editorInstanceRef.current.setComponents(content)
+                        toast({ title: 'Import Successful', description: 'HTML content loaded from file.' })
+                    }
+                } catch (error) {
+                    console.error('Import error:', error)
+                    toast({ title: 'Import Failed', description: 'Could not parse the file content.', variant: 'destructive' })
+                }
+            }
+            reader.readAsText(file)
+        }
+        input.click()
     }
 
     return (
@@ -641,6 +879,11 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                     <div className="w-px h-6 bg-border mx-1" />
                     <Button variant="ghost" size="sm" onClick={handlePreview}><Eye className="w-4 h-4 mr-2" />Preview</Button>
                     <Button variant="ghost" size="sm" onClick={handleFullPreview}><ExternalLink className="w-4 h-4 mr-2" />Full Site</Button>
+                    <div className="w-px h-6 bg-border mx-1" />
+                    <Button variant="outline" size="sm" onClick={handleImport} className="gap-2">
+                        <FileUp className="w-4 h-4" />
+                        <span className="hidden sm:inline">Import</span>
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleSave}><Save className="w-4 h-4 mr-2" />Save</Button>
                     <Button size="sm" onClick={handlePublish}><Upload className="w-4 h-4 mr-2" />Publish</Button>
                 </div>
@@ -657,6 +900,9 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                         subaccountId={subaccountId}
                         funnelId={funnelId}
                         activePageId={pageDetails.id}
+                        brandKit={brandKit}
+                        setBrandKit={setBrandKit}
+                        website={website}
                     />
                 )}
                 <div className="flex-1 relative">
@@ -666,6 +912,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             </div>
 
             {/* Publish Dialog */}
+            {console.log('Rendering PublishDialog section, editorReady:', editorReady, 'instance:', !!editorInstanceRef.current, 'open:', publishDialogOpen)}
             {editorReady && editorInstanceRef.current && (
                 <PublishDialog
                     open={publishDialogOpen}

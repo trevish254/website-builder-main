@@ -1,7 +1,6 @@
 import React from 'react'
 import GrapeJsEditor from '@/components/global/grapejs-editor'
 import { FunnelPage } from '@prisma/client'
-import { templates } from '@/components/global/grapejs-editor/templates'
 import { redirect } from 'next/navigation'
 import { upsertWebsite, getWebsite, getWebsitePages } from '@/lib/website-queries'
 import { getUser } from '@/lib/supabase/server'
@@ -60,7 +59,7 @@ const WebsiteEditorPage = async ({ params, searchParams }: Props) => {
     }
 
     return (
-        <div className="fixed inset-0 z-[100] bg-background font-sans">
+        <div className="fixed inset-0 z-[40] bg-background font-sans">
             <GrapeJsEditor
                 subaccountId={params.subaccountId}
                 funnelId={website.id}
@@ -69,6 +68,7 @@ const WebsiteEditorPage = async ({ params, searchParams }: Props) => {
                 userId={user.id}
                 websiteName={website.name}
                 currentDomain={website.domain || undefined}
+                website={website}
             />
         </div>
     )
