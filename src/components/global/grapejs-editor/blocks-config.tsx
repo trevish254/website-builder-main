@@ -26,7 +26,8 @@
   LayoutGrid,
   Type,
   Image,
-  Video
+  Video,
+  PanelLeft // Imported for Templates category
 } from 'lucide-react'
 
 // Custom Layout Icons based on user designs
@@ -122,12 +123,13 @@ export const blockCategories: BlockCategory[] = [
   { id: 'media', label: 'Media', icon: Image },
   { id: 'forms', label: 'Forms', icon: FormInput },
   { id: 'components', label: 'Components', icon: Sparkles },
+  { id: 'templates', label: 'Templates', icon: AppWindow },
 ]
 
 export const customBlocks: CustomBlock[] = [
   // Layout Blocks
   {
-    id: 'section',
+    id: 'cb-section',
     label: 'Section',
     icon: SectionIcon,
     category: 'layout',
@@ -140,7 +142,7 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: 'container',
+    id: 'cb-container',
     label: 'Container',
     icon: Frame,
     category: 'layout',
@@ -151,7 +153,7 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: '2-columns',
+    id: 'cb-2-columns',
     label: '2 Columns',
     icon: TwoColumnsIcon,
     category: 'layout',
@@ -167,7 +169,7 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: '3-columns',
+    id: 'cb-3-columns',
     label: '3 Columns',
     icon: ThreeColumnsIcon,
     category: 'layout',
@@ -188,21 +190,21 @@ export const customBlocks: CustomBlock[] = [
 
   // Typography Blocks
   {
-    id: 'heading',
+    id: 'cb-heading',
     label: 'Heading',
     icon: Heading1,
     category: 'typography',
     content: '<h1 style="font-size: 2.5rem; font-weight: bold; margin: 20px 0;">Your Heading Here</h1>',
   },
   {
-    id: 'paragraph',
+    id: 'cb-paragraph',
     label: 'Paragraph',
     icon: AlignLeft,
     category: 'typography',
     content: '<p style="font-size: 1rem; line-height: 1.6; margin: 15px 0;">Your paragraph text goes here. Edit this to add your content.</p>',
   },
   {
-    id: 'list',
+    id: 'cb-list',
     label: 'List',
     icon: List,
     category: 'typography',
@@ -215,7 +217,7 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: 'quote',
+    id: 'cb-quote',
     label: 'Quote',
     icon: Quote,
     category: 'typography',
@@ -228,7 +230,7 @@ export const customBlocks: CustomBlock[] = [
 
   // Media Blocks
   {
-    id: 'image',
+    id: 'cb-image',
     label: 'Image',
     icon: FileImage,
     category: 'media',
@@ -241,7 +243,7 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: 'video',
+    id: 'cb-video',
     label: 'Video',
     icon: Film,
     category: 'media',
@@ -259,7 +261,7 @@ export const customBlocks: CustomBlock[] = [
 
   // Form Blocks
   {
-    id: 'input',
+    id: 'cb-input',
     label: 'Input',
     icon: TextCursorInput,
     category: 'forms',
@@ -272,7 +274,7 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: 'textarea',
+    id: 'cb-textarea',
     label: 'Textarea',
     icon: FileText,
     category: 'forms',
@@ -285,7 +287,7 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: 'button',
+    id: 'cb-button',
     label: 'Button',
     icon: MousePointerClick,
     category: 'forms',
@@ -296,7 +298,7 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: 'form',
+    id: 'cb-form',
     label: 'Form',
     icon: FormInput,
     category: 'forms',
@@ -319,7 +321,7 @@ export const customBlocks: CustomBlock[] = [
 
   // Component Blocks
   {
-    id: 'card',
+    id: 'cb-card',
     label: 'Card',
     icon: CreditCard,
     category: 'components',
@@ -335,7 +337,7 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: 'hero',
+    id: 'cb-hero',
     label: 'Hero Section',
     icon: Megaphone,
     category: 'components',
@@ -352,39 +354,89 @@ export const customBlocks: CustomBlock[] = [
     `,
   },
   {
-    id: 'cta',
-    label: 'Call to Action',
-    icon: Mail,
-    category: 'components',
+    id: 'cb-welcome-panel',
+    label: 'Welcome Panel',
+    icon: AppWindow,
+    category: 'templates',
     content: `
-      <section style="background: #f8f9fa; padding: 60px 20px; text-align: center;">
-        <div style="max-width: 600px; margin: 0 auto;">
-          <h2 style="font-size: 2rem; margin-bottom: 15px;">Ready to Get Started?</h2>
-          <p style="font-size: 1.1rem; color: #666; margin-bottom: 25px;">Join thousands of satisfied customers today</p>
-          <button style="padding: 15px 40px; background: #28a745; color: white; border: none; border-radius: 4px; font-size: 1.1rem; font-weight: 600; cursor: pointer;">
-            Sign Up Now
-          </button>
+      <div class="panel">
+        <h1 class="welcome">Welcome to</h1>
+        <div class="big-title">
+          <svg class="logo" viewBox="0 0 100 100">
+            <path d="M40 5l-12.9 7.4 -12.9 7.4c-1.4 0.8-2.7 2.3-3.7 3.9 -0.9 1.6-1.5 3.5-1.5 5.1v14.9 14.9c0 1.7 0.6 3.5 1.5 5.1 0.9 1.6 2.2 3.1 3.7 3.9l12.9 7.4 12.9 7.4c1.4 0.8 3.3 1.2 5.2 1.2 1.9 0 3.8-0.4 5.2-1.2l12.9-7.4 12.9-7.4c1.4-0.8 2.7-2.2 3.7-3.9 0.9-1.6 1.5-3.5 1.5-5.1v-14.9 -12.7c0-4.6-3.8-6-6.8-4.2l-28 16.2" />
+          </svg>
+          <span>GrapesJS</span>
         </div>
-      </section>
+        <div class="description">
+          This is a demo showing how to integrate custom content. You can drag and drop this block to see the welcome message template in action.
+        </div>
+      </div>
+      <style>
+        .panel {
+          width: 90%;
+          max-width: 700px;
+          border-radius: 3px;
+          padding: 30px 20px;
+          margin: 150px auto 0px;
+          background-color: #d983a6;
+          box-shadow: 0px 3px 10px 0px rgba(0, 0, 0, 0.25);
+          color: rgba(255, 255, 255, 0.75);
+          font: caption;
+          font-weight: 100;
+        }
+
+        .welcome {
+          text-align: center;
+          font-weight: 100;
+          margin: 0px;
+        }
+
+        .logo {
+          width: 70px;
+          height: 70px;
+          vertical-align: middle;
+        }
+
+        .logo path {
+          pointer-events: none;
+          fill: none;
+          stroke-linecap: round;
+          stroke-width: 7;
+          stroke: #fff
+        }
+
+        .big-title {
+          text-align: center;
+          font-size: 3.5rem;
+          margin: 15px 0;
+        }
+
+        .description {
+          text-align: justify;
+          font-size: 1rem;
+          line-height: 1.5rem;
+        }
+      </style>
     `,
   },
+
   // Basic Layout
   {
-    id: 'div-block',
+    id: 'cb-div-block',
     label: 'Div Block',
     icon: BoxSelect,
     category: 'layout',
     content: '<div style="padding: 10px; min-height: 50px;"></div>',
   },
   {
-    id: 'row',
+    id: 'cb-row',
     label: 'Row',
     icon: RowIcon,
     category: 'layout',
     content: '<div style="display: flex; gap: 10px; padding: 10px; flex-wrap: wrap;"><div style="flex: 1; min-height: 50px; padding: 10px; border: 1px dashed #ddd;">Col 1</div><div style="flex: 1; min-height: 50px; padding: 10px; border: 1px dashed #ddd;">Col 2</div></div>',
   },
   {
-    id: 'link-block',
+    id: 'cb-link-block',
     label: 'Link Block',
     icon: Link2,
     category: 'layout',
@@ -393,7 +445,7 @@ export const customBlocks: CustomBlock[] = [
 
   // Navigation
   {
-    id: 'navbar',
+    id: 'cb-navbar',
     label: 'Navbar',
     icon: AppWindow,
     category: 'components',
@@ -402,7 +454,7 @@ export const customBlocks: CustomBlock[] = [
 
   // Media
   {
-    id: 'image-gallery',
+    id: 'cb-image-gallery',
     label: 'Image Gallery',
     icon: ImagePlus,
     category: 'media',
@@ -411,28 +463,28 @@ export const customBlocks: CustomBlock[] = [
 
   // Forms
   {
-    id: 'label',
+    id: 'cb-label',
     label: 'Label',
     icon: Tag,
     category: 'forms',
     content: '<label style="display: block; margin-bottom: 5px; font-weight: 500;">Label</label>',
   },
   {
-    id: 'select',
+    id: 'cb-select',
     label: 'Select',
     icon: ChevronsDown,
     category: 'forms',
     content: '<select style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: white;"><option value="">Select option</option><option value="1">Option 1</option><option value="2">Option 2</option></select>',
   },
   {
-    id: 'checkbox',
+    id: 'cb-checkbox',
     label: 'Checkbox',
     icon: CheckSquare,
     category: 'forms',
     content: '<div style="display: flex; items-center; gap: 8px; margin-bottom: 10px;"><input type="checkbox" id="check1" /><label for="check1">Checkbox</label></div>',
   },
   {
-    id: 'radio',
+    id: 'cb-radio',
     label: 'Radio',
     icon: Circle,
     category: 'forms',
@@ -441,14 +493,14 @@ export const customBlocks: CustomBlock[] = [
 
   // Buttons
   {
-    id: 'outline-button',
+    id: 'cb-outline-button',
     label: 'Outline Button',
     icon: MousePointerClick,
     category: 'forms',
     content: '<button style="padding: 12px 24px; background: transparent; color: #007bff; border: 2px solid #007bff; border-radius: 4px; font-size: 1rem; cursor: pointer;">Outline Button</button>',
   },
   {
-    id: 'link-button',
+    id: 'cb-link-button',
     label: 'Link Button',
     icon: Link2,
     category: 'forms',

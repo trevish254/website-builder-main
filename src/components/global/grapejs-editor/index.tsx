@@ -1,14 +1,28 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import grapesjs from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft, Code, FileUp } from 'lucide-react'
+import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft, Code, FileUp, Maximize } from 'lucide-react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { customBlocks, blockCategories } from './blocks-config'
+
+// GrapesJS Plugins (Explicit Imports)
+// @ts-ignore
+import gjsForms from 'grapesjs-plugin-forms'
+// @ts-ignore
+import gjsCountdown from 'grapesjs-component-countdown'
+// @ts-ignore
+import gjsCustomCode from 'grapesjs-custom-code'
+// @ts-ignore
+import gjsTouch from 'grapesjs-touch'
+// @ts-ignore
+import gjsParserPostcss from 'grapesjs-parser-postcss'
+// @ts-ignore
+import gjsTooltip from 'grapesjs-tooltip'
 import BlocksPanel from './blocks-panel'
 import StylePanel from './style-panel'
 import './grapejs-custom.css'
@@ -87,6 +101,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
     const [activeDevice, setActiveDevice] = useState('desktop')
     const [editorReady, setEditorReady] = useState(false)
     const [showBlocks, setShowBlocks] = useState(true)
+    const [previewMode, setPreviewMode] = useState(false) // Preview mode state
 
     // Sidebar State
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
@@ -158,21 +173,67 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         }
     }
 
+    // Smart Canvas: Auto-scaling logic (Moved to component scope)
+    const updateCanvasZoom = useCallback(() => {
+        if (!editorInstanceRef.current || !editorRef.current) return
+
+        const editor = editorInstanceRef.current
+        setTimeout(() => {
+            const container = editorRef.current
+            if (!container || !editor) return
+
+            const rect = container.getBoundingClientRect()
+            const containerWidth = rect.width
+
+            // Use standard GrapesJS Devices getter
+            const deviceModule = editor.Devices
+            const currentDevice = deviceModule ? deviceModule.get(editor.getDevice()) : null
+            const deviceWidth = currentDevice ? (parseInt(currentDevice.get('width')) || containerWidth) : containerWidth
+            const padding = 80
+            const availableWidth = containerWidth - padding
+
+            // Safe Zoom Calculation
+            let zoom = 1
+            if (deviceWidth > availableWidth) {
+                zoom = availableWidth / deviceWidth
+            }
+
+            // Clamp zoom to reasonable limits (10% to 120%)
+            zoom = Math.max(0.1, Math.min(zoom, 1.2))
+
+            editor.Canvas.setZoom(zoom * 100)
+
+            // Dynamic Height Calculation:
+            const frameWrapper = container.querySelector('.gjs-frame-wrapper') as HTMLElement
+            if (frameWrapper) {
+                const visualHeightTarget = rect.height - 80
+                const requiredHeight = visualHeightTarget / zoom
+                frameWrapper.style.setProperty('height', `${requiredHeight}px`, 'important')
+                frameWrapper.style.setProperty('min-height', `${requiredHeight}px`, 'important')
+            }
+        }, 100)
+    }, [])
+
     useEffect(() => {
         if (!editorRef.current) return
 
+        const escapeName = (name: string) => `${name}`.trim().replace(/([^a-z0-9\w-:/]+)/gi, "-")
+
         const editor = grapesjs.init({
             container: editorRef.current,
+            // ... (rest of init)
             width: 'auto',
             height: 'calc(100vh - 60px)',
             fromElement: false,
             storageManager: false,
+            selectorManager: { escapeName },
             panels: { defaults: [] },
             canvas: {
                 styles: [
                     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
                 ],
                 scripts: [
+                    'https://cdn.tailwindcss.com',
                     // Navigation handler for page links
                     `(function() {
                         document.addEventListener('click', function(e) {
@@ -198,9 +259,9 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             },
             deviceManager: {
                 devices: [
-                    { name: 'desktop', width: '' },
+                    { name: 'desktop', width: '1200px' }, // Smart Canvas: Fixed width for desktop
                     { name: 'tablet', width: '768px', widthMedia: '992px' },
-                    { name: 'mobile', width: '320px', widthMedia: '480px' },
+                    { name: 'mobile', width: '375px', widthMedia: '480px' },
                 ]
             },
             // Preserve inline styles when loading HTML
@@ -211,32 +272,23 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             },
             // Keep inline styles in components
             avoidInlineStyle: false,
+            plugins: [
+                gjsForms,
+                gjsCountdown,
+                gjsCustomCode,
+                gjsTouch,
+                gjsParserPostcss,
+                gjsTooltip,
+            ],
+            pluginsOpts: {
+                [gjsForms]: {},
+                [gjsCountdown]: {},
+                [gjsCustomCode]: {},
+            }
         })
 
         // Reactive Content Load
 
-
-        // Register Custom Blocks
-        customBlocks.forEach((block) => {
-            try {
-                const categoryLabel = blockCategories.find(c => c.id === block.category)?.label || block.category
-                const IconComponent = block.icon
-                const mediaHtml = renderToStaticMarkup(<IconComponent size={24} strokeWidth={1.5} />)
-
-                editor.BlockManager.add(block.id, {
-                    label: block.label,
-                    content: block.content,
-                    category: { id: block.category, label: categoryLabel },
-                    media: mediaHtml,
-                    attributes: {
-                        class: 'gjs-block',
-                        title: block.label
-                    },
-                })
-            } catch (error) {
-                console.error(`✗ Failed to register block ${block.label}:`, error)
-            }
-        })
 
         // Style Manager Configuration
         editor.StyleManager.addSector('general', {
@@ -468,18 +520,47 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
 
         editorInstanceRef.current = editor
 
-        // Delay setting editorReady to ensure GrapesJS is fully initialized
-        // This prevents race conditions with internal selection events
+        // Setup Resize Observer using the component-level function
+        const resizeObserver = new ResizeObserver(() => {
+            updateCanvasZoom()
+        })
+
+        if (editorRef.current) {
+            resizeObserver.observe(editorRef.current)
+        }
+
+        editor.on('device:select', updateCanvasZoom)
+
+
+        // Preview Mode Listeners
+        editor.on('run:preview', () => {
+            setPreviewMode(true)
+            setShowBlocks(false) // Optionally hide blocks state if needed to sync
+        })
+
+        editor.on('stop:preview', () => {
+            setPreviewMode(false)
+            setShowBlocks(true)
+        })
+
+        // Efficient initialization check
         setTimeout(() => {
-            // Verify editor has a valid wrapper before marking as ready
-            if (editor && editor.getWrapper && editor.getWrapper()) {
+            const wrapper = editor.getWrapper ? editor.getWrapper() : null
+            if (editor && wrapper) {
                 setEditorReady(true)
+                // Trigger initial zoom
+                updateCanvasZoom()
             } else {
-                console.error('Editor wrapper not initialized properly')
+                console.warn('Editor wrapper not ready, retrying...')
+                // Retry once
+                setTimeout(() => {
+                    if (editor && editor.getWrapper()) setEditorReady(true)
+                }, 500)
             }
-        }, 100)
+        }, 150)
 
         return () => {
+            resizeObserver.disconnect()
             setEditorReady(false)
             editorInstanceRef.current = null
             editor.destroy()
@@ -542,6 +623,14 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         } catch {
             console.warn('Failed to parse content, using raw')
         }
+
+        // RE-APPLY SMART CANVAS LOGIC AFTER CONTENT LOAD
+        // This fixes the "snap back" issue where loading content resets frame height
+        setTimeout(() => {
+            updateCanvasZoom()
+            editor.refresh() // Force refresh to ensure styles stick
+        }, 200)
+
     }, [pageDetails, editorReady])
 
     // Inject Brand Kit Styles into Canvas
@@ -644,7 +733,11 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
 
     const handleUndo = () => { editorInstanceRef.current?.UndoManager.undo() }
     const handleRedo = () => { editorInstanceRef.current?.UndoManager.redo() }
-    const handlePreview = () => { editorInstanceRef.current?.runCommand('preview') }
+    const handlePreview = () => {
+        if (!editorInstanceRef.current) return
+        setPreviewMode(true)
+        editorInstanceRef.current.runCommand('core:preview')
+    }
 
     const handleSave = async () => {
         if (!editorInstanceRef.current) return
@@ -812,6 +905,18 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         editorInstanceRef.current.runCommand('core:open-code')
     }
 
+    const handleToggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`)
+            })
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen()
+            }
+        }
+    }
+
     const handleImport = () => {
         const input = document.createElement('input')
         input.type = 'file'
@@ -844,52 +949,85 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         input.click()
     }
 
+    // Register custom blocks when editor is ready
+    useEffect(() => {
+        if (!editorReady || !editorInstanceRef.current) return
+        const editor = editorInstanceRef.current
+
+        console.log('Registering custom blocks:', customBlocks.length)
+        customBlocks.forEach((block) => {
+            try {
+                const categoryLabel = blockCategories.find(c => c.id === block.category)?.label || block.category
+                const IconComponent = block.icon
+                const mediaHtml = renderToStaticMarkup(<IconComponent size={24} strokeWidth={1.5} />)
+
+                editor.BlockManager.add(block.id, {
+                    label: block.label,
+                    content: block.content,
+                    category: { id: block.category, label: categoryLabel },
+                    media: mediaHtml,
+                    attributes: {
+                        class: 'gjs-block',
+                        title: block.label
+                    }
+                })
+            } catch (error) {
+                console.error(`Failed to register block ${block.id}:`, error)
+            }
+        })
+    }, [editorReady])
+
     return (
         <div className="h-screen w-full flex flex-col bg-background">
-            <div className="h-[60px] border-b bg-background flex items-center justify-between px-4 gap-4 flex-shrink-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2">
-                        <ArrowLeft className="w-4 h-4" />
-                        <span className="hidden sm:inline">Back</span>
-                    </Button>
-                    <div className="h-6 w-px bg-border" />
-                    {/* Note: Sidebar toggle is now internal, but keeping state here in case we want external control */}
-                    <Input value={pageName} onChange={(e) => setPageName(e.target.value)} className="max-w-xs" placeholder="Page name" />
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handleViewCode} className="gap-2">
-                        <Code className="w-4 h-4" />
-                        <span className="hidden sm:inline">View Code</span>
-                    </Button>
-                    <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
-                        <Button variant={activeDevice === 'desktop' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('desktop')} className="gap-2">
-                            <Monitor className="w-4 h-4" /> <span className="hidden sm:inline">Desktop</span>
+            {!previewMode && (
+                <div className="h-[60px] border-b bg-background flex items-center justify-between px-4 gap-4 flex-shrink-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2">
+                            <ArrowLeft className="w-4 h-4" />
+                            <span className="hidden sm:inline">Back</span>
                         </Button>
-                        <Button variant={activeDevice === 'tablet' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('tablet')} className="gap-2">
-                            <Tablet className="w-4 h-4" /> <span className="hidden sm:inline">Tablet</span>
+                        <div className="h-6 w-px bg-border" />
+                        {/* Note: Sidebar toggle is now internal, but keeping state here in case we want external control */}
+                        <Input value={pageName} onChange={(e) => setPageName(e.target.value)} className="max-w-xs" placeholder="Page name" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={handleViewCode} className="gap-2">
+                            <Code className="w-4 h-4" />
+                            <span className="hidden sm:inline">View Code</span>
                         </Button>
-                        <Button variant={activeDevice === 'mobile' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('mobile')} className="gap-2">
-                            <Smartphone className="w-4 h-4" /> <span className="hidden sm:inline">Mobile</span>
+                        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+                            <Button variant={activeDevice === 'desktop' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('desktop')} className="gap-2">
+                                <Monitor className="w-4 h-4" /> <span className="hidden sm:inline">Desktop</span>
+                            </Button>
+                            <Button variant={activeDevice === 'tablet' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('tablet')} className="gap-2">
+                                <Tablet className="w-4 h-4" /> <span className="hidden sm:inline">Tablet</span>
+                            </Button>
+                            <Button variant={activeDevice === 'mobile' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('mobile')} className="gap-2">
+                                <Smartphone className="w-4 h-4" /> <span className="hidden sm:inline">Mobile</span>
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={handleUndo}><Undo className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={handleRedo}><Redo className="w-4 h-4" /></Button>
+                        <div className="w-px h-6 bg-border mx-1" />
+                        <Button variant="ghost" size="sm" onClick={handleToggleFullscreen} title="Toggle Fullscreen">
+                            <Maximize className="w-4 h-4" />
                         </Button>
+                        <Button variant="ghost" size="sm" onClick={handlePreview}><Eye className="w-4 h-4 mr-2" />Preview</Button>
+                        <Button variant="ghost" size="sm" onClick={handleFullPreview}><ExternalLink className="w-4 h-4 mr-2" />Full Site</Button>
+                        <div className="w-px h-6 bg-border mx-1" />
+                        <Button variant="outline" size="sm" onClick={handleImport} className="gap-2">
+                            <FileUp className="w-4 h-4" />
+                            <span className="hidden sm:inline">Import</span>
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleSave}><Save className="w-4 h-4 mr-2" />Save</Button>
+                        <Button size="sm" onClick={handlePublish}><Upload className="w-4 h-4 mr-2" />Publish</Button>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={handleUndo}><Undo className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={handleRedo}><Redo className="w-4 h-4" /></Button>
-                    <div className="w-px h-6 bg-border mx-1" />
-                    <Button variant="ghost" size="sm" onClick={handlePreview}><Eye className="w-4 h-4 mr-2" />Preview</Button>
-                    <Button variant="ghost" size="sm" onClick={handleFullPreview}><ExternalLink className="w-4 h-4 mr-2" />Full Site</Button>
-                    <div className="w-px h-6 bg-border mx-1" />
-                    <Button variant="outline" size="sm" onClick={handleImport} className="gap-2">
-                        <FileUp className="w-4 h-4" />
-                        <span className="hidden sm:inline">Import</span>
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleSave}><Save className="w-4 h-4 mr-2" />Save</Button>
-                    <Button size="sm" onClick={handlePublish}><Upload className="w-4 h-4 mr-2" />Publish</Button>
-                </div>
-            </div>
-            <div className="flex-1 flex overflow-hidden">
-                {editorReady && editorInstanceRef.current && (
+            )}
+            <div className="flex-1 flex overflow-hidden w-full relative">
+                {!previewMode && editorReady && editorInstanceRef.current && (
                     <EditorSidebar
                         editor={editorInstanceRef.current}
                         activeTab={activeSidebarTab}
@@ -905,26 +1043,43 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                         website={website}
                     />
                 )}
-                <div className="flex-1 relative">
-                    <div id="gjs" ref={editorRef} className="h-full w-full"></div>
-                </div>
-                {editorReady && editorInstanceRef.current && <StylePanel editor={editorInstanceRef.current} />}
+                <main className="flex-1 relative min-w-0 overflow-auto bg-[#0b0d11]">
+                    <div id="gjs" ref={editorRef} className="absolute inset-0 w-full h-full"></div>
+                    {/* Exit Preview Button */}
+                    {previewMode && (
+                        <div className="absolute top-4 right-4 z-[9999]">
+                            <Button onClick={() => {
+                                setPreviewMode(false)
+                                editorInstanceRef.current?.stopCommand('core:preview')
+                            }} className="shadow-lg gap-2" variant="default">
+                                <Eye className="w-4 h-4" /> Exit Preview
+                            </Button>
+                        </div>
+                    )}
+                </main>
+                {!previewMode && editorReady && editorInstanceRef.current && (
+                    <aside className="flex-shrink-0 w-[240px] border-l bg-background z-40 relative">
+                        <StylePanel editor={editorInstanceRef.current} />
+                    </aside>
+                )}
             </div>
 
             {/* Publish Dialog */}
             {console.log('Rendering PublishDialog section, editorReady:', editorReady, 'instance:', !!editorInstanceRef.current, 'open:', publishDialogOpen)}
-            {editorReady && editorInstanceRef.current && (
-                <PublishDialog
-                    open={publishDialogOpen}
-                    onOpenChange={setPublishDialogOpen}
-                    editorInstance={editorInstanceRef.current}
-                    websiteId={funnelId}
-                    websiteName={websiteName || 'Untitled Website'}
-                    userId={userId || ''}
-                    currentDomain={currentDomain}
-                />
-            )}
-        </div>
+            {
+                editorReady && editorInstanceRef.current && (
+                    <PublishDialog
+                        open={publishDialogOpen}
+                        onOpenChange={setPublishDialogOpen}
+                        editorInstance={editorInstanceRef.current}
+                        websiteId={funnelId}
+                        websiteName={websiteName || 'Untitled Website'}
+                        userId={userId || ''}
+                        currentDomain={currentDomain}
+                    />
+                )
+            }
+        </div >
     )
 }
 

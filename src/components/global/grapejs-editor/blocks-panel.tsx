@@ -2,166 +2,114 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Search, ArrowLeft } from 'lucide-react'
+import { Search, Box } from 'lucide-react'
 import { blockCategories } from './blocks-config'
 import { cn } from '@/lib/utils'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 
 type Props = {
     editor: any
 }
 
 const BlocksPanel = ({ editor }: Props) => {
-    const blocksContainerRef = useRef<HTMLDivElement>(null)
     const [searchQuery, setSearchQuery] = useState('')
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+    const [categories, setCategories] = useState<any[]>([])
+
+    // Ref to track rendered categories and avoid re-rendering issues
+    // We will render GrapesJS blocks INTO specific DOM slots provided by the AccordionContent
+
+    // We need to store refs for each filtered category container
+    const categoryRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
     useEffect(() => {
-        if (!editor || !blocksContainerRef.current) return
+        if (!editor) return
 
-        const updateBlocks = () => {
-            // Get all blocks
+        const updateCategories = () => {
             const allBlocks = editor.BlockManager.getAll()
+            const uniqueCategories = new Map<string, any>()
 
-            // Filter blocks
+            // 1. Start with static categories
+            blockCategories.forEach(cat => uniqueCategories.set(cat.id.toLowerCase(), cat))
+
+            // 2. Discover new categories from blocks
+            allBlocks.forEach((block: any) => {
+                const cat = block.get('category')
+                if (!cat) return
+
+                const id = (typeof cat === 'object' ? cat.id : cat).toString()
+                const label = typeof cat === 'object' ? cat.label : cat
+                const lowerId = id.toLowerCase()
+
+                if (!uniqueCategories.has(lowerId)) {
+                    uniqueCategories.set(lowerId, {
+                        id,
+                        label,
+                        icon: Box
+                    })
+                }
+            })
+
+            // Only update if changed significantly
+            // For now, always update to be safe with HMR
+            setCategories(Array.from(uniqueCategories.values()))
+        }
+
+        updateCategories()
+        editor.on('block:add block:remove', updateCategories)
+        return () => { editor.off('block:add block:remove', updateCategories) }
+    }, [editor])
+
+    // Effect to render blocks into the category containers whenever categories or search query changes
+    useEffect(() => {
+        if (!editor || categories.length === 0) return
+
+        // For each category, find its container and render relevant blocks
+        categories.forEach(category => {
+            const container = categoryRefs.current.get(category.id)
+            if (!container) return
+
+            // 1. Filter blocks for this specific category AND search query
+            const allBlocks = editor.BlockManager.getAll()
             const filteredBlocks = allBlocks.filter((block: any) => {
                 const blockCategory = block.get('category')
                 const categoryId = typeof blockCategory === 'object' ? blockCategory.id : blockCategory
                 const label = block.get('label')
 
-                // Normalization for robust comparison
                 const normCategoryId = String(categoryId).toLowerCase()
-                const normSelected = selectedCategory ? String(selectedCategory).toLowerCase() : null
+                const normCurrentId = String(category.id).toLowerCase()
 
-                const matchesCategory = !normSelected || normCategoryId === normSelected
-                const matchesSearch = searchQuery === '' ||
-                    label.toLowerCase().includes(searchQuery.toLowerCase())
+                const matchesCategory = normCategoryId === normCurrentId
+                const matchesSearch = searchQuery === '' || label.toLowerCase().includes(searchQuery.toLowerCase())
 
                 return matchesCategory && matchesSearch
             })
 
-            // Clear previous content
-            blocksContainerRef.current!.innerHTML = ''
+            // 2. Clear container
+            container.innerHTML = ''
 
-            // Render filtered blocks
+            // 3. Render
             if (filteredBlocks.length > 0) {
-                // Determine if we need to group by category or just show blocks
-                // If a category is selected, we might want to disable the default category headers 
-                // to avoid redundancy, but GrapeJS render() usually adds them.
-                // We pass the filtered blocks to render()
                 const blocksEl = editor.BlockManager.render(filteredBlocks, {
-                    external: true, // Optimizes for external container
-                    ignoreCategories: !!selectedCategory // If custom category navigation, filter headers? 
-                    // Note: ignoreCategories is not a standard option in all versions, but let's try strict rendering
+                    external: true,
+                    ignoreCategories: true // Important: We are handling categories ourselves
                 })
-
-                // If blocksEl contains categories despite filtering (e.g. "Layout" header), 
-                // we might want to hide it if we are already IN the "Layout" view. 
-                // But usually it's fine.
-
-                blocksContainerRef.current!.appendChild(blocksEl)
+                container.appendChild(blocksEl)
             } else {
-                blocksContainerRef.current!.innerHTML = `
-                    <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
-                        <p>No blocks found</p>
-                    </div>
-                `
+                if (searchQuery !== '') {
+                    container.innerHTML = '<p class="text-xs text-muted-foreground p-2">No matching blocks</p>'
+                }
+                // If no search query and no blocks, it's just empty
             }
-        }
+        })
 
-        updateBlocks()
+    }, [editor, categories, searchQuery])
 
-        // Listen for block changes
-        editor.on('block:add block:remove', updateBlocks)
-        return () => {
-            editor.off('block:add block:remove', updateBlocks)
-        }
-
-    }, [editor, searchQuery, selectedCategory])
-
-    const handleCategoryClick = (categoryId: string) => {
-        setSelectedCategory(categoryId)
-        setSearchQuery('')
-    }
-
-    const handleBackClick = () => {
-        setSelectedCategory(null)
-        setSearchQuery('')
-    }
-
-    // Show category grid if no category is selected
-    if (!selectedCategory) {
-        return (
-            <div className="w-[240px] border-r bg-background flex flex-col h-full">
-                {/* Header */}
-                <div className="p-4 border-b">
-                    <h2 className="font-semibold text-lg mb-3">Blocks</h2>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search blocks..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
-                        />
-                    </div>
-                </div>
-
-                {/* Category Grid */}
-                <div className="flex-1 overflow-y-auto p-4">
-                    <div className="grid grid-cols-2 gap-3">
-                        {blockCategories.map((category) => {
-                            const Icon = category.icon
-                            return (
-                                <button
-                                    key={category.id}
-                                    onClick={() => handleCategoryClick(category.id)}
-                                    className={cn(
-                                        'flex flex-col items-center justify-center gap-3 p-4 rounded-lg border-2',
-                                        'bg-card hover:bg-accent hover:border-primary transition-all',
-                                        'cursor-pointer group'
-                                    )}
-                                >
-                                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                        <Icon className="w-6 h-6 text-primary" />
-                                    </div>
-                                    <span className="text-sm font-medium text-center">
-                                        {category.label}
-                                    </span>
-                                </button>
-                            )
-                        })}
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    // Show blocks for selected category
-    const currentCategory = blockCategories.find(c => c.id === selectedCategory)
 
     return (
         <div className="w-[240px] border-r bg-background flex flex-col h-full">
-            {/* Header with Back Button */}
+            {/* Header */}
             <div className="p-4 border-b">
-                <div className="flex items-center gap-2 mb-3">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleBackClick}
-                        className="p-2 h-auto"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                    <h2 className="font-semibold text-lg flex items-center gap-2">
-                        {currentCategory && (
-                            <>
-                                <currentCategory.icon className="w-5 h-5 text-primary" />
-                                {currentCategory.label}
-                            </>
-                        )}
-                    </h2>
-                </div>
+                <h2 className="font-semibold text-lg mb-3">Blocks</h2>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -173,11 +121,71 @@ const BlocksPanel = ({ editor }: Props) => {
                 </div>
             </div>
 
-            {/* GrapeJS blocks will be rendered here */}
-            <div
-                ref={blocksContainerRef}
-                className="flex-1 overflow-y-auto p-4 gjs-blocks-container"
-            ></div>
+            {/* Accordion List */}
+            <div className="flex-1 overflow-y-auto">
+                {categories.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+                        <p>No blocks found</p>
+                    </div>
+                ) : (
+                    <Accordion type="multiple" className="w-full">
+                        {categories.map((category) => {
+                            const Icon = category.icon || Box
+                            return (
+                                <AccordionItem key={category.id} value={category.id} className="border-b">
+                                    <AccordionTrigger className="px-4 py-3 hover:bg-muted/50 hover:no-underline">
+                                        <div className="flex items-center gap-2">
+                                            {/* <Icon className="w-4 h-4 text-muted-foreground" />  User screenshots imply clean text headers, maybe minimal icons or none */}
+                                            <span className="font-medium text-sm">{category.label}</span>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div
+                                            ref={(el) => {
+                                                if (el) categoryRefs.current.set(category.id, el)
+                                                else categoryRefs.current.delete(category.id)
+                                            }}
+                                            className="p-2 bg-muted/20 gjs-blocks-container-custom"
+                                        >
+                                            {/* GrapesJS blocks injected here */}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            )
+                        })}
+                    </Accordion>
+                )}
+            </div>
+            <style jsx global>{`
+                /* Improve GrapesJS Block Styling within Custom Accordion */
+                .gjs-blocks-container-custom .gjs-blocks-c {
+                    display: grid !important;
+                    grid-template-columns: repeat(2, 1fr) !important;
+                    gap: 8px !important;
+                }
+                .gjs-blocks-container-custom .gjs-block {
+                    width: 100% !important;
+                    min-height: 50px !important;
+                    margin: 0 !important;
+                    padding: 8px !important;
+                    border: 1px solidhsl(var(--border)) !important;
+                    border-radius: 6px !important;
+                    background-color: hsl(var(--card)) !important;
+                    color: hsl(var(--card-foreground)) !important;
+                    box-shadow: none !important;
+                    transition: all 0.2s ease;
+                }
+                .gjs-blocks-container-custom .gjs-block:hover {
+                    border-color: hsl(var(--primary)) !important;
+                    background-color: hsl(var(--accent)) !important;
+                    color: hsl(var(--accent-foreground)) !important;
+                }
+                .gjs-blocks-container-custom .gjs-block-label {
+                    font-size: 10px !important;
+                    margin-top: 4px !important;
+                    font-weight: 500 !important;
+                }
+            `}</style>
         </div>
     )
 }
