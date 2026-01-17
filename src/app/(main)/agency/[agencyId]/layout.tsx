@@ -128,7 +128,7 @@ const layout = async ({ children, params }: Props) => {
 
   return (
     <SidebarProvider>
-      <div className="h-screen overflow-hidden bg-gradient-to-br from-orange-500 to-rose-600">
+      <div className="min-h-screen bg-gradient-to-br from-orange-500 to-rose-600">
         <InfoBar
           notifications={allNoti}
           role={userRole}

@@ -107,8 +107,43 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
         })
     }
 
-    const pinnedCategories = getCategorizedOptions(pinnedCategoryIds).filter(c => c.id !== 'upgrade')
-    const extraCategories = getCategorizedOptions(extraCategoryIds).filter(c => c.id !== 'upgrade')
+    const categorizedPinned = useMemo(() => getCategorizedOptions(pinnedCategoryIds), [pinnedCategoryIds, sidebarOptions])
+
+    // An icon is "Visible" if it's in the dynamic pinned list AND has options (or is a hardcoded exception)
+    const visiblePinnedCategories = categorizedPinned.filter(cat => {
+        if (cat.id === 'upgrade' || cat.id === 'home') return false
+        return true // Already filtered by hasOptions inside getCategorizedOptions
+    })
+
+    const visiblePinnedIds = [
+        'home',
+        'upgrade',
+        ...visiblePinnedCategories.map(c => c.id)
+    ]
+
+    // Extra categories are anything in ALL_CATEGORIES that is NOT in the dock pool
+    const extraCategories = useMemo(() => {
+        return ALL_MENU_CATEGORIES
+            .filter(cat => !pinnedCategoryIds.includes(cat.id) && cat.id !== 'upgrade')
+            .map(cat => {
+                const matchingOptions = sidebarOptions.filter(opt =>
+                    cat.matchNames.some(matchName => matchName.toLowerCase() === opt.name.toLowerCase())
+                )
+                return {
+                    ...cat,
+                    options: matchingOptions,
+                    hasOptions: matchingOptions.length > 0
+                }
+            })
+            .filter(cat => {
+                if (cat.id === 'inventory' && type === 'agency') return false
+                if (cat.id === 'inventory' && type === 'subaccount') return true
+                return cat.hasOptions
+            })
+    }, [pinnedCategoryIds, sidebarOptions, type])
+
+    const pinnedCategories = visiblePinnedCategories
+    const homeCategory = categorizedPinned.find(c => c.id === 'home')
 
     // Categorize upgrade separately to get its options
     const upgradeCategoryRaw = ALL_MENU_CATEGORIES.find(c => c.id === 'upgrade')!
@@ -160,17 +195,9 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
     const handleDragEnd = (id: string, info: any) => {
         if (targetedId) {
             replaceCategory(id, targetedId)
-        } else if (dockRef.current) {
-            const rect = dockRef.current.getBoundingClientRect()
-            if (
-                info.point.x >= rect.left &&
-                info.point.x <= rect.right &&
-                info.point.y >= rect.top &&
-                info.point.y <= rect.bottom
-            ) {
-                pinCategory(id)
-            }
         }
+        // General drop in dockRef no longer triggers pinCategory 
+        // to prevent phantom ejections without direct user targeting.
         setTargetedId(null)
         setDraggedId(null)
     }
@@ -193,6 +220,53 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
 
             {/* Pinned Category Icons */}
             <div className="flex-1 flex flex-col gap-2 w-full px-2 overflow-y-auto no-scrollbar relative">
+                {/* Fixed Home Icon */}
+                {homeCategory && (
+                    <button
+                        onClick={(e) => handleCategoryClick(homeCategory.id, e)}
+                        onMouseEnter={(e) => {
+                            setActiveCategory(homeCategory.id)
+                            setHoveredMenuItem(homeCategory.id)
+                            setPanelTop(e.currentTarget.getBoundingClientRect().top)
+                        }}
+                        className={cn(
+                            "w-full py-2 flex flex-col items-center justify-center transition-all duration-200 group relative",
+                            isCategoryActive(homeCategory) && "z-50"
+                        )}
+                    >
+                        {isCategoryActive(homeCategory) && (
+                            <motion.div
+                                layoutId="active-pill"
+                                className="absolute left-[-10px] w-1.5 h-6 bg-white rounded-r-full shadow-lg"
+                            />
+                        )}
+                        <div className={cn(
+                            'w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 mb-1',
+                            isCategoryActive(homeCategory) ? 'bg-white shadow-xl' : 'group-hover:bg-white/20',
+                            activeCategory === homeCategory.id && !isCategoryActive(homeCategory) && 'bg-white/10'
+                        )}>
+                            {(() => {
+                                const iconResult = icons.find(i => i.value === homeCategory.icon)
+                                const IconComponent = iconResult?.path || Settings
+                                return (
+                                    <IconComponent
+                                        className={cn(
+                                            'w-4 h-4 transition-transform duration-200 group-hover:scale-110',
+                                            isCategoryActive(homeCategory) ? 'text-orange-600' : 'text-white'
+                                        )}
+                                    />
+                                )
+                            })()}
+                        </div>
+                        <span className={cn(
+                            'text-[7.5px] font-bold uppercase tracking-wider transition-colors duration-200 truncate max-w-full px-0.5',
+                            isCategoryActive(homeCategory) ? 'text-white' : 'text-white/60 group-hover:text-white'
+                        )}>
+                            {homeCategory.label}
+                        </span>
+                    </button>
+                )}
+
                 {pinnedCategories.map((category) => {
                     const iconResult = icons.find(i => i.value === category.icon)
                     const IconComponent = iconResult?.path || Settings
@@ -388,21 +462,6 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                     </div>
                 )}
 
-                {/* Drop Zone Highlight */}
-                <AnimatePresence>
-                    {draggedId && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="absolute inset-0 pointer-events-none border-2 border-dashed border-white/50 m-1 rounded-2xl bg-white/10 flex items-center justify-center"
-                        >
-                            <div className="text-[10px] font-bold text-white uppercase tracking-widest bg-orange-600/20 px-2 py-1 rounded backdrop-blur-sm">
-                                Drop to Pin
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
             </div>
 
             {/* User Avatar */}

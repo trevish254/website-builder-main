@@ -47,7 +47,7 @@ export const useSidebar = () => {
 
 const DEFAULT_PINNED = [
     'home', 'dashboard', 'inventory', 'clients', 'team',
-    'messages', 'funnels', 'tasks', 'websites', 'docs'
+    'messages', 'funnels', 'tasks', 'websites', 'docs', 'automation'
 ]
 
 const ALL_CATEGORIES = [
@@ -70,9 +70,18 @@ export const SidebarProvider = ({
     const [pinnedCategoryIds, setPinnedCategoryIds] = useState<string[]>(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('sidebar_pinned')
-            return saved ? JSON.parse(saved) : DEFAULT_PINNED
+            const initial = saved ? JSON.parse(saved) : DEFAULT_PINNED
+            // Hard dedupe and exclude 'upgrade'
+            let filtered = Array.from(new Set(initial)).filter(id => id !== 'upgrade')
+
+            // Re-balance: Ensure we always have exactly 11 items in the dock pool
+            if (filtered.length < DEFAULT_PINNED.length) {
+                const missing = ALL_CATEGORIES.filter(id => !filtered.includes(id) && id !== 'upgrade')
+                filtered = [...filtered, ...missing].slice(0, DEFAULT_PINNED.length)
+            }
+            return filtered
         }
-        return DEFAULT_PINNED
+        return DEFAULT_PINNED.filter(id => id !== 'upgrade')
     })
 
     const [categoryUsage, setCategoryUsage] = useState<Record<string, number>>(() => {
@@ -83,7 +92,12 @@ export const SidebarProvider = ({
         return {}
     })
 
-    const extraCategoryIds = ALL_CATEGORIES.filter(id => !pinnedCategoryIds.includes(id))
+    // CRITICAL: Mutual exclusion must be based on IDs to prevent "ghosting"
+    // even if an icon currently has no matching sidebar options.
+    const extraCategoryIds = ALL_CATEGORIES.filter(id =>
+        !pinnedCategoryIds.includes(id) &&
+        id !== 'upgrade'
+    )
 
     const recordUsage = (id: string) => {
         setCategoryUsage(prev => {
@@ -94,46 +108,52 @@ export const SidebarProvider = ({
     }
 
     const pinCategory = (id: string) => {
-        if (pinnedCategoryIds.includes(id)) return
+        if (id === 'upgrade' || id === 'home') return
 
         setPinnedCategoryIds(prev => {
-            // Find the least-used category among pinned, excluding 'home' and 'upgrade'
-            const candidates = prev.filter(pId => pId !== 'home' && pId !== 'upgrade')
+            // Already there? no-op.
+            if (prev.includes(id)) return prev
 
+            // Find the least-used candidate to swap out (exclude Home)
+            const candidates = prev.filter(pId => pId !== 'home')
             const leastUsedId = candidates.reduce((minId, currentId) => {
                 const minUsage = categoryUsage[minId] || 0
                 const currentUsage = categoryUsage[currentId] || 0
                 return currentUsage < minUsage ? currentId : minId
             }, candidates[0] || prev[0])
 
+            // Precise replacement to keep the array length exactly constant
             const next = prev.map(pId => pId === leastUsedId ? id : pId)
             localStorage.setItem('sidebar_pinned', JSON.stringify(next))
 
-            // Reset usage for the newly pinned icon to give it a fresh start
-            setCategoryUsage(prevUsage => {
-                const nextUsage = { ...prevUsage, [id]: 0 }
-                localStorage.setItem('sidebar_usage', JSON.stringify(nextUsage))
-                return nextUsage
-            })
-
+            setCategoryUsage(prevUsage => ({ ...prevUsage, [id]: 0 }))
             return next
         })
     }
 
     const replaceCategory = (newId: string, targetId: string) => {
-        if (pinnedCategoryIds.includes(newId)) return
+        if (newId === targetId || targetId === 'home' || targetId === 'upgrade') return
 
         setPinnedCategoryIds(prev => {
-            const next = prev.map(pId => pId === targetId ? newId : pId)
+            const targetIdx = prev.indexOf(targetId)
+            if (targetIdx === -1) return prev
+
+            const next = [...prev]
+
+            // If the icon we're dragging is ALREADY in the dock (edge case),
+            // just swap it with the target to keep the total count exactly constant.
+            const currentIdx = prev.indexOf(newId)
+            if (currentIdx !== -1) {
+                next[currentIdx] = targetId
+                next[targetIdx] = newId
+            } else {
+                // Standard replacement
+                next[targetIdx] = newId
+            }
+
             localStorage.setItem('sidebar_pinned', JSON.stringify(next))
 
-            // Reset usage for the newly pinned icon
-            setCategoryUsage(prevUsage => {
-                const nextUsage = { ...prevUsage, [newId]: 0 }
-                localStorage.setItem('sidebar_usage', JSON.stringify(nextUsage))
-                return nextUsage
-            })
-
+            setCategoryUsage(prevUsage => ({ ...prevUsage, [newId]: 0 }))
             return next
         })
     }

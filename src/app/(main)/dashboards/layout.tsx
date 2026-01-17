@@ -46,7 +46,7 @@ const DashboardsLayout = async ({ children }: Props) => {
 
     return (
         <SidebarProvider>
-            <div className="h-screen overflow-hidden">
+            <div className="min-h-screen">
                 <InfoBar
                     notifications={allNoti}
                     role={user.role}

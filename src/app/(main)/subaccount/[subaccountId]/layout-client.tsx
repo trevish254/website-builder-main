@@ -36,7 +36,7 @@ const SubaccountLayoutClient = ({
 
     return (
         <SidebarProvider>
-            <div className="h-screen overflow-hidden">
+            <div className="min-h-screen">
                 <InfoBar
                     notifications={notifications}
                     role={(userDetails?.role || 'AGENCY_OWNER') as any}
@@ -49,7 +49,7 @@ const SubaccountLayoutClient = ({
                 {sidebar}
 
                 <MainLayoutWrapper>
-                    <div className="relative flex-1 overflow-hidden">{children}</div>
+                    {children}
                 </MainLayoutWrapper>
             </div>
         </SidebarProvider>
