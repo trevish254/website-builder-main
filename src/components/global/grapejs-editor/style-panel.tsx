@@ -1,29 +1,61 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Paintbrush, Layers, Settings } from 'lucide-react'
+import { useEditor } from '@/providers/editor/editor-provider'
+import SettingsTab from '@/app/(main)/subaccount/[subaccountId]/funnels/[funnelId]/editor/[funnelPageId]/_components/funnel-editor-sidebar/tabs/settings-tab'
 
 type Props = {
     editor: any
+    subaccountId: string
 }
 
-const StylePanel = ({ editor }: Props) => {
-    const styleManagerRef = useRef<HTMLDivElement>(null)
+const StylePanel = ({ editor, subaccountId }: Props) => {
+    const { state, dispatch } = useEditor()
     const layerManagerRef = useRef<HTMLDivElement>(null)
+    const selectorManagerRef = useRef<HTMLDivElement>(null)
+    const styleManagerRef = useRef<HTMLDivElement>(null)
     const traitManagerRef = useRef<HTMLDivElement>(null)
     const [managersRendered, setManagersRendered] = useState(false)
     const [activeTab, setActiveTab] = useState('styles')
+    const [styleMode, setStyleMode] = useState<'basic' | 'advanced'>('basic')
 
     useEffect(() => {
-        if (!editor || managersRendered) return
+        if (!editor) return
 
-        // Small delay to ensure DOM is ready
-        const timer = setTimeout(() => {
+        const renderManagers = () => {
+            // Render SelectorManager
+            if (selectorManagerRef.current && selectorManagerRef.current.children.length === 0) {
+                try {
+                    const selectorManager = editor.SelectorManager.render()
+                    selectorManagerRef.current.appendChild(selectorManager)
+                } catch (error) {
+                    console.error('Error rendering SelectorManager:', error)
+                }
+            }
+
             // Render StyleManager
             if (styleManagerRef.current && styleManagerRef.current.children.length === 0) {
                 try {
-                    const styleManager = editor.StyleManager.render()
+                    // Try to get existing container or render new one
+                    const sm = editor.StyleManager;
+                    const styleManager = sm.getContainer ? sm.getContainer() : sm.render();
                     styleManagerRef.current.appendChild(styleManager)
                 } catch (error) {
                     console.error('Error rendering StyleManager:', error)
@@ -49,17 +81,32 @@ const StylePanel = ({ editor }: Props) => {
                     console.error('Error rendering TraitManager:', error)
                 }
             }
+        }
 
-            setManagersRendered(true)
-        }, 100)
+        const timer = setTimeout(renderManagers, 100)
+
+        // Force a refresh when selection changes to ensure SM is alive
+        editor.on('component:selected', renderManagers)
 
         return () => {
             clearTimeout(timer)
+            editor.off('component:selected', renderManagers)
         }
-    }, [editor, managersRendered])
+    }, [editor])
+
+    // Specific effect to handle mode switching refresh
+    useEffect(() => {
+        if (styleMode === 'advanced' && editor) {
+            // Force GrapesJS to update the style manager target to current selection
+            const selected = editor.getSelected();
+            if (selected) {
+                editor.select(selected);
+            }
+        }
+    }, [styleMode, editor])
 
     return (
-        <div className="w-[240px] border-l bg-background flex flex-col h-full">
+        <div className="w-full overflow-x-hidden bg-background flex flex-col h-full" style={{ zoom: 0.8 }}>
             {/* Header */}
             <div className="p-3 border-b">
                 <h2 className="font-semibold text-base">Properties</h2>
@@ -70,27 +117,69 @@ const StylePanel = ({ editor }: Props) => {
                 <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto flex-shrink-0">
                     <TabsTrigger
                         value="styles"
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2 flex-1"
                     >
                         <Paintbrush className="w-4 h-4" />
                         Styles
                     </TabsTrigger>
                     <TabsTrigger
                         value="settings"
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2 flex-1"
                     >
                         <Settings className="w-4 h-4" />
                         Settings
                     </TabsTrigger>
                 </TabsList>
 
-                <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                    {/* All panels are always mounted, but only the active one is visible */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4">
+                    {/* Styles Tab */}
                     <div
-                        ref={styleManagerRef}
-                        className="gjs-style-manager-container p-3"
-                        style={{ display: activeTab === 'styles' ? 'block' : 'none' }}
-                    ></div>
+                        style={{ display: activeTab === 'styles' ? 'flex' : 'none', flexDirection: 'column' }}
+                        className="flex-1"
+                    >
+                        {/* Selector Manager - Keep for class editing */}
+                        <div className="px-4 pb-4 border-b bg-muted/30 flex-shrink-0">
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Selectors</h3>
+                            <div ref={selectorManagerRef} className="gjs-selector-manager-container"></div>
+                        </div>
+
+                        {/* Funnel Builder Settings Tab (The Redesigned Styles) */}
+                        <div className="flex-1 flex flex-col pt-2">
+                            <div className="px-4 mb-2">
+                                <Tabs
+                                    value={styleMode}
+                                    onValueChange={(v) => setStyleMode(v as 'basic' | 'advanced')}
+                                    className="w-full"
+                                >
+                                    <TabsList className="grid w-full grid-cols-2 h-8 p-1 bg-muted/50 rounded-md">
+                                        <TabsTrigger
+                                            value="basic"
+                                            className="text-[0.7rem] px-2 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                                        >
+                                            Basic
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="advanced"
+                                            className="text-[0.7rem] px-2 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                                        >
+                                            Advanced
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto">
+                                <div style={{ display: styleMode === 'basic' ? 'block' : 'none' }}>
+                                    <SettingsTab subaccountId={subaccountId} editor={editor} />
+                                </div>
+                                <div
+                                    style={{ display: styleMode === 'advanced' ? 'block' : 'none' }}
+                                    ref={styleManagerRef}
+                                    className="gjs-style-manager-container"
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div
                         ref={traitManagerRef}

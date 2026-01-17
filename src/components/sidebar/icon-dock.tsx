@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react'
 import { useSidebar } from '@/providers/sidebar-provider'
 import { icons } from '@/lib/constants'
 import {
@@ -8,12 +7,17 @@ import {
     Settings,
     User,
     ChevronsLeft,
-    ChevronsRight
+    ChevronsRight,
+    Plus,
+    LayoutGrid,
+    CheckCircle2
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 import UserButton from '@/components/global/user-button'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useEffect, useMemo, MouseEvent } from 'react'
 
 type SidebarOption = {
     id: string
@@ -29,207 +33,380 @@ type Props = {
     type: 'agency' | 'subaccount'
 }
 
-
-// Define menu categories with their icons and associated menu items
-const MENU_CATEGORIES = [
-    {
-        id: 'home',
-        icon: 'home',
-        label: 'Home',
-        matchNames: ['Overview', 'Launchpad']
-    },
-    {
-        id: 'dashboard',
-        icon: 'chart',
-        label: 'Dashboard',
-        matchNames: ['Dashboards']
-    },
-    {
-        id: 'inventory',
-        icon: 'package',
-        label: 'Inventory',
-        matchNames: ['product Dashboard', 'Inventory', 'Orders', 'Order', 'Customer Details', 'Revenue Analytics']
-    },
-    {
-        id: 'clients',
-        icon: 'person',
-        label: 'Clients',
-        matchNames: ['Sub Accounts']
-    },
-    {
-        id: 'team',
-        icon: 'users',
-        label: 'Teams',
-        matchNames: ['Team', 'Contacts']
-    },
-    {
-        id: 'messages',
-        icon: 'messages',
-        label: 'Messages',
-        matchNames: ['Messages']
-    },
-    {
-        id: 'funnels',
-        icon: 'pipelines',
-        label: 'Funnels',
-        matchNames: ['Funnels']
-    },
-    {
-        id: 'pipelines',
-        icon: 'kanban',
-        label: 'Pipelines',
-        matchNames: ['Pipelines', 'Flowboard', 'Tasks']
-    },
-    {
-        id: 'websites',
-        icon: 'globe',
-        label: 'Websites',
-        matchNames: ['Websites']
-    },
-    {
-        id: 'content',
-        icon: 'document',
-        label: 'Content',
-        matchNames: ['Client Docs', 'Media']
-    },
-    {
-        id: 'automation',
-        icon: 'settings',
-        label: 'Automation',
-        matchNames: ['Automations']
-    },
-    {
-        id: 'finance',
-        icon: 'payment',
-        label: 'Finance',
-        matchNames: ['Finance']
-    },
-    {
-        id: 'upgrade',
-        icon: 'rocket',
-        label: 'Upgrade',
-        matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing']
-    },
-    {
-        id: 'kra',
-        icon: 'government',
-        label: 'KRA',
-        matchNames: ['Government Services']
-    },
-    {
-        id: 'calendar',
-        icon: 'calendar',
-        label: 'Calendar',
-        matchNames: ['Calendar']
-    }
+// Full list of categories for reference
+const ALL_MENU_CATEGORIES = [
+    { id: 'home', icon: 'home', label: 'Home', matchNames: ['Overview', 'Launchpad'] },
+    { id: 'dashboard', icon: 'chart', label: 'Dashboard', matchNames: ['Dashboards'] },
+    { id: 'inventory', icon: 'package', label: 'Inventory', matchNames: ['product Dashboard', 'Inventory', 'Orders', 'Order', 'Customer Details', 'Revenue Analytics'] },
+    { id: 'clients', icon: 'person', label: 'Clients', matchNames: ['Assigned to me', 'Private', 'All Clients', 'Sub Accounts', 'Client Profiles', 'Engagement', 'Client Insights'] },
+    { id: 'team', icon: 'shield', label: 'Teams', matchNames: ['All Members', 'Roles & Permissions', 'Availability', 'Workload', 'Performance', 'Activity Logs', 'Invites', 'Team', 'Contacts'] },
+    { id: 'messages', icon: 'messages', label: 'Messages', matchNames: ['Inbox', 'Conversations', 'Internal', 'Subaccounts', 'Automated', 'Announcements', 'System', 'Messages'] },
+    { id: 'funnels', icon: 'pipelines', label: 'Funnels', matchNames: ['Funnels'] },
+    { id: 'tasks', icon: 'pipelines', label: 'Tasks', matchNames: ['All Tasks', 'Assigned to Me', 'Private', 'Status', 'Priority', 'Subaccounts', 'Activity', 'Tasks'] },
+    { id: 'websites', icon: 'globe', label: 'Websites', matchNames: ['Websites'] },
+    { id: 'docs', icon: 'document', label: 'Docs', matchNames: ['All Docs', 'Shared', 'Assigned', 'Requests', 'Templates', 'Docs'] },
+    { id: 'automation', icon: 'settings', label: 'Automation', matchNames: ['Automations'] },
+    { id: 'finance', icon: 'payment', label: 'Finance', matchNames: ['Finance'] },
+    { id: 'upgrade', icon: 'rocket', label: 'Upgrade', matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing'] },
+    { id: 'kra', icon: 'government', label: 'KRA', matchNames: ['Government Services'] },
+    { id: 'calendar', icon: 'calendar', label: 'Calendar', matchNames: ['Calendar'] }
 ]
 
-
 const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
-    const { setHoveredMenuItem, activeCategory, setActiveCategory, isPanelCollapsed, setIsPanelCollapsed, setPanelTop } = useSidebar()
+    const {
+        setHoveredMenuItem,
+        activeCategory,
+        setActiveCategory,
+        isPanelCollapsed,
+        setIsPanelCollapsed,
+        setPanelTop,
+        pinnedCategoryIds,
+        extraCategoryIds,
+        categoryUsage,
+        recordUsage,
+        pinCategory,
+        replaceCategory
+    } = useSidebar()
+
     const pathname = usePathname()
+    const [isMoreOpen, setIsMoreOpen] = useState(false)
+    const [draggedId, setDraggedId] = useState<string | null>(null)
+    const [targetedId, setTargetedId] = useState<string | null>(null)
+    const dockRef = useRef<HTMLDivElement>(null)
+    const pinnedRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
-    // Group sidebar options by category
-    const categorizedOptions = MENU_CATEGORIES.map(category => {
-        const matchingOptions = sidebarOptions.filter(opt =>
-            category.matchNames.some(matchName => matchName.toLowerCase() === opt.name.toLowerCase())
-        )
-        return {
-            ...category,
-            options: matchingOptions,
-            hasOptions: matchingOptions.length > 0
-        }
-    }).filter(cat => {
-        // AGGRESSIVE FILTER: Hide inventory for agency type
-        if (cat.id === 'inventory' && type === 'agency') {
-            console.log('🚫 IconDock: Filtering out inventory for AGENCY type')
-            return false
-        }
-        if (cat.id === 'inventory') {
-            console.log('📦 IconDock Inventory State:', { hasOptions: cat.hasOptions, count: cat.options.length, items: cat.options.map(o => o.name) })
-            // FAIL-SAFE: If it's a subaccount, force it to be visible even if empty (though it shouldn't be empty)
-            if (type === 'subaccount') return true
-        }
-        return cat.hasOptions
-    })
+    const leastUsedCandidateId = useMemo(() => {
+        const candidates = pinnedCategoryIds.filter(id => id !== 'home' && id !== 'upgrade')
+        if (candidates.length === 0) return null
+        return candidates.reduce((minId, currentId) => {
+            const minUsage = categoryUsage[minId] || 0
+            const currentUsage = categoryUsage[currentId] || 0
+            return currentUsage < minUsage ? currentId : minId
+        }, candidates[0])
+    }, [pinnedCategoryIds, categoryUsage])
 
-    console.log('🏗️ IconDock Final Categories:', categorizedOptions.map(c => c.id))
+    // Helper to get category details by ID
+    const getCategory = (id: string) => ALL_MENU_CATEGORIES.find(c => c.id === id)
 
-    // Determine if a category is active based on current route
-    const isCategoryActive = (category: any) => {
-        return category.options.some((opt: any) => {
-            // Precise match for dashboard/overview to prevent root-overmatch
-            if (opt.link.endsWith('/subaccount/' + (user?.Agency?.SubAccount?.[0]?.id || '')) ||
-                opt.link.endsWith('/agency/' + (user?.Agency?.id || ''))) {
-                return pathname === opt.link
+    // Filter and group options for the dock
+    const getCategorizedOptions = (ids: string[]) => {
+        return ids.map(id => {
+            const category = getCategory(id)!
+            const matchingOptions = sidebarOptions.filter(opt =>
+                category.matchNames.some(matchName => matchName.toLowerCase() === opt.name.toLowerCase())
+            )
+            return {
+                ...category,
+                options: matchingOptions,
+                hasOptions: matchingOptions.length > 0
             }
-            // Otherwise check if current path starts with option link
-            if (opt.link.length > 5) {
-                return pathname.startsWith(opt.link)
-            }
-            return pathname === opt.link
+        }).filter(cat => {
+            if (cat.id === 'inventory' && type === 'agency') return false
+            if (cat.id === 'inventory' && type === 'subaccount') return true
+            return cat.hasOptions
         })
     }
 
-    const handleCategoryHover = (categoryId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    const pinnedCategories = getCategorizedOptions(pinnedCategoryIds).filter(c => c.id !== 'upgrade')
+    const extraCategories = getCategorizedOptions(extraCategoryIds).filter(c => c.id !== 'upgrade')
+
+    // Categorize upgrade separately to get its options
+    const upgradeCategoryRaw = ALL_MENU_CATEGORIES.find(c => c.id === 'upgrade')!
+    const upgradeCategory = {
+        ...upgradeCategoryRaw,
+        options: sidebarOptions.filter(opt =>
+            upgradeCategoryRaw.matchNames.some(matchName => matchName.toLowerCase() === opt.name.toLowerCase())
+        )
+    }
+
+    const isCategoryActive = (category: any) => {
+        if (!category?.options) return false
+        return category.options.some((opt: any) => {
+            const baseUrl = type === 'agency' ? `/agency/${user?.Agency?.id}` : `/subaccount/${user?.Agency?.SubAccount?.[0]?.id}`
+            if (opt.link === baseUrl) return pathname === opt.link
+            return pathname.startsWith(opt.link)
+        })
+    }
+
+    const handleCategoryClick = (categoryId: string, event: MouseEvent) => {
+        recordUsage(categoryId)
         setActiveCategory(categoryId)
         setHoveredMenuItem(categoryId)
         const rect = event.currentTarget.getBoundingClientRect()
         setPanelTop(rect.top)
     }
 
-    const handleMouseLeave = () => {
-        setTimeout(() => {
-            setHoveredMenuItem(null)
-        }, 100)
+    const handleDragStart = (id: string) => setDraggedId(id)
+
+    const handleDrag = (id: string, info: any) => {
+        let foundTarget = null
+        for (const [targetId, element] of Object.entries(pinnedRefs.current)) {
+            if (element) {
+                const rect = element.getBoundingClientRect()
+                if (
+                    info.point.x >= rect.left &&
+                    info.point.x <= rect.right &&
+                    info.point.y >= rect.top &&
+                    info.point.y <= rect.bottom
+                ) {
+                    foundTarget = targetId
+                    break
+                }
+            }
+        }
+        setTargetedId(foundTarget)
+    }
+
+    const handleDragEnd = (id: string, info: any) => {
+        if (targetedId) {
+            replaceCategory(id, targetedId)
+        } else if (dockRef.current) {
+            const rect = dockRef.current.getBoundingClientRect()
+            if (
+                info.point.x >= rect.left &&
+                info.point.x <= rect.right &&
+                info.point.y >= rect.top &&
+                info.point.y <= rect.bottom
+            ) {
+                pinCategory(id)
+            }
+        }
+        setTargetedId(null)
+        setDraggedId(null)
     }
 
     return (
         <div
-            className="fixed left-0 top-16 h-[calc(100vh-64px)] w-[50px] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 z-50 transition-all duration-300"
-            onMouseLeave={handleMouseLeave}
+            ref={dockRef}
+            id="sidebar-icon-dock"
+            className="fixed left-0 top-16 h-[calc(100vh-64px)] w-[60px] bg-gradient-to-b from-orange-500 to-rose-600 flex flex-col items-center py-4 z-50 shadow-2xl transition-all duration-300"
         >
             {/* Sidebar Toggle */}
-            <div className="w-full flex justify-center mb-4">
+            <div className="w-full flex justify-center mb-4 mt-2">
                 <button
                     onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-                    className="h-6 w-6 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+                    className="h-6 w-6 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors hover:bg-white/20"
                 >
                     {isPanelCollapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
                 </button>
             </div>
 
-            {/* Category Icons */}
-            <div className="flex-1 flex flex-col gap-4 w-full px-2 overflow-y-auto example-scrollbar-hide">
-                {categorizedOptions.map((category) => {
-                    const result = icons.find(icon => icon.value === category.icon)
-                    const IconComponent = result?.path || Settings
+            {/* Pinned Category Icons */}
+            <div className="flex-1 flex flex-col gap-2 w-full px-2 overflow-y-auto no-scrollbar relative">
+                {pinnedCategories.map((category) => {
+                    const iconResult = icons.find(i => i.value === category.icon)
+                    const IconComponent = iconResult?.path || Settings
                     const isActive = isCategoryActive(category)
+                    const isTargeted = targetedId === category.id
+                    const isLeastUsedCandidate = leastUsedCandidateId === category.id && draggedId && !targetedId
+                    const shouldWiggle = isTargeted || isLeastUsedCandidate
 
                     return (
-                        <button
+                        <motion.button
                             key={category.id}
-                            onMouseEnter={(e) => handleCategoryHover(category.id, e)}
+                            ref={el => pinnedRefs.current[category.id] = el}
+                            onClick={(e) => handleCategoryClick(category.id, e)}
+                            onMouseEnter={(e) => {
+                                setActiveCategory(category.id)
+                                setHoveredMenuItem(category.id)
+                                setPanelTop(e.currentTarget.getBoundingClientRect().top)
+                            }}
+                            animate={shouldWiggle ? {
+                                rotate: [0, -5, 5, -5, 5, 0],
+                                scale: 1.1,
+                            } : {
+                                rotate: 0,
+                                scale: 1,
+                            }}
+                            transition={shouldWiggle ? {
+                                duration: 0.5,
+                                repeat: Infinity,
+                            } : {}}
                             className={cn(
-                                'w-10 h-10 flex flex-col items-center justify-center rounded-xl transition-all duration-200 mb-2 group relative',
-                                'hover:bg-gray-100 dark:hover:bg-gray-800',
-                                activeCategory === category.id && !isActive && 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-                                isActive && 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                                "w-full py-2 flex flex-col items-center justify-center transition-all duration-200 group relative",
+                                shouldWiggle && "z-50"
                             )}
                         >
-                            <IconComponent
-                                className={cn(
-                                    'w-5 h-5 transition-transform duration-200 group-hover:scale-110',
-                                    isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'
-                                )}
-                            />
-                        </button>
+                            {isActive && (
+                                <motion.div
+                                    layoutId="active-pill"
+                                    className="absolute left-[-10px] w-1.5 h-6 bg-white rounded-r-full shadow-lg"
+                                />
+                            )}
+                            <div className={cn(
+                                'w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 mb-1',
+                                isActive ? 'bg-white shadow-xl' : 'group-hover:bg-white/20',
+                                activeCategory === category.id && !isActive && 'bg-white/10',
+                                shouldWiggle && 'bg-white/30 border-2 border-dashed border-white ring-4 ring-white/20'
+                            )}>
+                                <IconComponent
+                                    className={cn(
+                                        'w-4 h-4 transition-transform duration-200 group-hover:scale-110',
+                                        isActive ? 'text-orange-600' : 'text-white'
+                                    )}
+                                />
+                            </div>
+                            <span className={cn(
+                                'text-[7.5px] font-bold uppercase tracking-wider transition-colors duration-200 truncate max-w-full px-0.5',
+                                isActive ? 'text-white' : 'text-white/60 group-hover:text-white',
+                                shouldWiggle && 'text-white scale-110'
+                            )}>
+                                {isTargeted ? "Drop Here" : isLeastUsedCandidate ? "Replace" : category.label}
+                            </span>
+                        </motion.button>
                     )
                 })}
+
+                {/* More Trigger */}
+                <div className="relative mt-2 flex flex-col items-center">
+                    <button
+                        id="more-trigger"
+                        onClick={() => setIsMoreOpen(!isMoreOpen)}
+                        className={cn(
+                            "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg z-50 relative mb-1",
+                            isMoreOpen ? "bg-white text-orange-600 rotate-45 scale-110" : "bg-white/20 text-white hover:bg-white/30"
+                        )}
+                    >
+                        <Plus size={16} />
+                    </button>
+                    <span className={cn(
+                        'text-[7.5px] font-bold uppercase tracking-wider transition-opacity duration-300',
+                        isMoreOpen ? 'opacity-100 text-white' : 'text-white/60'
+                    )}>
+                        More
+                    </span>
+
+                    {/* Radial Menu */}
+                    <AnimatePresence>
+                        {isMoreOpen && (
+                            <div className="fixed inset-0 pointer-events-none z-[60]">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: draggedId ? 0 : 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 bg-black/20 backdrop-blur-[2px] pointer-events-auto transition-opacity duration-300"
+                                    onClick={() => setIsMoreOpen(false)}
+                                />
+                                {extraCategories.map((category, index) => {
+                                    const triggerRect = typeof document !== 'undefined' ? document.getElementById('more-trigger')?.getBoundingClientRect() : null
+                                    const triggerX = triggerRect?.left || 30
+                                    const triggerY = triggerRect?.top || 500
+
+                                    const angle = (index * 35) - 70 // Tighter arc
+                                    const radius = 100
+                                    const x = Math.cos((angle * Math.PI) / 180) * radius + triggerX + 40
+                                    const y = Math.sin((angle * Math.PI) / 180) * radius + triggerY
+
+                                    const iconResult = icons.find(i => i.value === category.icon)
+                                    const IconComponent = iconResult?.path || Compass
+
+                                    return (
+                                        <motion.div
+                                            key={category.id}
+                                            initial={{ scale: 0, opacity: 0, x: triggerX, y: triggerY }}
+                                            animate={{ scale: 1, opacity: 1, x, y }}
+                                            exit={{ scale: 0, opacity: 0, x: triggerX, y: triggerY }}
+                                            transition={{
+                                                delay: index * 0.03,
+                                                type: 'spring',
+                                                stiffness: 260,
+                                                damping: 20
+                                            }}
+                                            drag
+                                            dragMomentum={false}
+                                            onDragStart={() => handleDragStart(category.id)}
+                                            onDrag={(e, info) => handleDrag(category.id, info)}
+                                            onDragEnd={(e, info) => {
+                                                handleDragEnd(category.id, info)
+                                                setIsMoreOpen(false)
+                                            }}
+                                            className="absolute pointer-events-auto group cursor-grab active:cursor-grabbing"
+                                        >
+                                            <div
+                                                onClick={() => {
+                                                    pinCategory(category.id)
+                                                    setIsMoreOpen(false)
+                                                }}
+                                                className="w-12 h-12 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-center border border-white group-hover:scale-110 transition-transform cursor-pointer"
+                                            >
+                                                <IconComponent className="text-orange-500 w-6 h-6" />
+                                            </div>
+                                            <div className="absolute top-14 left-1/2 -translate-x-1/2 bg-white px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity font-bold shadow-lg text-orange-600">
+                                                {category.label}
+                                            </div>
+                                        </motion.div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Fixed Upgrade Button */}
+                {upgradeCategory && (
+                    <div className="mt-2 flex flex-col items-center w-full">
+                        <button
+                            onClick={(e) => handleCategoryClick('upgrade', e)}
+                            onMouseEnter={(e) => {
+                                setActiveCategory('upgrade')
+                                setHoveredMenuItem('upgrade')
+                                setPanelTop(e.currentTarget.getBoundingClientRect().top)
+                            }}
+                            className="w-full py-2 flex flex-col items-center justify-center transition-all duration-200 group relative"
+                        >
+                            {isCategoryActive(upgradeCategory) && (
+                                <motion.div
+                                    layoutId="active-pill"
+                                    className="absolute left-[-10px] w-1.5 h-6 bg-white rounded-r-full shadow-lg"
+                                />
+                            )}
+                            <div className={cn(
+                                'w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 mb-1',
+                                isCategoryActive(upgradeCategory) ? 'bg-white shadow-xl' : 'bg-white/10 hover:bg-white/20',
+                                activeCategory === 'upgrade' && !isCategoryActive(upgradeCategory) && 'bg-white/20'
+                            )}>
+                                {(() => {
+                                    const iconResult = icons.find(i => i.value === upgradeCategory.icon)
+                                    const IconComponent = iconResult?.path || Settings
+                                    return (
+                                        <IconComponent
+                                            className={cn(
+                                                'w-4 h-4 transition-transform duration-200 group-hover:scale-110',
+                                                isCategoryActive(upgradeCategory) ? 'text-orange-600' : 'text-white'
+                                            )}
+                                        />
+                                    )
+                                })()}
+                            </div>
+                            <span className={cn(
+                                'text-[7.5px] font-bold uppercase tracking-wider transition-colors duration-200',
+                                isCategoryActive(upgradeCategory) ? 'text-white' : 'text-white/60 group-hover:text-white'
+                            )}>
+                                Upgrade
+                            </span>
+                        </button>
+                    </div>
+                )}
+
+                {/* Drop Zone Highlight */}
+                <AnimatePresence>
+                    {draggedId && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="absolute inset-0 pointer-events-none border-2 border-dashed border-white/50 m-1 rounded-2xl bg-white/10 flex items-center justify-center"
+                        >
+                            <div className="text-[10px] font-bold text-white uppercase tracking-widest bg-orange-600/20 px-2 py-1 rounded backdrop-blur-sm">
+                                Drop to Pin
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
-            {/* User Avatar at Bottom (Mini Control) */}
-            <div className="pt-3 border-t border-gray-200 dark:border-gray-800 w-full px-2">
+            {/* User Avatar */}
+            <div className="mt-auto pt-3 border-t border-white/20 w-full px-2">
                 <div className="w-10 h-10 mx-auto">
                     <UserButton user={user} />
                 </div>

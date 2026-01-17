@@ -285,6 +285,15 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
             agencyId: id,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sidebar-${id}-calendar`,
+            name: 'Calendar',
+            link: `/agency/${id}/calendar`,
+            icon: 'calendar',
+            agencyId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           }
         ]
       }
@@ -549,6 +558,15 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           agencyId: id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `sidebar-${id}-calendar`,
+          name: 'Calendar',
+          link: `/agency/${id}/calendar`,
+          icon: 'calendar',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         }
       ]
       console.log('✅ Created fallback sidebar options:', sidebarOpt)
@@ -635,6 +653,19 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           name: 'Add-ons',
           link: `/agency/${id}/billing/add-ons`,
           icon: 'rocket',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+
+      const hasCalendar = sidebarOpt.some((option: any) => option.name === 'Calendar')
+      if (!hasCalendar) {
+        sidebarOpt.push({
+          id: `sidebar-${id}-calendar`,
+          name: 'Calendar',
+          link: `/agency/${id}/calendar`,
+          icon: 'calendar',
           agencyId: id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -835,9 +866,135 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
     })
   }
 
+  // Inject Client Submenu items
+  const clientSubmenus = [
+    { name: 'Assigned to me', link: type === 'agency' ? `/agency/${id}/clients/assigned` : `/subaccount/${id}/clients/assigned`, icon: 'person' },
+    { name: 'Private', link: type === 'agency' ? `/agency/${id}/clients/private` : `/subaccount/${id}/clients/private`, icon: 'shield' },
+    { name: 'All Clients', link: type === 'agency' ? `/agency/${id}/clients/all` : `/subaccount/${id}/clients/all`, icon: 'person' },
+    { name: 'Client Profiles', link: type === 'agency' ? `/agency/${id}/clients/profiles` : `/subaccount/${id}/clients/profiles`, icon: 'person' },
+    { name: 'Engagement', link: type === 'agency' ? `/agency/${id}/clients/engagement` : `/subaccount/${id}/clients/engagement`, icon: 'analytics' },
+    { name: 'Client Insights', link: type === 'agency' ? `/agency/${id}/clients/insights` : `/subaccount/${id}/clients/insights`, icon: 'chart' },
+  ]
+
+  clientSubmenus.forEach(item => {
+    if (sidebarOpt && !sidebarOpt.find((o: any) => o.name === item.name)) {
+      sidebarOpt.push({
+        id: `client-sub-${item.name.toLowerCase().replace(/\s+/g, '-')}-${id}`,
+        name: item.name,
+        icon: item.icon || 'person',
+        link: item.link,
+        agencyId: type === 'agency' ? id : undefined,
+        subAccountId: type === 'subaccount' ? id : undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any)
+    }
+  })
+
+  // Inject Team Submenu items
+  const teamSubmenusList = [
+    { name: 'All Members', link: type === 'agency' ? `/agency/${id}/team/members` : `/subaccount/${id}/team/members`, icon: 'users' },
+    { name: 'Roles & Permissions', link: type === 'agency' ? `/agency/${id}/team/roles` : `/subaccount/${id}/team/roles`, icon: 'shield' },
+    { name: 'Availability', link: type === 'agency' ? `/agency/${id}/team/availability` : `/subaccount/${id}/team/availability`, icon: 'clock' },
+    { name: 'Workload', link: type === 'agency' ? `/agency/${id}/team/workload` : `/subaccount/${id}/team/workload`, icon: 'chart' },
+    { name: 'Performance', link: type === 'agency' ? `/agency/${id}/team/performance` : `/subaccount/${id}/team/performance`, icon: 'trending-up' },
+    { name: 'Activity Logs', link: type === 'agency' ? `/agency/${id}/team/activity` : `/subaccount/${id}/team/activity`, icon: 'list' },
+    { name: 'Invites', link: type === 'agency' ? `/agency/${id}/team/invites` : `/subaccount/${id}/team/invites`, icon: 'mail' },
+  ]
+
+  teamSubmenusList.forEach(item => {
+    if (sidebarOpt && !sidebarOpt.find((o: any) => o.name === item.name)) {
+      sidebarOpt.push({
+        id: `team-sub-${item.name.toLowerCase().replace(/\s+/g, '-')}-${id}`,
+        name: item.name,
+        icon: item.icon || 'shield',
+        link: item.link,
+        agencyId: type === 'agency' ? id : undefined,
+        subAccountId: type === 'subaccount' ? id : undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any)
+    }
+  })
+
+  // Inject Messages Submenu items
+  const messageSubmenusList = [
+    { name: 'Inbox', link: type === 'agency' ? `/agency/${id}/messages/inbox` : `/subaccount/${id}/messages/inbox`, icon: 'mail' },
+    { name: 'Conversations', link: type === 'agency' ? `/agency/${id}/messages/conversations` : `/subaccount/${id}/messages/conversations`, icon: 'messages' },
+    { name: 'Internal', link: type === 'agency' ? `/agency/${id}/messages/internal` : `/subaccount/${id}/messages/internal`, icon: 'shield' },
+    { name: 'Subaccounts', link: type === 'agency' ? `/agency/${id}/messages/subaccounts` : `/subaccount/${id}/messages/subaccounts`, icon: 'users' },
+    { name: 'Automated', link: type === 'agency' ? `/agency/${id}/messages/automated` : `/subaccount/${id}/messages/automated`, icon: 'zap' },
+    { name: 'Announcements', link: type === 'agency' ? `/agency/${id}/messages/announcements` : `/subaccount/${id}/messages/announcements`, icon: 'award' },
+    { name: 'System', link: type === 'agency' ? `/agency/${id}/messages/system` : `/subaccount/${id}/messages/system`, icon: 'settings' },
+  ]
+
+  messageSubmenusList.forEach(item => {
+    if (sidebarOpt && !sidebarOpt.find((o: any) => o.name === item.name)) {
+      sidebarOpt.push({
+        id: `msg-sub-${item.name.toLowerCase().replace(/\s+/g, '-')}-${id}`,
+        name: item.name,
+        icon: item.icon || 'messages',
+        link: item.link,
+        agencyId: type === 'agency' ? id : undefined,
+        subAccountId: type === 'subaccount' ? id : undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any)
+    }
+  })
+
+  // Inject Tasks Submenu items
+  const tasksSubmenusList = [
+    { name: 'All Tasks', link: type === 'agency' ? `/agency/${id}/tasks/all` : `/subaccount/${id}/tasks/all`, icon: 'list' },
+    { name: 'Assigned to Me', link: type === 'agency' ? `/agency/${id}/tasks/assigned` : `/subaccount/${id}/tasks/assigned`, icon: 'person' },
+    { name: 'Private', link: type === 'agency' ? `/agency/${id}/tasks/private` : `/subaccount/${id}/tasks/private`, icon: 'shield' },
+    { name: 'Status', link: type === 'agency' ? `/agency/${id}/tasks/status` : `/subaccount/${id}/tasks/status`, icon: 'settings' },
+    { name: 'Priority', link: type === 'agency' ? `/agency/${id}/tasks/priority` : `/subaccount/${id}/tasks/priority`, icon: 'flag' },
+    { name: 'Subaccounts', link: type === 'agency' ? `/agency/${id}/tasks/subaccounts` : `/subaccount/${id}/tasks/subaccounts`, icon: 'users' },
+    { name: 'Activity', link: type === 'agency' ? `/agency/${id}/tasks/activity` : `/subaccount/${id}/tasks/activity`, icon: 'list' },
+  ]
+
+  tasksSubmenusList.forEach(item => {
+    if (sidebarOpt && !sidebarOpt.find((o: any) => o.name === item.name)) {
+      sidebarOpt.push({
+        id: `task-sub-${item.name.toLowerCase().replace(/\s+/g, '-')}-${id}`,
+        name: item.name,
+        icon: item.icon || 'list',
+        link: item.link,
+        agencyId: type === 'agency' ? id : undefined,
+        subAccountId: type === 'subaccount' ? id : undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any)
+    }
+  })
+
+  // Inject Docs Submenu items
+  const docsSubmenusList = [
+    { name: 'All Docs', link: type === 'agency' ? `/agency/${id}/docs/all` : `/subaccount/${id}/docs/all`, icon: 'file' },
+    { name: 'Shared', link: type === 'agency' ? `/agency/${id}/docs/shared` : `/subaccount/${id}/docs/shared`, icon: 'users' },
+    { name: 'Assigned', link: type === 'agency' ? `/agency/${id}/docs/assigned` : `/subaccount/${id}/docs/assigned`, icon: 'person' },
+    { name: 'Requests', link: type === 'agency' ? `/agency/${id}/docs/requests` : `/subaccount/${id}/docs/requests`, icon: 'clock' },
+    { name: 'Templates', link: type === 'agency' ? `/agency/${id}/docs/templates` : `/subaccount/${id}/docs/templates`, icon: 'file' },
+  ]
+
+  docsSubmenusList.forEach(item => {
+    if (sidebarOpt && !sidebarOpt.find((o: any) => o.name === item.name)) {
+      sidebarOpt.push({
+        id: `docs-sub-${item.name.toLowerCase().replace(/\s+/g, '-')}-${id}`,
+        name: item.name,
+        icon: item.icon || 'file',
+        link: item.link,
+        agencyId: type === 'agency' ? id : undefined,
+        subAccountId: type === 'subaccount' ? id : undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any)
+    }
+  })
+
   return (
     <>
-      {console.log('🎨 Final sidebarOpt count before render:', sidebarOpt.length)}
       <IconDock sidebarOptions={sidebarOpt} logo={sideBarLogo} user={user} type={type} />
       <FixedSubmenuPanel
         sidebarOptions={sidebarOpt}
@@ -849,14 +1006,6 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         dashboards={dashboards}
         type={type}
       />
-      {/* <MobileMenu
-        details={details}
-        id={id}
-        sidebarLogo={sideBarLogo}
-        sidebarOpt={sidebarOpt}
-        subAccounts={subaccounts}
-        user={user}
-      /> */}
     </>
   )
 }

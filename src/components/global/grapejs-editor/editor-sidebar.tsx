@@ -234,7 +234,7 @@ const EditorSidebar = ({
     return (
         <div className={cn(
             "flex h-full border-r bg-background transition-all duration-300 ease-in-out relative flex-shrink-0 z-40",
-            collapsed ? "w-[60px]" : "w-[320px]"
+            collapsed ? "w-[60px]" : "w-[340px]"
         )}>
             {/* Collapse Toggle */}
             <Button

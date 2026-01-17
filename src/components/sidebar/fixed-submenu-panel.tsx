@@ -41,102 +41,45 @@ type Props = {
     dashboards?: any[]
 }
 
-const MENU_CATEGORIES_RAW = [
-    {
-        id: 'home',
-        label: 'Home',
-        matchNames: ['Overview', 'Launchpad']
-    },
-    {
-        id: 'dashboard',
-        label: 'Dashboard',
-        matchNames: ['Dashboards']
-    },
-    {
-        id: 'inventory',
-        label: 'Inventory Management',
-        matchNames: ['product Dashboard', 'Inventory', 'Orders', 'Order', 'Customer Details', 'Revenue Analytics']
-    },
-    {
-        id: 'clients',
-        label: 'Clients',
-        matchNames: ['Sub Accounts']
-    },
-    {
-        id: 'team',
-        label: 'Teams',
-        matchNames: ['Team', 'Contacts']
-    },
-    {
-        id: 'messages',
-        label: 'Messages',
-        matchNames: ['Messages']
-    },
-    {
-        id: 'funnels',
-        label: 'Funnels',
-        matchNames: ['Funnels']
-    },
-    {
-        id: 'pipelines',
-        label: 'Pipelines',
-        matchNames: ['Pipelines', 'Flowboard', 'Tasks']
-    },
-    {
-        id: 'websites',
-        label: 'Websites',
-        matchNames: ['Websites']
-    },
-    {
-        id: 'content',
-        label: 'Content',
-        matchNames: ['Client Docs', 'Media']
-    },
-    {
-        id: 'automation',
-        label: 'Automation',
-        matchNames: ['Automations']
-    },
-    {
-        id: 'finance',
-        label: 'Finance',
-        matchNames: ['Finance']
-    },
-    {
-        id: 'upgrade',
-        label: 'Upgrade',
-        matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing']
-    },
-    {
-        id: 'kra',
-        label: 'KRA',
-        matchNames: ['Government Services']
-    },
-    {
-        id: 'calendar',
-        label: 'Calendar',
-        matchNames: ['Calendar']
-    },
-    {
-        id: 'settings',
-        label: 'Settings',
-        matchNames: ['Settings']
-    }
+const ALL_MENU_CATEGORIES = [
+    { id: 'home', label: 'Home', matchNames: ['Overview', 'Launchpad'] },
+    { id: 'dashboard', label: 'Dashboard', matchNames: ['Dashboards'] },
+    { id: 'inventory', label: 'Inventory', matchNames: ['product Dashboard', 'Inventory', 'Orders', 'Order', 'Customer Details', 'Revenue Analytics'] },
+    { id: 'clients', label: 'Clients', matchNames: ['Assigned to me', 'Private', 'All Clients', 'Sub Accounts', 'Client Profiles', 'Engagement', 'Client Insights'] },
+    { id: 'team', label: 'Teams', matchNames: ['All Members', 'Roles & Permissions', 'Availability', 'Workload', 'Performance', 'Activity Logs', 'Invites', 'Team', 'Contacts'] },
+    { id: 'messages', label: 'Messages', matchNames: ['Inbox', 'Conversations', 'Internal', 'Subaccounts', 'Automated', 'Announcements', 'System', 'Messages'] },
+    { id: 'funnels', label: 'Funnels', matchNames: ['Funnels'] },
+    { id: 'tasks', label: 'Tasks', matchNames: ['All Tasks', 'Assigned to Me', 'Private', 'Status', 'Priority', 'Subaccounts', 'Activity', 'Tasks'] },
+    { id: 'websites', label: 'Websites', matchNames: ['Websites'] },
+    { id: 'docs', label: 'Docs', matchNames: ['All Docs', 'Shared', 'Assigned', 'Requests', 'Templates', 'Docs'] },
+    { id: 'automation', label: 'Automation', matchNames: ['Automations'] },
+    { id: 'finance', label: 'Finance', matchNames: ['Finance'] },
+    { id: 'upgrade', label: 'Upgrade', matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing'] },
+    { id: 'kra', label: 'KRA', matchNames: ['Government Services'] },
+    { id: 'calendar', label: 'Calendar', matchNames: ['Calendar'] }
 ]
 
-const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyId, type, teamMembers = [], dashboards = [] }: Props) => {
+const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyId, type, teamMembers, dashboards }: Props) => {
     const currentAgencyId = agencyId || (details as any)?.agencyId
-    const { hoveredMenuItem, activeCategory, setHoveredMenuItem, isPanelCollapsed, setIsPanelCollapsed, panelTop } = useSidebar()
-    const pathname = usePathname()
+    const { activeCategory, setActiveCategory, hoveredMenuItem, setHoveredMenuItem, isPanelCollapsed, setIsPanelCollapsed, panelTop } = useSidebar()
     const [searchQuery, setSearchQuery] = useState('')
     const panelRef = useRef<HTMLDivElement>(null)
+    const pathname = usePathname()
     const [adjustedTop, setAdjustedTop] = useState<number | null>(null)
 
-    const MENU_CATEGORIES = MENU_CATEGORIES_RAW.filter(cat => {
-        if (cat.id === 'inventory' && type === 'agency') {
-            return false
+    const categorizedOptions = ALL_MENU_CATEGORIES.map(category => {
+        const matchingOptions = sidebarOptions.filter(opt =>
+            category.matchNames.some(matchName => matchName.toLowerCase() === opt.name.toLowerCase())
+        )
+        return {
+            ...category,
+            options: matchingOptions,
+            hasOptions: matchingOptions.length > 0
         }
-        return true
+    }).filter(cat => {
+        if (cat.id === 'inventory' && type === 'agency') return false
+        if (cat.id === 'inventory' && type === 'subaccount') return true
+        return cat.hasOptions
     })
 
     useLayoutEffect(() => {
@@ -165,7 +108,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
 
     const getCurrentCategoryOptions = () => {
         if (!displayCategory) return []
-        const category = MENU_CATEGORIES.find(c => c.id === displayCategory)
+        const category = ALL_MENU_CATEGORIES.find(c => c.id === displayCategory)
         if (category) {
             return sidebarOptions.filter((opt: SidebarOption) =>
                 category.matchNames.some(n => n.toLowerCase() === opt.name.toLowerCase())
@@ -182,7 +125,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
     const getCategoryLabel = () => {
         if (!displayCategory) return 'Menu'
         if (displayCategory === 'home') return 'Quick Access'
-        const cat = MENU_CATEGORIES.find(c => c.id === displayCategory)
+        const cat = ALL_MENU_CATEGORIES.find(c => c.id === displayCategory)
         return cat ? cat.label : displayCategory.charAt(0).toUpperCase() + displayCategory.slice(1)
     }
 
@@ -192,19 +135,26 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
             onMouseEnter={() => {
                 if (isPanelCollapsed && hoveredMenuItem) {
                     setHoveredMenuItem(hoveredMenuItem)
-                    setTimeout(() => setHoveredMenuItem(hoveredMenuItem), 120)
+                    // No timeout needed here as we rely on the state being persisted
                 }
             }}
-            onMouseLeave={() => {
+            onMouseLeave={(e) => {
+                // Prevent closing if moving back to the icon dock
+                const related = e.relatedTarget;
+                if (related instanceof Element && related.closest('#sidebar-icon-dock')) {
+                    return;
+                }
+
                 if (isPanelCollapsed) {
                     setHoveredMenuItem(null)
                 }
             }}
             style={adjustedTop !== null ? { top: `${adjustedTop}px`, bottom: 'auto' } : {}}
+            id="sidebar-fixed-panel"
             className={cn(
-                "fixed z-20 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
-                (hoveredMenuItem ? "w-[240px] left-[50px] opacity-100 pointer-events-auto border-l border-l-gray-200 dark:border-l-gray-800 h-auto max-h-[calc(100vh-80px)] rounded-[4px] border-b border-b-gray-200 dark:border-b-gray-800" : "w-0 opacity-0 pointer-events-none bottom-0"),
-                !isPanelCollapsed && "md:w-[240px] md:left-[50px] md:bottom-0 md:top-16 md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto md:max-h-[calc(100vh-64px)]"
+                "fixed z-20 bg-orange-500/20 dark:bg-rose-950/20 backdrop-blur-xl border-r border-white/10 shadow-xl transition-all duration-300 ease-out flex flex-col",
+                (hoveredMenuItem ? "w-[240px] left-[60px] opacity-100 pointer-events-auto h-auto max-h-[calc(100vh-80px)] rounded-[4px] border border-white/10" : "w-0 opacity-0 pointer-events-none bottom-0"),
+                !isPanelCollapsed && "md:w-[240px] md:left-[60px] md:bottom-0 md:top-16 md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto md:max-h-[calc(100vh-64px)]"
             )}
         >
             <div className="p-4 border-b border-gray-200 dark:border-gray-800">
@@ -220,22 +170,22 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                     </button>
                 </div>
                 <div className="relative group">
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
                     <Input
                         placeholder="Search..."
-                        className="pl-8 h-8 text-xs bg-gray-50/50 dark:bg-zinc-900/50 border-gray-200 dark:border-gray-800 focus:ring-1 focus:ring-blue-500/20"
+                        className="pl-8 h-8 text-xs bg-gray-50/50 dark:bg-zinc-900/50 border-gray-200 dark:border-gray-800 focus:ring-1 focus:ring-orange-500/20"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2" data-lenis-prevent>
                 {displayCategory === 'dashboard' ? (
                     <div className="space-y-3">
                         <Link href={`/dashboards?openAdd=true`} className="block">
                             <Button
-                                className="w-full justify-start gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                                className="w-full justify-start gap-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white"
                                 size="sm"
                             >
                                 <PlusCircleIcon className="w-4 h-4" />
@@ -307,7 +257,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                         {type === 'agency' && (
                             <Link href={`/agency/${currentAgencyId}/team?openAdd=true`} className="block">
                                 <Button
-                                    className="w-full justify-start gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                                    className="w-full justify-start gap-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white"
                                     size="sm"
                                 >
                                     <UserPlus className="w-4 h-4" />
@@ -323,27 +273,86 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 const isActive = pathname.includes(option.link)
 
                                 return (
-                                    <Link
-                                        key={option.id}
-                                        href={option.link}
-                                        className={cn(
-                                            'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                        )}
-                                    >
-                                        <IconComponent
+                                    <div key={option.id} className="flex flex-col">
+                                        <Link
+                                            href={option.link}
                                             className={cn(
-                                                'w-4 h-4',
-                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                                'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                                isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
                                             )}
-                                        />
-                                        <span className={cn(
-                                            'text-sm',
-                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
-                                        )}>
-                                            {option.name}
-                                        </span>
-                                    </Link>
+                                        >
+                                            <IconComponent
+                                                className={cn(
+                                                    'w-4 h-4',
+                                                    isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                                )}
+                                            />
+                                            <span className={cn(
+                                                'text-sm',
+                                                isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            )}>
+                                                {option.name}
+                                            </span>
+                                        </Link>
+
+                                        {option.name === 'All Members' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                {/* Active Members */}
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Active</p>
+                                                    <div className="space-y-0.5">
+                                                        <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Online</span>
+                                                            </div>
+                                                            <span className="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Offline</span>
+                                                            </div>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Inactive Members */}
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Inactive</p>
+                                                    <div className="space-y-0.5">
+                                                        {['Suspended', 'Archived'].map((status) => (
+                                                            <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                                <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Availability' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {[
+                                                        { label: 'Available', color: 'bg-emerald-500' },
+                                                        { label: 'Busy', color: 'bg-rose-500' },
+                                                        { label: 'Away', color: 'bg-amber-500' }
+                                                    ].map((status) => (
+                                                        <div key={status.label} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className={cn("w-1.5 h-1.5 rounded-full", status.color)} />
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status.label}</span>
+                                                            </div>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 )
                             })}
                         </div>
@@ -358,7 +367,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         key={member.id}
                                         className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
                                     >
-                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
+                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white text-xs font-semibold">
                                             {member.name?.charAt(0).toUpperCase() || 'U'}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -375,7 +384,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                         {type === 'agency' && (
                             <Link href={`/agency/${currentAgencyId}/all-subaccounts?openAdd=true`} className="block">
                                 <Button
-                                    className="w-full justify-start gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
+                                    className="w-full justify-start gap-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white"
                                     size="sm"
                                 >
                                     <PlusCircleIcon className="w-4 h-4" />
@@ -391,27 +400,60 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 const isActive = pathname.includes(option.link)
 
                                 return (
-                                    <Link
-                                        key={option.id}
-                                        href={option.link}
-                                        className={cn(
-                                            'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                        )}
-                                    >
-                                        <IconComponent
+                                    <div key={option.id} className="flex flex-col">
+                                        <Link
+                                            href={option.link}
                                             className={cn(
-                                                'w-4 h-4',
-                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                                'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                                isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
                                             )}
-                                        />
-                                        <span className={cn(
-                                            'text-sm',
-                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
-                                        )}>
-                                            {option.name}
-                                        </span>
-                                    </Link>
+                                        >
+                                            <IconComponent
+                                                className={cn(
+                                                    'w-4 h-4',
+                                                    isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                                )}
+                                            />
+                                            <span className={cn(
+                                                'text-sm',
+                                                isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            )}>
+                                                {option.name}
+                                            </span>
+                                        </Link>
+
+                                        {option.name === 'All Clients' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                {/* Active Category */}
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Active</p>
+                                                    <div className="space-y-0.5">
+                                                        <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Today</span>
+                                                            <span className="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Week</span>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Inactive Category */}
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Inactive</p>
+                                                    <div className="space-y-0.5">
+                                                        {['Paused', 'Suspended', 'Churned'].map((status) => (
+                                                            <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                                <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 )
                             })}
                         </div>
@@ -471,18 +513,18 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         href={item.link}
                                         className={cn(
                                             'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                            isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
                                         )}
                                     >
                                         <item.icon
                                             className={cn(
                                                 'w-4 h-4',
-                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                                isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
                                             )}
                                         />
                                         <span className={cn(
                                             'text-sm',
-                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
                                         )}>
                                             {item.name}
                                         </span>
@@ -510,18 +552,18 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         href={option.link}
                                         className={cn(
                                             'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                            isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
                                         )}
                                     >
                                         <IconComponent
                                             className={cn(
                                                 'w-4 h-4',
-                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                                isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
                                             )}
                                         />
                                         <span className={cn(
                                             'text-sm',
-                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
                                         )}>
                                             {option.name}
                                         </span>
@@ -547,18 +589,18 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         href={option.link}
                                         className={cn(
                                             'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                            isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
                                         )}
                                     >
                                         <IconComponent
                                             className={cn(
                                                 'w-4 h-4',
-                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                                isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
                                             )}
                                         />
                                         <span className={cn(
                                             'text-sm',
-                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
                                         )}>
                                             {option.name}
                                         </span>
@@ -576,27 +618,204 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                 const isActive = pathname.includes(option.link)
 
                                 return (
-                                    <Link
-                                        key={option.id}
-                                        href={option.link}
-                                        className={cn(
-                                            'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                            isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                        )}
-                                    >
-                                        <IconComponent
+                                    <div key={option.id} className="flex flex-col">
+                                        <Link
+                                            href={option.link}
                                             className={cn(
-                                                'w-4 h-4',
-                                                isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                                'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                                isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
                                             )}
-                                        />
-                                        <span className={cn(
-                                            'text-sm',
-                                            isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
-                                        )}>
-                                            {option.name}
-                                        </span>
-                                    </Link>
+                                        >
+                                            <IconComponent
+                                                className={cn(
+                                                    'w-4 h-4',
+                                                    isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                                )}
+                                            />
+                                            <span className={cn(
+                                                'text-sm',
+                                                isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            )}>
+                                                {option.name}
+                                            </span>
+                                        </Link>
+
+                                        {option.name === 'Inbox' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {['All', 'Unread', 'Starred'].map((status) => (
+                                                        <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className={cn(
+                                                                "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
+                                                                status === 'Unread' ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
+                                                            )}>0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Conversations' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {['Direct', 'Groups'].map((status) => (
+                                                        <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Subaccounts' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {[
+                                                        { label: 'Active', color: 'bg-emerald-500' },
+                                                        { label: 'At Risk', color: 'bg-rose-500' }
+                                                    ].map((status) => (
+                                                        <div key={status.label} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className={cn("w-1.5 h-1.5 rounded-full", status.color)} />
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status.label}</span>
+                                                            </div>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Automated' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {['Workflows', 'Reminders'].map((status) => (
+                                                        <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'All Tasks' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                {/* Active Category */}
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Active</p>
+                                                    <div className="space-y-0.5">
+                                                        <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Today</span>
+                                                            <span className="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">This Week</span>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Inactive Category */}
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Completed</p>
+                                                    <div className="space-y-0.5">
+                                                        <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Done</span>
+                                                            </div>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Assigned to Me' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {[
+                                                        { label: 'Today', badge: true },
+                                                        { label: 'Upcoming' },
+                                                        { label: 'Overdue', color: 'text-rose-500' }
+                                                    ].map((status) => (
+                                                        <div key={status.label} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className={cn("text-xs group-hover/metric:text-orange-500", status.color || "text-gray-600 dark:text-gray-400")}>{status.label}</span>
+                                                            <span className={cn(
+                                                                "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
+                                                                status.badge ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
+                                                            )}>0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Private' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {['My Private Tasks', 'Drafts'].map((status) => (
+                                                        <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Shared' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {['Shared with Subaccounts', 'Internal Only'].map((status) => (
+                                                        <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Assigned' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {['Assigned to Me', 'Assigned by Me'].map((status) => (
+                                                        <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className={cn(
+                                                                "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
+                                                                status === 'Assigned to Me' ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
+                                                            )}>0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Requests' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {[
+                                                        { label: 'Pending', badge: true },
+                                                        { label: 'Received' },
+                                                        { label: 'Overdue', color: 'text-rose-500' }
+                                                    ].map((status) => (
+                                                        <div key={status.label} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                            <span className={cn("text-xs group-hover/metric:text-orange-500", status.color || "text-gray-600 dark:text-gray-400")}>{status.label}</span>
+                                                            <span className={cn(
+                                                                "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
+                                                                status.badge ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
+                                                            )}>0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 )
                             })
                         ) : (

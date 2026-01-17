@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import "@uploadthing/react/styles.css"
+import { SmoothScrollProvider } from "@/providers/smooth-scroll-provider"
 
 
 const font = Inter({ subsets: ['latin'] })
@@ -25,7 +26,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className={`${font.className} overflow-x-hidden`}>
-        {children}
+        <SmoothScrollProvider>
+          {children}
+        </SmoothScrollProvider>
       </body>
     </html>
   )

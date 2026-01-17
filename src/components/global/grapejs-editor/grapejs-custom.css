@@ -14,100 +14,477 @@
     background-color: hsl(var(--muted)) !important;
 }
 
-/* ===== STYLE MANAGER ===== */
+/* ===== STYLE MANAGER REDESIGN (FUNNEL BUILDER CLONE) ===== */
+.gjs-style-manager-container {
+    background-color: #030712 !important;
+    color: #f9fafb !important;
+    font-family: inherit !important;
+}
+
+/* Hide the ugly "Selected" header */
+.gjs-sm-header {
+    display: none !important;
+}
+
 .gjs-style-manager-container .gjs-sm-sector {
-    margin-bottom: 12px;
-    border-bottom: 1px solid hsl(var(--border));
-    padding-bottom: 8px;
+    border-bottom: 1px solid #111827 !important;
+    background: transparent;
 }
 
 .gjs-style-manager-container .gjs-sm-sector-title {
-    font-weight: 600;
-    font-size: 0.8125rem;
-    padding: 8px 0;
-    color: hsl(var(--foreground)) !important;
+    font-weight: 500 !important;
+    font-size: 0.8rem !important;
+    padding: 10px 12px !important;
+    color: #f9fafb !important;
     background: transparent !important;
     border: none !important;
-    cursor: pointer;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.gjs-style-manager-container .gjs-sm-sector-title:hover {
+    background: #111827 !important;
 }
 
 .gjs-style-manager-container .gjs-sm-properties {
-    padding: 6px 0;
+    padding: 8px 8px 12px 8px !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
 }
 
 .gjs-style-manager-container .gjs-sm-property {
     margin-bottom: 10px;
+    padding: 0;
+    float: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .gjs-style-manager-container .gjs-sm-label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: hsl(var(--foreground)) !important;
-    margin-bottom: 4px;
-    display: block;
+    font-size: 0.7rem !important;
+    font-weight: 500 !important;
+    color: #9ca3af !important;
+    margin-bottom: 4px !important;
+    display: block !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
-.gjs-style-manager-container input[type="text"],
-.gjs-style-manager-container input[type="number"],
+/* Inputs & Selects */
+.gjs-style-manager-container .gjs-field {
+    background-color: #0f172a !important;
+    /* Slightly lighter than container bg */
+    border: 1px solid #334155 !important;
+    border-radius: 6px !important;
+    padding: 0 !important;
+    height: 34px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.gjs-style-manager-container input,
 .gjs-style-manager-container select {
-    width: 100%;
-    padding: 6px 10px;
-    border: 1px solid hsl(var(--border)) !important;
-    border-radius: 4px;
-    background: hsl(var(--background)) !important;
-    color: hsl(var(--foreground)) !important;
-    font-size: 0.8125rem;
-}
-
-.gjs-style-manager-container input:focus,
-.gjs-style-manager-container select:focus {
+    background: transparent !important;
+    color: #f9fafb !important;
+    padding: 2px 4px !important;
+    font-size: 0.8rem !important;
+    border: none !important;
     outline: none !important;
-    border-color: hsl(var(--primary)) !important;
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2) !important;
+    flex: 1.8 !important;
+    /* Give value more space (approx 65%) */
+    min-width: 0 !important;
+    height: 100% !important;
+    cursor: ew-resize !important;
+    text-align: center !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
 }
 
-.gjs-style-manager-container .gjs-field-color {
-    border: 1px solid hsl(var(--border)) !important;
-    background: hsl(var(--background)) !important;
+/* Ensure values are visible and centered */
+.gjs-style-manager-container .gjs-field input {
+    padding: 0 4px !important;
+    text-align: center !important;
 }
 
+.gjs-style-manager-container .gjs-field:hover {
+    border-color: #475569 !important;
+}
+
+.gjs-style-manager-container .gjs-field:focus-within {
+    border-color: #3b82f6 !important;
+    background-color: #1e293b !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Units dropdown next to numbers - Balanced but compact */
 .gjs-style-manager-container .gjs-field-units {
-    background: hsl(var(--muted)) !important;
-    border: 1px solid hsl(var(--border)) !important;
-    color: hsl(var(--foreground)) !important;
+    border-left: 1px solid #334155 !important;
+    padding: 0 !important;
+    color: #64748b !important;
+    font-size: 0.65rem !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    background-color: #0f172a !important;
+    /* Solid color to mask overflow */
+    min-width: 32px !important;
+    /* Guarantee unit visibility */
+    flex: 1 !important;
+    /* Unit takes remaining space */
+    overflow: hidden !important;
+    position: relative !important;
+    z-index: 2 !important;
+    /* Stay above the input text */
+}
+
+.gjs-style-manager-container .gjs-field-units::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to right, transparent, #0f172a);
+    pointer-events: none;
 }
 
 .gjs-style-manager-container .gjs-field-units select {
+    padding: 0 !important;
+    cursor: pointer !important;
+    font-size: 0.65rem !important;
+    width: 100% !important;
+    appearance: none !important;
+    text-align: center !important;
     background: transparent !important;
-    color: hsl(var(--foreground)) !important;
     border: none !important;
+    height: 100% !important;
 }
 
-/* Radio buttons */
+/* 2x2 Grid for Margins/Paddings/Coordinates */
+.gjs-style-manager-container .gjs-sm-property-composite {
+    margin-bottom: 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.gjs-style-manager-container .gjs-sm-property-composite>.gjs-sm-label {
+    font-size: 0.8rem !important;
+    color: #f9fafb !important;
+    margin-bottom: 12px !important;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #1f2937;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* SYSTEMATIC 2x2 GRID FOR COMPOSITE PROPERTIES (MARGIN, PADDING, COORDINATES) */
+/* Targeted Float-based approach for maximum reliability in GrapesJS */
+
+/* 1. Make the container of the properties a grid/flex container */
+.gjs-sm-property.gjs-sm-composite .gjs-sm-properties,
+.gjs-sm-property-composite .gjs-sm-properties,
+.gjs-sm-property[data-property="margin"] .gjs-sm-properties,
+.gjs-sm-property[data-property="padding"] .gjs-sm-properties,
+.gjs-sm-property[data-property="coordinates"] .gjs-sm-properties,
+.gjs-sm-property[data-property="border-radius-corners"] .gjs-sm-properties,
+.gjs-sm-property[data-property="background"] .gjs-sm-properties {
+    display: block !important;
+    position: relative !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    clear: both !important;
+}
+
+/* 2. Make each sub-property 50% width and float them */
+.gjs-sm-property.gjs-sm-composite .gjs-sm-property,
+.gjs-sm-property-composite .gjs-sm-property,
+.gjs-sm-property[data-property="margin"] .gjs-sm-property,
+.gjs-sm-property[data-property="padding"] .gjs-sm-property,
+.gjs-sm-property[data-property="coordinates"] .gjs-sm-property,
+.gjs-sm-property[data-property="border-radius-corners"] .gjs-sm-property {
+    width: 50% !important;
+    float: left !important;
+    box-sizing: border-box !important;
+    padding: 5px !important;
+    display: block !important;
+}
+
+/* Background Layers Custom Component Wrapper */
+.background-layers-wrapper {
+    width: 100% !important;
+    padding: 0 !important;
+    min-height: 40px !important;
+    display: block !important;
+}
+
+/* Hide default label for background custom layers to use our component's internal header */
+/* Hide default label for background custom layers to use our component's internal header */
+.gjs-sm-property[data-property="advanced-smart-bg"]>.gjs-sm-label {
+    display: none !important;
+}
+
+/* Ensure the field container takes full width and has no default border/styling */
+.gjs-sm-property[data-property="advanced-smart-bg"] .gjs-sm-field {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.gjs-sm-property[data-property="advanced-smart-bg"] {
+    border-bottom: 1px solid #333 !important;
+    padding: 10px 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    flex-basis: 100% !important;
+}
+
+.smart-bg-wrapper {
+    width: 100% !important;
+    display: block !important;
+    min-height: 20px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.background-layers-wrapper .react-colorful {
+    border-radius: 6px !important;
+}
+
+/* 3. Handle the labels within these 50% boxes */
+.gjs-sm-property.gjs-sm-composite .gjs-sm-label,
+.gjs-sm-property-composite .gjs-sm-label {
+    font-size: 0.65rem !important;
+    text-transform: capitalize !important;
+    color: #94a3b8 !important;
+    cursor: ew-resize !important;
+    /* Scrub cue */
+}
+
+/* 4. Clear the floats after the property list */
+.gjs-sm-property.gjs-sm-composite .gjs-sm-properties::after,
+.gjs-sm-property-composite .gjs-sm-properties::after {
+    content: "" !important;
+    display: table !important;
+    clear: both !important;
+}
+
+/* Prevent double borders when field contains radio items */
+.gjs-style-manager-container .gjs-field:has(.gjs-radio-items) {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Fallback for browsers that don't support :has */
+.gjs-style-manager-container .gjs-sm-property-radio .gjs-field {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Specific input inside range/slider fields */
+.gjs-style-manager-container .gjs-field-range input[type="number"],
+.gjs-style-manager-container .gjs-field-range .gjs-field,
+.gjs-style-manager-container .gjs-sm-property-slider .gjs-field,
+.gjs-style-manager-container .gjs-sm-property-range .gjs-field {
+    width: 65px !important;
+    /* Increased to show numbers! */
+    min-width: 65px !important;
+    flex: 0 0 65px !important;
+    border-radius: 4px !important;
+    background-color: #0f172a !important;
+    border: 1px solid #334155 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.gjs-style-manager-container .gjs-field-range input[type="number"] {
+    text-align: center !important;
+    padding: 2px !important;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 !important;
+}
+
+/* Ensure the range slider is visible and perfectly centered */
+.gjs-style-manager-container .gjs-field-range input[type="range"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 50px !important;
+    flex: 1 !important;
+    height: 20px !important;
+    /* Give it enough height for the handle to center */
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Chrome/Safari centering fix */
+.gjs-style-manager-container input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px !important;
+}
+
+.gjs-style-manager-container input[type="range"]::-webkit-slider-thumb {
+    margin-top: -5px !important;
+    /* Center 14px thumb on 4px track: (4-14)/2 = -5 */
+}
+
+/* Firefox centering fix */
+.gjs-style-manager-container input[type="range"]::-moz-range-track {
+    height: 4px !important;
+}
+
+/* Segmented Controls (Justify/Align/Direction/Float/Position) */
+.gjs-style-manager-container .gjs-radio-items {
+    display: flex !important;
+    width: 100% !important;
+    border: 1px solid #334155 !important;
+    /* Matches other field borders */
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    background-color: #0f172a !important;
+    height: 34px !important;
+    /* Matches other field heights */
+    box-sizing: border-box !important;
+}
+
 .gjs-style-manager-container .gjs-radio-item {
-    background: hsl(var(--muted)) !important;
-    border: 1px solid hsl(var(--border)) !important;
-    color: hsl(var(--muted-foreground)) !important;
-    padding: 4px 10px;
-    margin: 2px;
-    border-radius: 4px;
-    font-size: 0.75rem;
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-right: 1px solid #334155 !important;
+    background: transparent !important;
+    cursor: pointer !important;
+    padding: 0 4px !important;
+    transition: all 0.2s;
+    font-size: 0.75rem !important;
+    color: #94a3b8 !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
 }
 
-.gjs-style-manager-container .gjs-radio-item.gjs-radio-item-active,
-.gjs-style-manager-container .gjs-radio-item:hover {
-    background: hsl(var(--primary)) !important;
-    color: hsl(var(--primary-foreground)) !important;
-    border-color: hsl(var(--primary)) !important;
+.gjs-style-manager-container .gjs-radio-item:last-child {
+    border-right: none !important;
 }
 
-/* Slider */
+.gjs-style-manager-container .gjs-radio-item.gjs-radio-item-active {
+    background-color: #1e293b !important;
+    color: #f9fafb !important;
+    font-weight: 500 !important;
+}
+
+.gjs-style-manager-container .gjs-radio-item:hover:not(.gjs-radio-item-active) {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Sliders (Opacity, Radius, etc.) */
 .gjs-style-manager-container .gjs-field-range {
-    background: hsl(var(--muted)) !important;
+    background: transparent !important;
+    padding: 0 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px;
+    height: 34px !important;
+    /* Standard height */
 }
 
 .gjs-style-manager-container input[type="range"] {
-    background: hsl(var(--muted)) !important;
+    flex: 1 !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    height: 34px !important;
+    /* Height of the hit area */
+    background: transparent !important;
+    /* Track moved to runnable-track */
+    cursor: pointer !important;
+    border: none !important;
+    outline: none !important;
+    margin: 0 !important;
+}
+
+/* Chrome/Safari Track */
+.gjs-style-manager-container input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px !important;
+    background: #1e293b !important;
+    border-radius: 10px !important;
+    border: none !important;
+}
+
+/* Chrome/Safari Thumb */
+.gjs-style-manager-container input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 14px !important;
+    height: 14px !important;
+    background: #3b82f6 !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5) !important;
+    transition: all 0.2s ease !important;
+    margin-top: -5px !important;
+    /* Centers 14px thumb on 4px track */
+}
+
+/* Firefox Track */
+.gjs-style-manager-container input[type="range"]::-moz-range-track {
+    height: 4px !important;
+    background: #1e293b !important;
+    border-radius: 10px !important;
+    border: none !important;
+}
+
+/* Firefox Thumb */
+.gjs-style-manager-container input[type="range"]::-moz-range-thumb {
+    width: 14px !important;
+    height: 14px !important;
+    background: #3b82f6 !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5) !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+}
+
+/* Remove background/border from parent when it contains a slider */
+.gjs-style-manager-container .gjs-field:has(input[type="range"]) {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Fallback for browsers that don't support :has */
+.gjs-style-manager-container .gjs-sm-property-range .gjs-field {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+.gjs-style-manager-container .gjs-sm-sector-caret {
+    transition: transform 0.2s;
+}
+
+.gjs-style-manager-container .gjs-sm-sector-open .gjs-sm-sector-caret {
+    transform: rotate(180deg);
 }
 
 /* ===== LAYER MANAGER ===== */
@@ -435,4 +812,92 @@
     height: 100% !important;
     border: none !important;
     background: white !important;
+}
+
+
+
+/* React Component Overrides for SettingsTab */
+.gjs-style-manager-container .flex-1.overflow-y-auto .flex-1 {
+    padding: 0 !important;
+}
+
+.gjs-style-manager-container [data-orientation="vertical"] .border-b {
+    border-bottom: 1px solid #111827 !important;
+}
+
+.gjs-style-manager-container .pb-4 {
+    padding-bottom: 0.75rem !important;
+}
+
+/* Shadcn Accordion in Sidebar */
+.gjs-style-manager-container [data-state="open"]>button,
+.gjs-style-manager-container [data-state="closed"]>button {
+    padding: 8px 16px !important;
+    font-size: 0.8rem !important;
+}
+
+.gjs-style-manager-container [data-state="open"]>button svg,
+.gjs-style-manager-container [data-state="closed"]>button svg {
+    width: 0.8rem !important;
+    height: 0.8rem !important;
+}
+
+.gjs-style-manager-container .px-6 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+}
+
+.gjs-style-manager-container .p-6 {
+    padding: 0.75rem !important;
+}
+
+/* Labels and Inputs in SettingsTab */
+.gjs-style-manager-container label.text-muted-foreground {
+    font-size: 0.7rem !important;
+    margin-bottom: 2px !important;
+}
+
+.gjs-style-manager-container input.bg-transparent,
+.gjs-style-manager-container .flex.items-center.gap-2 input,
+.gjs-style-manager-container [role="combobox"] {
+    height: 30px !important;
+    font-size: 0.75rem !important;
+    padding: 4px 8px !important;
+    background-color: #030712 !important;
+    border: 1px solid #1f2937 !important;
+    border-radius: 4px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.gjs-style-manager-container .flex {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Tabs in Flexbox section */
+.gjs-style-manager-container .h-fit.gap-4 {
+    gap: 0.5rem !important;
+}
+
+.gjs-style-manager-container .w-10.h-10 {
+    width: 2rem !important;
+    height: 2rem !important;
+}
+
+.gjs-style-manager-container .w-16.h-16 {
+    width: 2rem !important;
+    height: 2rem !important;
+}
+
+/* Custom Spacing for the StylePanel container */
+.w-\[200px\].border-l .pt-4 {
+    padding-top: 0.5rem !important;
+}
+
+.w-\[200px\].border-l .px-4.pb-4 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
 }

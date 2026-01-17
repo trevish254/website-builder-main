@@ -24,6 +24,7 @@ export const IntroductionVideoDemo = () => {
                         "Scroll to unveil how Chapabiz transforms chaos into clarity.",
                     ],
                 }}
+                smoothScroll={false}
             />
         </div>
     );

@@ -15,13 +15,21 @@ const MainLayoutWrapper = ({ children }: Props) => {
     return (
         <div
             className={cn(
-                "transition-all duration-300 ease-out flex flex-col h-full pt-16",
-                // On mobile: always just icon dock width
-                // On desktop: icon dock (50px) + submenu panel (240px) when expanded
-                isPanelCollapsed ? "pl-[50px]" : "pl-[50px] md:pl-[290px]"
+                "transition-all duration-300 ease-out flex flex-col h-screen pt-16 bg-gradient-to-br from-orange-500 to-rose-600 relative",
+                isPanelCollapsed ? "pl-[60px]" : "pl-[60px] md:pl-[300px]"
             )}
         >
-            {children}
+            {/* Glassy Corner Intersection Effect - Dynamic Positioning */}
+            <div className="absolute top-16 left-0 right-0 bottom-0 pointer-events-none">
+                <div className={cn(
+                    "absolute top-0 w-20 h-20 backdrop-blur-3xl bg-white/20 transition-all duration-300 ease-out",
+                    isPanelCollapsed ? "left-[60px]" : "left-[60px] md:left-[300px]"
+                )} />
+            </div>
+
+            <div className="flex-1 bg-gray-50 dark:bg-zinc-950 rounded-tl-[32px] shadow-[0_-10px_30px_rgba(0,0,0,0.1)] overflow-hidden relative z-10">
+                {children}
+            </div>
         </div>
     )
 }

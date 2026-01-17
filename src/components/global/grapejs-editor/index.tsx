@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { createRoot } from 'react-dom/client'
 import { useRouter } from 'next/navigation'
 import grapesjs from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
@@ -25,12 +26,15 @@ import gjsParserPostcss from 'grapesjs-parser-postcss'
 import gjsTooltip from 'grapesjs-tooltip'
 import BlocksPanel from './blocks-panel'
 import StylePanel from './style-panel'
+import BackgroundLayers from './background-layers'
 import './grapejs-custom.css'
 import { FunnelPage } from '@prisma/client'
 import { upsertWebsitePage, WebsitePage, Website } from '@/lib/website-queries'
 import { toast } from '@/components/ui/use-toast'
 import EditorSidebar from './editor-sidebar'
 import PublishDialog from './publish-dialog'
+import EditorProvider from '@/providers/editor/editor-provider'
+import GjsEditorBridge from './gjs-editor-bridge'
 
 type Props = {
     subaccountId: string
@@ -219,6 +223,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
 
         const escapeName = (name: string) => `${name}`.trim().replace(/([^a-z0-9\w-:/]+)/gi, "-")
 
+
         const editor = grapesjs.init({
             container: editorRef.current,
             // ... (rest of init)
@@ -226,11 +231,34 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             height: 'calc(100vh - 60px)',
             fromElement: false,
             storageManager: false,
-            selectorManager: { escapeName },
+            selectorManager: {
+                escapeName,
+                // Add states for different interaction types (hover, active, etc)
+                states: [
+                    { name: 'hover', label: 'Hover' },
+                    { name: 'active', label: 'Click' },
+                    { name: 'nth-of-type(2n)', label: 'Even' },
+                ]
+            },
             panels: { defaults: [] },
+            colorPicker: {
+                palette: [
+                    '#ffffff', '#000000', '#f8fafc', '#f1f5f9', '#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#475569', '#334155', '#1e293b', '#0f172a',
+                    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
+                ]
+            },
+            plugins: [
+                gjsForms,
+                gjsForms,
+                gjsCountdown,
+                gjsCustomCode,
+                gjsTouch,
+                gjsParserPostcss,
+                gjsTooltip,
+            ],
             canvas: {
                 styles: [
-                    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
+                    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Lora:wght@400;500;600;700&display=swap'
                 ],
                 scripts: [
                     'https://cdn.tailwindcss.com',
@@ -255,7 +283,348 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                 // Blocks are rendered manually in EditorSidebar
             },
             styleManager: {
-                // Styles are rendered manually in StylePanel
+                clearProperties: true,
+                defaults: {
+                    scrubbing: true
+                },
+                sectors: [
+                    {
+                        name: 'General',
+                        open: true,
+                        properties: [
+                            {
+                                property: 'display',
+                                type: 'select',
+                                list: [
+                                    { value: 'block', name: 'block' },
+                                    { value: 'inline', name: 'inline' },
+                                    { value: 'inline-block', name: 'inline-block' },
+                                    { value: 'flex', name: 'flex' },
+                                    { value: 'none', name: 'none' },
+                                ],
+                            },
+                            {
+                                property: 'float',
+                                type: 'radio',
+                                list: [
+                                    { value: 'none', name: 'none' },
+                                    { value: 'left', name: 'left' },
+                                    { value: 'right', name: 'right' },
+                                ],
+                            },
+                            {
+                                property: 'position',
+                                type: 'radio',
+                                list: [
+                                    { value: 'static', name: 'static' },
+                                    { value: 'relative', name: 'relative' },
+                                    { value: 'absolute', name: 'absolute' },
+                                    { value: 'fixed', name: 'fixed' },
+                                ],
+                            },
+                            {
+                                property: 'coordinates',
+                                name: 'Coordinates',
+                                type: 'composite',
+                                properties: [
+                                    {
+                                        property: 'top',
+                                        type: 'number',
+                                        units: ['px', '%', 'vh'],
+                                        defaults: 'auto',
+                                        step: 1,
+                                    },
+                                    {
+                                        property: 'right',
+                                        type: 'number',
+                                        units: ['px', '%', 'vw'],
+                                        defaults: 'auto',
+                                        step: 1,
+                                    },
+                                    {
+                                        property: 'bottom',
+                                        type: 'number',
+                                        units: ['px', '%', 'vh'],
+                                        defaults: 'auto',
+                                        step: 1,
+                                    },
+                                    {
+                                        property: 'left',
+                                        type: 'number',
+                                        units: ['px', '%', 'vw'],
+                                        defaults: 'auto',
+                                        step: 1,
+                                    },
+                                ]
+                            },
+                        ]
+                    },
+                    {
+                        name: 'Typography',
+                        open: true,
+                        properties: [
+                            {
+                                property: 'text-align',
+                                name: 'Text Align',
+                                type: 'radio',
+                                list: [
+                                    { value: 'left', name: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>' },
+                                    { value: 'center', name: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></svg>' },
+                                    { value: 'right', name: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>' },
+                                    { value: 'justify', name: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>' },
+                                ]
+                            },
+                            {
+                                property: 'font-family',
+                                name: 'Font Family',
+                                type: 'select',
+                                list: [
+                                    { value: '', name: 'Default' },
+                                    { value: 'Inter, sans-serif', name: 'Inter' },
+                                    { value: 'Roboto, sans-serif', name: 'Roboto' },
+                                    { value: 'Montserrat, sans-serif', name: 'Montserrat' },
+                                    { value: 'Poppins, sans-serif', name: 'Poppins' },
+                                    { value: 'Open Sans, sans-serif', name: 'Open Sans' },
+                                    { value: 'Playfair Display, serif', name: 'Playfair Display' },
+                                    { value: 'Lora, serif', name: 'Lora' },
+                                    { value: 'monospace', name: 'Monospace' },
+                                ]
+                            },
+                            { property: 'color', name: 'Color', type: 'color', defaults: '#000000' },
+                            {
+                                property: 'font-weight',
+                                name: 'Weight',
+                                type: 'select',
+                                list: [
+                                    { value: '100', name: 'Thin' },
+                                    { value: '300', name: 'Light' },
+                                    { value: '400', name: 'Regular' },
+                                    { value: '500', name: 'Medium' },
+                                    { value: '600', name: 'Semi-Bold' },
+                                    { value: '700', name: 'Bold' },
+                                    { value: '900', name: 'Black' },
+                                ]
+                            },
+                            {
+                                property: 'font-size',
+                                name: 'Size',
+                                type: 'number',
+                                units: ['px', 'rem', 'em', '%'],
+                                defaults: '16px',
+                                step: 1,
+                            },
+                            {
+                                property: 'line-height',
+                                name: 'Line Height',
+                                type: 'number',
+                                units: ['px', 'rem', 'em', '%'],
+                                defaults: '1.5',
+                                step: 0.1,
+                            },
+                            {
+                                property: 'letter-spacing',
+                                name: 'Spacing',
+                                type: 'number',
+                                units: ['px', 'rem', 'em'],
+                                defaults: '0px',
+                                step: 1,
+                            },
+                        ]
+                    },
+                    {
+                        name: 'Dimensions',
+                        open: true,
+                        properties: [
+                            {
+                                property: 'width',
+                                name: 'Width',
+                                type: 'number',
+                                units: ['px', '%', 'vw', 'auto'],
+                                defaults: 'auto',
+                                step: 1
+                            },
+                            {
+                                property: 'height',
+                                name: 'Height',
+                                type: 'number',
+                                units: ['px', '%', 'vh', 'auto'],
+                                defaults: 'auto',
+                                step: 1
+                            },
+                            {
+                                property: 'margin',
+                                name: 'Margin',
+                                type: 'composite',
+                                properties: [
+                                    {
+                                        property: 'margin-top',
+                                        name: 'Top',
+                                        type: 'number',
+                                        units: ['px', '%', 'em', 'rem'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                    {
+                                        property: 'margin-right',
+                                        name: 'Right',
+                                        type: 'number',
+                                        units: ['px', '%', 'em', 'rem'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                    {
+                                        property: 'margin-bottom',
+                                        name: 'Bottom',
+                                        type: 'number',
+                                        units: ['px', '%', 'em', 'rem'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                    {
+                                        property: 'margin-left',
+                                        name: 'Left',
+                                        type: 'number',
+                                        units: ['px', '%', 'em', 'rem'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                ]
+                            },
+                            {
+                                property: 'padding',
+                                name: 'Padding',
+                                type: 'composite',
+                                properties: [
+                                    {
+                                        property: 'padding-top',
+                                        name: 'Top',
+                                        type: 'number',
+                                        units: ['px', '%', 'em', 'rem'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                    {
+                                        property: 'padding-right',
+                                        name: 'Right',
+                                        type: 'number',
+                                        units: ['px', '%', 'em', 'rem'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                    {
+                                        property: 'padding-bottom',
+                                        name: 'Bottom',
+                                        type: 'number',
+                                        units: ['px', '%', 'em', 'rem'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                    {
+                                        property: 'padding-left',
+                                        name: 'Left',
+                                        type: 'number',
+                                        units: ['px', '%', 'em', 'rem'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                ]
+                            },
+                        ]
+                    },
+                    {
+                        name: 'Decorations',
+                        open: true,
+                        properties: [
+                            { property: 'opacity', name: 'Opacity', type: 'slider', min: 0, max: 1, step: 0.1, defaults: '1' },
+                            { property: 'border-radius', name: 'Border Radius', type: 'slider', min: 0, max: 100, step: 1, defaults: '0', units: ['px', '%', 'rem'] },
+                            {
+                                property: 'border-radius-corners',
+                                name: 'Individual Corners',
+                                type: 'composite',
+                                properties: [
+                                    {
+                                        property: 'border-top-left-radius',
+                                        name: 'Top-L',
+                                        type: 'number',
+                                        units: ['px', '%'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                    {
+                                        property: 'border-top-right-radius',
+                                        name: 'Top-R',
+                                        type: 'number',
+                                        units: ['px', '%'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                    {
+                                        property: 'border-bottom-left-radius',
+                                        name: 'Bot-L',
+                                        type: 'number',
+                                        units: ['px', '%'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                    {
+                                        property: 'border-bottom-right-radius',
+                                        name: 'Bot-R',
+                                        type: 'number',
+                                        units: ['px', '%'],
+                                        defaults: '0px',
+                                        step: 1
+                                    },
+                                ]
+                            },
+                            {
+                                property: 'smart-bg-verified',
+                                name: 'Start Background',
+                                type: 'smart-bg-type',
+                                full: true,
+                            },
+                            { property: 'border', name: 'Border' },
+                        ]
+                    },
+                    {
+                        name: 'Flexbox',
+                        open: false,
+                        properties: [
+                            {
+                                property: 'justify-content',
+                                name: 'Justify Content',
+                                type: 'radio',
+                                list: [
+                                    { value: 'flex-start', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="2" height="20"></rect><rect x="9" y="5" width="4" height="6"></rect><rect x="9" y="13" width="7" height="6"></rect></svg>' },
+                                    { value: 'center', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="5" width="6" height="6"></rect><rect x="6" y="13" width="12" height="6"></rect></svg>' },
+                                    { value: 'flex-end', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="2" width="2" height="20"></rect><rect x="11" y="5" width="4" height="6"></rect><rect x="8" y="13" width="7" height="6"></rect></svg>' },
+                                    { value: 'space-between', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="4" height="14"></rect><rect x="18" y="5" width="4" height="14"></rect></svg>' },
+                                    { value: 'space-around', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="4" height="14"></rect><rect x="15" y="5" width="4" height="14"></rect></svg>' },
+                                ]
+                            },
+                            {
+                                property: 'align-items',
+                                name: 'Align Items',
+                                type: 'radio',
+                                list: [
+                                    { value: 'flex-start', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="2"></rect><rect x="5" y="9" width="6" height="4"></rect><rect x="13" y="9" width="6" height="7"></rect></svg>' },
+                                    { value: 'center', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="6" height="6"></rect><rect x="13" y="6" width="6" height="12"></rect></svg>' },
+                                    { value: 'flex-end', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="18" width="20" height="2"></rect><rect x="5" y="11" width="6" height="4"></rect><rect x="13" y="8" width="6" height="7"></rect></svg>' },
+                                ]
+                            },
+                            {
+                                property: 'flex-direction',
+                                name: 'Direction',
+                                type: 'radio',
+                                list: [
+                                    { value: 'row', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>' },
+                                    { value: 'column', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="5 12 12 19 19 12"></polyline></svg>' },
+                                    { value: 'row-reverse', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>' },
+                                    { value: 'column-reverse', name: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="19 12 12 5 5 12"></polyline></svg>' },
+                                ]
+                            },
+                        ]
+                    }
+                ]
             },
             deviceManager: {
                 devices: [
@@ -290,212 +659,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         // Reactive Content Load
 
 
-        // Style Manager Configuration
-        editor.StyleManager.addSector('general', {
-            name: 'General',
-            open: false,
-            properties: [
-                { property: 'display', type: 'select', defaults: 'block', list: [{ value: 'block', name: 'Block' }, { value: 'flex', name: 'Flex' }, { value: 'grid', name: 'Grid' }, { value: 'none', name: 'None' }] },
-                { property: 'position', type: 'select', list: [{ value: 'static', name: 'Static' }, { value: 'relative', name: 'Relative' }, { value: 'absolute', name: 'Absolute' }, { value: 'fixed', name: 'Fixed' }] },
-            ]
-        })
-        editor.StyleManager.addSector('dimension', {
-            name: 'Dimension',
-            open: false,
-            properties: [
-                { property: 'width', type: 'integer', units: ['px', '%'] },
-                { property: 'height', type: 'integer', units: ['px', '%', 'vh'] },
-                { property: 'margin', type: 'composite', properties: [{ property: 'margin-top' }, { property: 'margin-right' }, { property: 'margin-bottom' }, { property: 'margin-left' }] },
-                { property: 'padding', type: 'composite', properties: [{ property: 'padding-top' }, { property: 'padding-right' }, { property: 'padding-bottom' }, { property: 'padding-left' }] },
-            ]
-        })
-        editor.StyleManager.addSector('typography', {
-            name: 'Typography',
-            open: false,
-            properties: [
-                { property: 'font-family', type: 'select', list: [{ value: 'Arial', name: 'Arial' }, { value: 'Inter', name: 'Inter' }] },
-                { property: 'font-size', type: 'integer', units: ['px', 'rem'] },
-                { property: 'color', type: 'color' },
-                { property: 'text-align', type: 'radio', list: [{ value: 'left' }, { value: 'center' }, { value: 'right' }] },
-            ]
-        })
-        editor.StyleManager.addSector('decorations', {
-            name: 'Decorations',
-            open: false,
-            properties: [
-                { property: 'background-color', type: 'color' },
-                {
-                    property: 'border-radius',
-                    type: 'slider',
-                    defaults: '0',
-                    min: 0,
-                    max: 100,
-                    step: 1,
-                    units: ['px', '%', 'rem'],
-                    unit: 'px'
-                },
-                {
-                    property: 'border',
-                    type: 'composite',
-                    properties: [
-                        { property: 'border-width', type: 'slider', min: 0, max: 20, step: 1, units: ['px'], unit: 'px' },
-                        { property: 'border-style' },
-                        { property: 'border-color', type: 'color' }
-                    ]
-                }
-            ]
-        })
-        editor.StyleManager.addSector('shadows', {
-            name: 'Shadows',
-            open: false,
-            properties: [
-                {
-                    property: 'shadow-type',
-                    type: 'select',
-                    label: 'Type',
-                    defaults: 'outset',
-                    list: [
-                        { value: 'outset', name: 'Outset' },
-                        { value: 'inset', name: 'Inset' }
-                    ],
-                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-type', to)
-                },
-                {
-                    property: 'shadow-h',
-                    type: 'slider',
-                    label: 'Offset X',
-                    min: -100,
-                    max: 100,
-                    step: 1,
-                    units: ['px'],
-                    unit: 'px',
-                    defaults: '0px',
-                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-h', to)
-                },
-                {
-                    property: 'shadow-v',
-                    type: 'slider',
-                    label: 'Offset Y',
-                    min: -100,
-                    max: 100,
-                    step: 1,
-                    units: ['px'],
-                    unit: 'px',
-                    defaults: '0px',
-                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-v', to)
-                },
-                {
-                    property: 'shadow-blur',
-                    type: 'slider',
-                    label: 'Blur',
-                    min: 0,
-                    max: 100,
-                    step: 1,
-                    units: ['px'],
-                    unit: 'px',
-                    defaults: '0px',
-                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-blur', to)
-                },
-                {
-                    property: 'shadow-spread',
-                    type: 'slider',
-                    label: 'Spread',
-                    min: -100,
-                    max: 100,
-                    step: 1,
-                    units: ['px'],
-                    unit: 'px',
-                    defaults: '0px',
-                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-spread', to)
-                },
-                {
-                    property: 'shadow-color',
-                    type: 'color',
-                    label: 'Color',
-                    defaults: '#000000',
-                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-color', to)
-                },
-                {
-                    property: 'shadow-opacity',
-                    type: 'slider',
-                    label: 'Opacity',
-                    min: 0,
-                    max: 1,
-                    step: 0.01,
-                    defaults: '0.5',
-                    onChange: ({ to }: any) => updateBoxShadow(editor, 'shadow-opacity', to)
-                }
-            ]
-        })
-        editor.StyleManager.addSector('transform', {
-            name: 'Transform',
-            open: false,
-            properties: [
-                {
-                    property: 'rotate',
-                    type: 'slider',
-                    min: 0,
-                    max: 360,
-                    step: 1,
-                    units: ['deg'],
-                    unit: 'deg',
-                    defaults: '0deg',
-                    toStyle: (value: string) => `rotate(${value})`,
-                    fromStyle: (value: string) => {
-                        const match = value.match(/rotate\(([^)]+)\)/)
-                        return match ? match[1] : '0deg'
-                    }
-                },
-                {
-                    property: 'scale',
-                    type: 'slider',
-                    min: 0,
-                    max: 3,
-                    step: 0.1,
-                    defaults: '1',
-                    toStyle: (value: string) => `scale(${value})`,
-                    fromStyle: (value: string) => {
-                        const match = value.match(/scale\(([^)]+)\)/)
-                        return match ? match[1] : '1'
-                    }
-                },
-                {
-                    property: 'translateX',
-                    type: 'slider',
-                    min: -200,
-                    max: 200,
-                    step: 1,
-                    units: ['px', '%'],
-                    unit: 'px',
-                    defaults: '0px',
-                    toStyle: (value: string) => `translateX(${value})`,
-                    fromStyle: (value: string) => {
-                        const match = value.match(/translateX\(([^)]+)\)/)
-                        return match ? match[1] : '0px'
-                    }
-                },
-                {
-                    property: 'translateY',
-                    type: 'slider',
-                    min: -200,
-                    max: 200,
-                    step: 1,
-                    units: ['px', '%'],
-                    unit: 'px',
-                    defaults: '0px',
-                    toStyle: (value: string) => `translateY(${value})`,
-                    fromStyle: (value: string) => {
-                        const match = value.match(/translateY\(([^)]+)\)/)
-                        return match ? match[1] : '0px'
-                    }
-                }
-            ]
-        })
-        editor.StyleManager.addSector('flex', {
-            name: 'Flex',
-            open: false,
-            properties: [{ property: 'flex-direction' }, { property: 'justify-content' }, { property: 'align-items' }, { property: 'gap' }]
-        })
+        // All sectors are now defined in the init call to ensure correct parsing and UI
 
         // Add custom trait for page navigation to all components
         editor.on('component:add', (component: any) => {
@@ -517,6 +681,36 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                 })
             }
         })
+
+        // AUTO-SELECT CLASS ON COMPONENT SELECTION
+        // This is critical for "revealing" styles from templates.
+        // If a component has classes, we select the first one so the Style Manager
+        // shows the class-based styles instead of the empty ID styles.
+        editor.on('component:selected', (component: any) => {
+            if (!component) return;
+
+            const selectors = component.getSelectors();
+            const selectorManager = editor.SelectorManager;
+
+            if (selectors.length > 0) {
+                const firstSelector = selectors.at(0);
+                if (firstSelector) {
+                    // Slight delay to ensure editor state is ready for selection override
+                    setTimeout(() => {
+                        try {
+                            if (typeof selectorManager.select === 'function') {
+                                selectorManager.select(firstSelector);
+                            } else {
+                                selectorManager.addSelected(firstSelector);
+                            }
+                            editor.StyleManager.render();
+                        } catch (e) {
+                            console.warn('Selector selection failed:', e);
+                        }
+                    }, 50);
+                }
+            }
+        });
 
         editorInstanceRef.current = editor
 
@@ -628,7 +822,6 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         // This fixes the "snap back" issue where loading content resets frame height
         setTimeout(() => {
             updateCanvasZoom()
-            editor.refresh() // Force refresh to ensure styles stick
         }, 200)
 
     }, [pageDetails, editorReady])
@@ -949,10 +1142,43 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         input.click()
     }
 
-    // Register custom blocks when editor is ready
     useEffect(() => {
         if (!editorReady || !editorInstanceRef.current) return
         const editor = editorInstanceRef.current
+
+        // Manual Type Registration (Force)
+        console.log('Force registering smart-bg-type inside useEffect...');
+        editor.StyleManager.addType('smart-bg-type', {
+            create({ props, change }: any) {
+                const el = document.createElement('div');
+                el.className = 'smart-bg-wrapper';
+                el.style.width = '100%';
+                el.style.minHeight = '50px';
+                el.style.border = '2px solid cyan'; // DIAGNOSTIC
+                el.style.background = 'rgba(0, 255, 255, 0.1)'; // DIAGNOSTIC
+                el.innerHTML = '<div style="color: cyan; font-weight: bold; padding: 4px;">ADVANCED MODE DIAGNOSTIC</div>';
+                return el;
+            },
+            emit({ props, change }: any) {
+                // No-op
+            },
+            update({ el, props }: any) {
+                // No-op, handled by React
+            },
+            onRender({ el, props }: any) {
+                if (!el._root) {
+                    el._root = createRoot(el);
+                }
+                el._root.render(
+                    <div style={{ width: '100%', marginBottom: '10px' }}>
+                        <BackgroundLayers editor={editor} property={props} />
+                    </div>
+                );
+            },
+        });
+
+        // Refresh Style Manager to pick up custom types
+        editor.StyleManager.render();
 
         console.log('Registering custom blocks:', customBlocks.length)
         customBlocks.forEach((block) => {
@@ -978,108 +1204,117 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
     }, [editorReady])
 
     return (
-        <div className="h-screen w-full flex flex-col bg-background">
-            {!previewMode && (
-                <div className="h-[60px] border-b bg-background flex items-center justify-between px-4 gap-4 flex-shrink-0">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2">
-                            <ArrowLeft className="w-4 h-4" />
-                            <span className="hidden sm:inline">Back</span>
-                        </Button>
-                        <div className="h-6 w-px bg-border" />
-                        {/* Note: Sidebar toggle is now internal, but keeping state here in case we want external control */}
-                        <Input value={pageName} onChange={(e) => setPageName(e.target.value)} className="max-w-xs" placeholder="Page name" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={handleViewCode} className="gap-2">
-                            <Code className="w-4 h-4" />
-                            <span className="hidden sm:inline">View Code</span>
-                        </Button>
-                        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
-                            <Button variant={activeDevice === 'desktop' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('desktop')} className="gap-2">
-                                <Monitor className="w-4 h-4" /> <span className="hidden sm:inline">Desktop</span>
-                            </Button>
-                            <Button variant={activeDevice === 'tablet' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('tablet')} className="gap-2">
-                                <Tablet className="w-4 h-4" /> <span className="hidden sm:inline">Tablet</span>
-                            </Button>
-                            <Button variant={activeDevice === 'mobile' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('mobile')} className="gap-2">
-                                <Smartphone className="w-4 h-4" /> <span className="hidden sm:inline">Mobile</span>
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={handleUndo}><Undo className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={handleRedo}><Redo className="w-4 h-4" /></Button>
-                        <div className="w-px h-6 bg-border mx-1" />
-                        <Button variant="ghost" size="sm" onClick={handleToggleFullscreen} title="Toggle Fullscreen">
-                            <Maximize className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={handlePreview}><Eye className="w-4 h-4 mr-2" />Preview</Button>
-                        <Button variant="ghost" size="sm" onClick={handleFullPreview}><ExternalLink className="w-4 h-4 mr-2" />Full Site</Button>
-                        <div className="w-px h-6 bg-border mx-1" />
-                        <Button variant="outline" size="sm" onClick={handleImport} className="gap-2">
-                            <FileUp className="w-4 h-4" />
-                            <span className="hidden sm:inline">Import</span>
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleSave}><Save className="w-4 h-4 mr-2" />Save</Button>
-                        <Button size="sm" onClick={handlePublish}><Upload className="w-4 h-4 mr-2" />Publish</Button>
-                    </div>
-                </div>
+        <EditorProvider
+            subaccountId={subaccountId}
+            funnelId={funnelId}
+            pageDetails={pageDetails}
+        >
+            {editorInstanceRef.current && (
+                <GjsEditorBridge editor={editorInstanceRef.current} />
             )}
-            <div className="flex-1 flex overflow-hidden w-full relative">
-                {!previewMode && editorReady && editorInstanceRef.current && (
-                    <EditorSidebar
-                        editor={editorInstanceRef.current}
-                        activeTab={activeSidebarTab}
-                        setActiveTab={setActiveSidebarTab}
-                        collapsed={sidebarCollapsed}
-                        setCollapsed={setSidebarCollapsed}
-                        pages={websitePages || []}
-                        subaccountId={subaccountId}
-                        funnelId={funnelId}
-                        activePageId={pageDetails.id}
-                        brandKit={brandKit}
-                        setBrandKit={setBrandKit}
-                        website={website}
-                    />
-                )}
-                <main className="flex-1 relative min-w-0 overflow-auto bg-[#0b0d11]">
-                    <div id="gjs" ref={editorRef} className="absolute inset-0 w-full h-full"></div>
-                    {/* Exit Preview Button */}
-                    {previewMode && (
-                        <div className="absolute top-4 right-4 z-[9999]">
-                            <Button onClick={() => {
-                                setPreviewMode(false)
-                                editorInstanceRef.current?.stopCommand('core:preview')
-                            }} className="shadow-lg gap-2" variant="default">
-                                <Eye className="w-4 h-4" /> Exit Preview
+            <div className="h-screen w-full flex flex-col bg-background">
+                {!previewMode && (
+                    <div className="h-[60px] border-b bg-background flex items-center justify-between px-4 gap-4 flex-shrink-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2">
+                                <ArrowLeft className="w-4 h-4" />
+                                <span className="hidden sm:inline">Back</span>
                             </Button>
+                            <div className="h-6 w-px bg-border" />
+                            {/* Note: Sidebar toggle is now internal, but keeping state here in case we want external control */}
+                            <Input value={pageName} onChange={(e) => setPageName(e.target.value)} className="max-w-xs" placeholder="Page name" />
                         </div>
-                    )}
-                </main>
-                {!previewMode && editorReady && editorInstanceRef.current && (
-                    <aside className="flex-shrink-0 w-[240px] border-l bg-background z-40 relative">
-                        <StylePanel editor={editorInstanceRef.current} />
-                    </aside>
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={handleViewCode} className="gap-2">
+                                <Code className="w-4 h-4" />
+                                <span className="hidden sm:inline">View Code</span>
+                            </Button>
+                            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+                                <Button variant={activeDevice === 'desktop' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('desktop')} className="gap-2">
+                                    <Monitor className="w-4 h-4" /> <span className="hidden sm:inline">Desktop</span>
+                                </Button>
+                                <Button variant={activeDevice === 'tablet' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('tablet')} className="gap-2">
+                                    <Tablet className="w-4 h-4" /> <span className="hidden sm:inline">Tablet</span>
+                                </Button>
+                                <Button variant={activeDevice === 'mobile' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleDeviceChange('mobile')} className="gap-2">
+                                    <Smartphone className="w-4 h-4" /> <span className="hidden sm:inline">Mobile</span>
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm" onClick={handleUndo}><Undo className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="sm" onClick={handleRedo}><Redo className="w-4 h-4" /></Button>
+                            <div className="w-px h-6 bg-border mx-1" />
+                            <Button variant="ghost" size="sm" onClick={handleToggleFullscreen} title="Toggle Fullscreen">
+                                <Maximize className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={handlePreview}><Eye className="w-4 h-4 mr-2" />Preview</Button>
+                            <Button variant="ghost" size="sm" onClick={handleFullPreview}><ExternalLink className="w-4 h-4 mr-2" />Full Site</Button>
+                            <div className="w-px h-6 bg-border mx-1" />
+                            <Button variant="outline" size="sm" onClick={handleImport} className="gap-2">
+                                <FileUp className="w-4 h-4" />
+                                <span className="hidden sm:inline">Import</span>
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handleSave}><Save className="w-4 h-4 mr-2" />Save</Button>
+                            <Button size="sm" onClick={handlePublish}><Upload className="w-4 h-4 mr-2" />Publish</Button>
+                        </div>
+                    </div>
                 )}
-            </div>
+                <div className="flex-1 flex overflow-hidden w-full relative">
+                    {!previewMode && editorReady && editorInstanceRef.current && (
+                        <EditorSidebar
+                            editor={editorInstanceRef.current}
+                            activeTab={activeSidebarTab}
+                            setActiveTab={setActiveSidebarTab}
+                            collapsed={sidebarCollapsed}
+                            setCollapsed={setSidebarCollapsed}
+                            pages={websitePages || []}
+                            subaccountId={subaccountId}
+                            funnelId={funnelId}
+                            activePageId={pageDetails.id}
+                            brandKit={brandKit}
+                            setBrandKit={setBrandKit}
+                            website={website}
+                        />
+                    )}
+                    <main className="flex-1 relative min-w-0 overflow-auto bg-[#0b0d11]">
+                        <div id="gjs" ref={editorRef} className="absolute inset-0 w-full h-full"></div>
+                        {/* Exit Preview Button */}
+                        {previewMode && (
+                            <div className="absolute top-4 right-4 z-[9999]">
+                                <Button onClick={() => {
+                                    setPreviewMode(false)
+                                    editorInstanceRef.current?.stopCommand('core:preview')
+                                }} className="shadow-lg gap-2" variant="default">
+                                    <Eye className="w-4 h-4" /> Exit Preview
+                                </Button>
+                            </div>
+                        )}
+                    </main>
+                    {!previewMode && editorReady && editorInstanceRef.current && (
+                        <aside className="flex-shrink-0 w-[240px] border-l bg-background z-40 relative">
+                            <StylePanel editor={editorInstanceRef.current} subaccountId={subaccountId} />
+                        </aside>
+                    )}
+                </div>
 
-            {/* Publish Dialog */}
-            {console.log('Rendering PublishDialog section, editorReady:', editorReady, 'instance:', !!editorInstanceRef.current, 'open:', publishDialogOpen)}
-            {
-                editorReady && editorInstanceRef.current && (
-                    <PublishDialog
-                        open={publishDialogOpen}
-                        onOpenChange={setPublishDialogOpen}
-                        editorInstance={editorInstanceRef.current}
-                        websiteId={funnelId}
-                        websiteName={websiteName || 'Untitled Website'}
-                        userId={userId || ''}
-                        currentDomain={currentDomain}
-                    />
-                )
-            }
-        </div >
+                {/* Publish Dialog */}
+                {console.log('Rendering PublishDialog section, editorReady:', editorReady, 'instance:', !!editorInstanceRef.current, 'open:', publishDialogOpen)}
+                {
+                    editorReady && editorInstanceRef.current && (
+                        <PublishDialog
+                            open={publishDialogOpen}
+                            onOpenChange={setPublishDialogOpen}
+                            editorInstance={editorInstanceRef.current}
+                            websiteId={funnelId}
+                            websiteName={websiteName || 'Untitled Website'}
+                            userId={userId || ''}
+                            currentDomain={currentDomain}
+                        />
+                    )
+                }
+            </div >
+        </EditorProvider>
     )
 }
 

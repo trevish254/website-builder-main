@@ -258,9 +258,9 @@
 }
 
 .rotatingGradient {
-  background: conic-gradient(from var(--r), #ff1b6b, #45caff, #ff1b6b);
+  background: conic-gradient(from var(--r), #f97316, #f43f5e, #f59e0b, #f97316);
   animation: rotate 4s linear infinite;
-  box-shadow: 0 0 20px rgba(69, 202, 255, 0.15);
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.15);
   transition: box-shadow 0.3s ease;
 }
 
@@ -276,7 +276,7 @@
 
 .rotatingGradient:hover {
   animation-duration: 2s;
-  box-shadow: 0 0 30px rgba(255, 27, 107, 0.3);
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.3);
 }
 
 .rotatingGradient .label {
@@ -297,5 +297,16 @@
 
   100% {
     transform: translateX(100%);
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

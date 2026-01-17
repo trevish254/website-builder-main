@@ -25,7 +25,7 @@ export function ModeToggle() {
     >
       <div className="absolute inset-0 flex justify-between items-center px-2">
         <Sun className="h-4 w-4 text-orange-400 opacity-50" />
-        <Moon className="h-4 w-4 text-blue-400 opacity-50" />
+        <Moon className="h-4 w-4 text-rose-400 opacity-50" />
       </div>
 
       <div
@@ -37,7 +37,7 @@ export function ModeToggle() {
             }`}
         />
         <Moon
-          className={`absolute h-4 w-4 text-blue-500 transition-all duration-300 ${isDark ? 'scale-100 rotate-0 opacity-100' : 'scale-0 -rotate-90 opacity-0'
+          className={`absolute h-4 w-4 text-rose-500 transition-all duration-300 ${isDark ? 'scale-100 rotate-0 opacity-100' : 'scale-0 -rotate-90 opacity-0'
             }`}
         />
       </div>

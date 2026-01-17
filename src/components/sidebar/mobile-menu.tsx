@@ -87,7 +87,7 @@ const MobileMenu = ({ details, id, sidebarLogo, sidebarOpt, subAccounts, user }:
                                 placeholder="Search menu..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md text-gray-700 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md text-gray-700 dark:text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                             />
                         </div>
                     </div>
@@ -106,18 +106,18 @@ const MobileMenu = ({ details, id, sidebarLogo, sidebarOpt, subAccounts, user }:
                                             href={option.link}
                                             className={cn(
                                                 'flex items-center gap-3 px-3 py-2.5 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                                isActive && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                                isActive && 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
                                             )}
                                         >
                                             <IconComponent
                                                 className={cn(
                                                     'w-5 h-5',
-                                                    isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                                    isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-400'
                                                 )}
                                             />
                                             <span className={cn(
                                                 'text-sm',
-                                                isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                isActive ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-gray-700 dark:text-gray-300'
                                             )}>
                                                 {option.name}
                                             </span>
@@ -140,7 +140,7 @@ const MobileMenu = ({ details, id, sidebarLogo, sidebarOpt, subAccounts, user }:
                                     className="rounded-full object-cover"
                                 />
                             ) : (
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white text-sm font-semibold">
                                     {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                                 </div>
                             )}

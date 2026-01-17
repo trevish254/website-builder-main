@@ -38,9 +38,12 @@ import { Slider } from '@/components/ui/slider'
 import CustomColorPicker from '@/components/global/custom-color-picker'
 
 import BackgroundImagePicker from '@/components/global/background-image-picker'
+import BackgroundLayers from '@/components/global/grapejs-editor/background-layers'
+import { ArrowRight, ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react'
 
 type Props = {
   subaccountId: string
+  editor: any
 }
 
 const SettingsTab = (props: Props) => {
@@ -478,69 +481,11 @@ const SettingsTab = (props: Props) => {
               step={1}
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <Label className="text-muted-foreground">Background Color</Label>
-            <CustomColorPicker
-              color={state.editor.selectedElement.styles.backgroundColor}
-              onChange={(e) =>
-                handleOnChanges({
-                  target: {
-                    id: 'backgroundColor',
-                    value: e,
-                  },
-                })
-              }
+          <div className="flex flex-col gap-2 pt-2 border-t mt-2">
+            <BackgroundLayers
+              editor={props.editor}
+              property={null}
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label className="text-muted-foreground">Background Image</Label>
-            <BackgroundImagePicker
-              background={state.editor.selectedElement.styles.backgroundImage}
-              subaccountId={props.subaccountId}
-              onChange={(e) =>
-                handleOnChanges({
-                  target: {
-                    id: 'backgroundImage',
-                    value: e,
-                  },
-                })
-              }
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label className="text-muted-foreground">Image Position</Label>
-            <Tabs
-              onValueChange={(e) =>
-                handleOnChanges({
-                  target: {
-                    id: 'backgroundSize',
-                    value: e,
-                  },
-                })
-              }
-              value={state.editor.selectedElement.styles.backgroundSize?.toString()}
-            >
-              <TabsList className="flex items-center flex-row justify-between border-[1px] rounded-md bg-transparent h-fit gap-4">
-                <TabsTrigger
-                  value="cover"
-                  className="w-10 h-10 p-0 data-[state=active]:bg-muted"
-                >
-                  <ChevronsLeftRightIcon size={18} />
-                </TabsTrigger>
-                <TabsTrigger
-                  value="contain"
-                  className="w-10 h-10 p-0 data-[state=active]:bg-muted"
-                >
-                  <AlignVerticalJustifyCenter size={22} />
-                </TabsTrigger>
-                <TabsTrigger
-                  value="auto"
-                  className="w-10 h-10 p-0 data-[state=active]:bg-muted"
-                >
-                  <LucideImageDown size={18} />
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
           </div>
         </AccordionContent>
       </AccordionItem>
@@ -641,12 +586,44 @@ const SettingsTab = (props: Props) => {
           </div>
           <div>
             <Label className="text-muted-foreground"> Direction</Label>
-            <Input
-              placeholder="px"
-              id="flexDirection"
-              onChange={handleOnChanges}
+            <Tabs
+              onValueChange={(e) =>
+                handleOnChanges({
+                  target: {
+                    id: 'flexDirection',
+                    value: e,
+                  },
+                })
+              }
               value={state.editor.selectedElement.styles.flexDirection}
-            />
+            >
+              <TabsList className="flex items-center flex-row justify-between border-[1px] rounded-md bg-transparent h-fit gap-4 mt-2">
+                <TabsTrigger
+                  value="row"
+                  className="w-10 h-10 p-0 data-[state=active]:bg-muted"
+                >
+                  <ArrowRight size={18} />
+                </TabsTrigger>
+                <TabsTrigger
+                  value="column"
+                  className="w-10 h-10 p-0 data-[state=active]:bg-muted"
+                >
+                  <ArrowDown size={18} />
+                </TabsTrigger>
+                <TabsTrigger
+                  value="row-reverse"
+                  className="w-10 h-10 p-0 data-[state=active]:bg-muted"
+                >
+                  <ArrowLeft size={18} />
+                </TabsTrigger>
+                <TabsTrigger
+                  value="column-reverse"
+                  className="w-10 h-10 p-0 data-[state=active]:bg-muted"
+                >
+                  <ArrowUp size={18} />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </AccordionContent>
       </AccordionItem>
