@@ -19,15 +19,21 @@ const MainLayoutWrapper = ({ children }: Props) => {
                 isPanelCollapsed ? "pl-[60px]" : "pl-[60px] md:pl-[300px]"
             )}
         >
-            {/* Glassy Corner Intersection Effect - Fixed Positioning for scroll persistence */}
-            <div className="fixed top-16 left-0 right-0 bottom-0 pointer-events-none z-0">
-                <div className={cn(
-                    "absolute top-0 w-20 h-20 backdrop-blur-3xl bg-white/20 transition-all duration-300 ease-out",
+            {/* Precision Concave Corner Filler - Fixed at intersection */}
+            <div
+                className={cn(
+                    "fixed top-16 w-[32px] h-[32px] z-[70] pointer-events-none transition-all duration-300 ease-out",
                     isPanelCollapsed ? "left-[60px]" : "left-[60px] md:left-[300px]"
-                )} />
-            </div>
+                )}
+                style={{
+                    background: 'linear-gradient(to bottom right, #f97316, #e11d48)',
+                    WebkitMaskImage: 'radial-gradient(circle at 32px 32px, transparent 32px, black 32px)',
+                    maskImage: 'radial-gradient(circle at 32px 32px, transparent 32px, black 32px)'
+                }}
+            />
 
-            <div className="flex-1 bg-gray-50 dark:bg-zinc-950 rounded-tl-[32px] shadow-[0_-10px_30px_rgba(0,0,0,0.1)] overflow-hidden relative z-10 flex flex-col">
+            {/* Scrollable content area */}
+            <div className="flex-1 relative z-10 bg-gray-50 dark:bg-zinc-950">
                 {children}
             </div>
         </div>

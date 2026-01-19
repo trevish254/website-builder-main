@@ -119,7 +119,7 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
     }
 
     return (
-        <div className="flex flex-col h-full bg-muted/40 dark:bg-background">
+        <div className="flex flex-col min-h-screen bg-muted/40 dark:bg-background">
             <AddCardModal
                 isOpen={isAddCardOpen}
                 onClose={() => setIsAddCardOpen(false)}
@@ -127,7 +127,7 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
             />
 
             {/* Header */}
-            <div className="border-b px-6 py-4 flex items-center justify-between bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+            <div className="border-b px-6 py-4 flex items-center justify-between bg-card/50 backdrop-blur-sm sticky top-16 z-50">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.push('/dashboards')}>
                         <ArrowLeft className="w-4 h-4" />
@@ -172,7 +172,7 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
             </div>
 
             {/* Grid Area */}
-            <div id="dashboard-scroll-area" className="flex-1 overflow-y-auto p-6">
+            <div className="p-6">
                 {cards.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
                         <div className="p-4 rounded-full bg-muted">

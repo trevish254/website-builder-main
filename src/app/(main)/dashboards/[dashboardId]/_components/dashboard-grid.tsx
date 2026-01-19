@@ -50,13 +50,105 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
                 resizable: {
                     handles: 'e, se, s, sw, w',
                     autoHide: true,
-                    scroll: true // Native scroll enabled
+                    scroll: true // Enable native scroll
                 } as any,
                 draggable: {
                     handle: '.drag-handle',
-                    scroll: true // Native scroll enabled
+                    scroll: true // Enable native scroll
                 } as any
             } as any)
+
+            // Bind Events
+            // --- Decoupled Scroll Manager (Plan K: Stable Hybrid) ---
+            class ScrollManager {
+                private rafId: number | null = null;
+                private isActive = false;
+                private mouseY = 0;
+                private readonly edgeThreshold = 100;
+                private readonly baseSpeed = 25;
+
+                constructor() {
+                    this.loop = this.loop.bind(this);
+                    this.handleMouseMove = this.handleMouseMove.bind(this);
+                }
+
+                public start() {
+                    if (this.isActive) return;
+                    this.isActive = true;
+                    document.addEventListener('mousemove', this.handleMouseMove, { passive: true });
+                    document.addEventListener('touchmove', this.handleMouseMove as any, { passive: true });
+                    this.rafId = requestAnimationFrame(this.loop);
+                }
+
+                public stop() {
+                    this.isActive = false;
+                    if (this.rafId) {
+                        cancelAnimationFrame(this.rafId);
+                        this.rafId = null;
+                    }
+                    document.removeEventListener('mousemove', this.handleMouseMove);
+                    document.removeEventListener('touchmove', this.handleMouseMove as any);
+                }
+
+                private handleMouseMove(e: MouseEvent | TouchEvent) {
+                    if ('touches' in e) {
+                        this.mouseY = e.touches[0].clientY;
+                    } else {
+                        this.mouseY = (e as MouseEvent).clientY;
+                    }
+                }
+
+                private loop() {
+                    if (!this.isActive) return;
+
+                    const viewportHeight = window.innerHeight;
+                    const relativeY = this.mouseY;
+
+                    let scrollAmount = 0;
+
+                    // Detect Proximity
+                    if (relativeY > viewportHeight - this.edgeThreshold) {
+                        // Bottom Edge
+                        const intensity = (relativeY - (viewportHeight - this.edgeThreshold)) / this.edgeThreshold;
+                        scrollAmount = Math.min(intensity * this.baseSpeed, this.baseSpeed);
+                    } else if (relativeY < this.edgeThreshold) {
+                        // Top Edge
+                        const intensity = (this.edgeThreshold - relativeY) / this.edgeThreshold;
+                        scrollAmount = -Math.min(intensity * this.baseSpeed, this.baseSpeed);
+                    }
+
+                    // Apply Scroll (Window)
+                    if (scrollAmount !== 0) {
+                        window.scrollBy({ top: scrollAmount, behavior: 'instant' });
+                    }
+
+                    if (this.isActive) {
+                        this.rafId = requestAnimationFrame(this.loop);
+                    }
+                }
+            }
+
+            const scrollManager = new ScrollManager();
+
+            // Bind Events
+            gridRef.current.on('dragstart resizestart', (event: Event, el: HTMLElement) => {
+                if (gridRef.current) {
+                    // 1. Pre-Expand Grid (The "Infinite" Illusion)
+                    const currentMaxRow = gridRef.current.engine.getRow();
+                    const expansionBuffer = 50;
+                    const newMinRow = currentMaxRow + expansionBuffer;
+
+                    gridRef.current.opts.minRow = newMinRow;
+
+                    // 2. Start Scroll Loop (Plan K)
+                    scrollManager.start();
+                }
+            });
+
+            gridRef.current.on('dragstop resizestop', (event: Event, el: HTMLElement) => {
+                // Stop Scroll Loop
+                scrollManager.stop();
+            });
 
             // Handle layout changes (drag/resize)
             gridRef.current.on('change', async (event: Event, items: any[]) => {
@@ -64,7 +156,6 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
 
                 // Sync changes to server
                 for (const item of items) {
-                    // Update server
                     await updateDashboardCard(item.id, {
                         positionX: item.x,
                         positionY: item.y,
@@ -73,6 +164,53 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
                     })
                 }
             })
+
+
+
+
+
+
+
+
+
+
+
+            // separate mouse tracker that runs always when dragging
+            const updateMousePosition = (e: MouseEvent | TouchEvent | DragEvent) => {
+                let clientY = 0;
+                if ('touches' in e) {
+                    clientY = e.touches[0]?.clientY || 0;
+                } else {
+                    clientY = (e as MouseEvent).clientY;
+                }
+                scrollState.current.mouseY = clientY;
+
+                // Calculate speed immediately
+                const viewportHeight = window.innerHeight
+                const edgeThreshold = 150 // Larger threshold for easier activation
+                const maxSpeed = 35 // Slightly faster max speed
+
+                if (clientY < edgeThreshold) {
+                    // Scroll Up
+                    const intensity = (edgeThreshold - clientY) / edgeThreshold
+                    scrollState.current.speed = -Math.max(2, Math.round(intensity * maxSpeed))
+                } else if (clientY > viewportHeight - edgeThreshold) {
+                    // Scroll Down
+                    const intensity = (clientY - (viewportHeight - edgeThreshold)) / edgeThreshold
+                    scrollState.current.speed = Math.max(2, Math.round(intensity * maxSpeed))
+                } else {
+                    scrollState.current.speed = 0
+                }
+            }
+
+
+
+            // Bind to grid events to start/stop the loop
+            // Bind to grid events to start/stop the loop
+            // Bind to grid events to start/stop the loop
+
+
+
         }
     }, [])
 

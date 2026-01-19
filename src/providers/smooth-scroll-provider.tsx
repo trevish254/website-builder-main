@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from 'next/navigation';
 import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 export function SmoothScrollProvider({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+
     useEffect(() => {
+        // Disable lenis on dashboards to allow native drag-and-drop scrolling
+        if (pathname.includes('/dashboards')) return;
+
         gsap.registerPlugin(ScrollTrigger);
         const lenis = new Lenis({
             duration: 1.2,
