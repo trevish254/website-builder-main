@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { CheckCircle2, FileText, Image as ImageIcon, Video, Paperclip, MoreVertical, Trash2, Reply, Edit, Forward, X, Play, Pause, Volume2 } from 'lucide-react'
+import { CheckCircle2, FileText, Image as ImageIcon, Video, Paperclip, MoreVertical, Trash2, Reply, Edit, Forward, X, Play, Pause, Volume2, Phone } from 'lucide-react'
 import Image from 'next/image'
 import {
     DropdownMenu,
@@ -37,6 +37,7 @@ interface MessageBubbleProps {
         senderName?: string
     }
     isEdited?: boolean
+    type?: string
 }
 
 const AudioPlayer = ({ url, isSender }: { url: string; isSender: boolean }) => {
@@ -141,7 +142,8 @@ const MessageBubble = ({
     onEdit,
     onForward,
     replyTo,
-    isEdited
+    isEdited,
+    type
 }: MessageBubbleProps) => {
     const [lightboxOpen, setLightboxOpen] = useState(false)
     const [lightboxContent, setLightboxContent] = useState<{ type: string; url: string } | null>(null)
@@ -157,169 +159,184 @@ const MessageBubble = ({
 
     return (
         <>
-            <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} mb-4 group`}>
-                {!isSender && (
-                    <Avatar className="h-8 w-8 mr-2 mt-auto mb-1 flex-shrink-0">
-                        <AvatarImage src={senderAvatar || ''} />
-                        <AvatarFallback>{senderName?.charAt(0) || '?'}</AvatarFallback>
-                    </Avatar>
-                )}
-                <div className={`flex flex-col ${isSender ? 'items-end' : 'items-start'} max-w-[80%] lg:max-w-[70%] relative`}>
-                    <div
-                        className={`
-                            relative transition-all duration-200
-                            ${attachments && attachments.length > 0 && attachments[0].type.startsWith('image') ? 'p-1' : 'px-4 py-2.5'}
-                            ${isSender
-                                ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl rounded-tr-sm shadow-md'
-                                : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-tl-sm border border-gray-100 dark:border-gray-700/50 shadow-sm'
-                            }
-                        `}
-                    >
-                        {/* Context Menu Trigger */}
-                        {messageId && (
-                            <div className={`absolute -top-2 ${isSender ? '-left-2' : '-right-2'} opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6 rounded-full bg-white dark:bg-gray-700 shadow-md border hover:bg-gray-50 dark:hover:bg-gray-600"
-                                        >
-                                            <MoreVertical className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align={isSender ? "start" : "end"}>
-                                        {onReply && (
-                                            <DropdownMenuItem onClick={() => onReply(messageId)}>
-                                                <Reply className="h-4 w-4 mr-2" />
-                                                Reply
-                                            </DropdownMenuItem>
-                                        )}
-                                        {isSender && onEdit && (
-                                            <DropdownMenuItem onClick={() => onEdit(messageId)}>
-                                                <Edit className="h-4 w-4 mr-2" />
-                                                Edit
-                                            </DropdownMenuItem>
-                                        )}
-                                        {onForward && (
-                                            <DropdownMenuItem onClick={() => onForward(messageId)}>
-                                                <Forward className="h-4 w-4 mr-2" />
-                                                Forward
-                                            </DropdownMenuItem>
-                                        )}
-                                        {onDelete && (
-                                            <DropdownMenuItem
-                                                onClick={() => onDelete(messageId)}
-                                                className="text-red-600 dark:text-red-400"
-                                            >
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        )}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        )}
-
-                        {/* Quoted Reply */}
-                        {replyTo && (
-                            <div className={`
-                                mb-2 p-2 rounded-lg border-l-4 flex flex-col gap-0.5 max-w-full overflow-hidden
-                                ${isSender
-                                    ? 'bg-white/10 border-white/30 text-white/90'
-                                    : 'bg-gray-50 dark:bg-gray-900 border-blue-500 text-gray-600 dark:text-gray-400'
-                                }
-                            `}>
-                                <span className={`text-[10px] font-bold uppercase tracking-wider ${isSender ? 'text-white' : 'text-blue-600'}`}>
-                                    {replyTo.senderName || 'User'}
-                                </span>
-                                <p className="text-xs truncate italic">
-                                    {replyTo.text}
-                                </p>
-                            </div>
-                        )}
-
-                        {attachments && attachments.length > 0 && (
-                            <div className={`${(content && !isVoiceNoteOnly && !isAttachmentOnly) ? 'mb-2' : ''} space-y-2`}>
-                                {attachments.map((att, idx) => (
-                                    <div key={idx}>
-                                        {att.type.startsWith('image') ? (
-                                            <div
-                                                className="relative w-full max-w-sm rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity ring-1 ring-black/5"
-                                                onClick={() => openLightbox('image', att.url)}
-                                            >
-                                                <Image
-                                                    src={att.url}
-                                                    alt={att.name}
-                                                    width={400}
-                                                    height={300}
-                                                    className="object-cover w-full h-auto"
-                                                    unoptimized
-                                                />
-                                            </div>
-                                        ) : att.type.startsWith('video') ? (
-                                            <div
-                                                className="relative w-full max-w-sm rounded-xl overflow-hidden cursor-pointer ring-1 ring-black/5"
-                                                onClick={() => openLightbox('video', att.url)}
-                                            >
-                                                <video
-                                                    src={att.url}
-                                                    className="w-full h-auto rounded-lg"
-                                                    controls={false}
-                                                />
-                                                <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
-                                                    <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                                                        <Video className="h-6 w-6 text-white" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : att.type.startsWith('audio') ? (
-                                            <AudioPlayer url={att.url} isSender={isSender} />
-                                        ) : (
-                                            <div
-                                                className={`flex items-center gap-3 p-2.5 rounded-xl border ${isSender ? 'bg-white/10 border-white/20' : 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700/50'
-                                                    }`}
-                                            >
-                                                <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${isSender ? 'bg-white/20' : 'bg-blue-100 dark:bg-blue-900/40'
-                                                    }`}>
-                                                    {att.type.includes('pdf') ? <FileText className={`h-5 w-5 ${isSender ? 'text-white' : 'text-blue-600'}`} /> : <Paperclip className={`h-5 w-5 ${isSender ? 'text-white' : 'text-blue-600'}`} />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-medium truncate">{att.name}</p>
-                                                    <a href={att.url} target="_blank" rel="noopener noreferrer" className={`text-[10px] hover:underline opacity-70`}>
-                                                        Download File
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {content && !isVoiceNoteOnly && !isAttachmentOnly && (
-                            <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words px-0.5">
-                                {content}
-                            </p>
-                        )}
-                    </div>
-
-                    <div className={`
-                        flex items-center gap-1.5 mt-1 px-1
-                        ${isSender ? 'text-gray-400' : 'text-gray-500'}
-                    `}>
-                        <span className="text-[10.5px] font-medium uppercase tracking-wider">
-                            {timestamp}
-                            {isEdited && <span className="ml-1 opacity-70 italic lowercase">(edited)</span>}
-                        </span>
-                        {isSender && (
-                            isRead
-                                ? <CheckCircle2 className="h-3 w-3 text-blue-500 fill-blue-500/10" />
-                                : <CheckCircle2 className="h-3 w-3 text-gray-300" />
-                        )}
+            {/* System/Call Messages */}
+            {type === 'call' ? (
+                <div className="flex justify-center my-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                    <div className="flex items-center gap-2 opacity-60">
+                        <Phone className="h-3 w-3 text-gray-500 mr-1" />
+                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">
+                            {isSender ? content.replace(senderName || '', 'You') : content}
+                            <span className="ml-2 font-mono text-[9px] lowercase font-normal opacity-50">
+                                {timestamp}
+                            </span>
+                        </p>
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} mb-4 group`}>
+                    {!isSender && (
+                        <Avatar className="h-8 w-8 mr-2 mt-auto mb-1 flex-shrink-0">
+                            <AvatarImage src={senderAvatar || ''} />
+                            <AvatarFallback>{senderName?.charAt(0) || '?'}</AvatarFallback>
+                        </Avatar>
+                    )}
+                    <div className={`flex flex-col ${isSender ? 'items-end' : 'items-start'} max-w-[80%] lg:max-w-[70%] relative`}>
+                        <div
+                            className={`
+                                relative transition-all duration-200
+                                ${attachments && attachments.length > 0 && attachments[0].type.startsWith('image') ? 'p-1' : 'px-4 py-2.5'}
+                                ${isSender
+                                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl rounded-tr-sm shadow-md'
+                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-tl-sm border border-gray-100 dark:border-gray-700/50 shadow-sm'
+                                }
+                            `}
+                        >
+                            {/* Context Menu Trigger */}
+                            {messageId && (
+                                <div className={`absolute -top-2 ${isSender ? '-left-2' : '-right-2'} opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 rounded-full bg-white dark:bg-gray-700 shadow-md border hover:bg-gray-50 dark:hover:bg-gray-600"
+                                            >
+                                                <MoreVertical className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align={isSender ? "start" : "end"}>
+                                            {onReply && (
+                                                <DropdownMenuItem onClick={() => onReply(messageId)}>
+                                                    <Reply className="h-4 w-4 mr-2" />
+                                                    Reply
+                                                </DropdownMenuItem>
+                                            )}
+                                            {isSender && onEdit && (
+                                                <DropdownMenuItem onClick={() => onEdit(messageId)}>
+                                                    <Edit className="h-4 w-4 mr-2" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                            )}
+                                            {onForward && (
+                                                <DropdownMenuItem onClick={() => onForward(messageId)}>
+                                                    <Forward className="h-4 w-4 mr-2" />
+                                                    Forward
+                                                </DropdownMenuItem>
+                                            )}
+                                            {onDelete && (
+                                                <DropdownMenuItem
+                                                    onClick={() => onDelete(messageId)}
+                                                    className="text-red-600 dark:text-red-400"
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            )}
+
+                            {/* Quoted Reply */}
+                            {replyTo && (
+                                <div className={`
+                                    mb-2 p-2 rounded-lg border-l-4 flex flex-col gap-0.5 max-w-full overflow-hidden
+                                    ${isSender
+                                        ? 'bg-white/10 border-white/30 text-white/90'
+                                        : 'bg-gray-50 dark:bg-gray-900 border-blue-500 text-gray-600 dark:text-gray-400'
+                                    }
+                                `}>
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isSender ? 'text-white' : 'text-blue-600'}`}>
+                                        {replyTo.senderName || 'User'}
+                                    </span>
+                                    <p className="text-xs truncate italic">
+                                        {replyTo.text}
+                                    </p>
+                                </div>
+                            )}
+
+                            {attachments && attachments.length > 0 && (
+                                <div className={`${(content && !isVoiceNoteOnly && !isAttachmentOnly) ? 'mb-2' : ''} space-y-2`}>
+                                    {attachments.map((att, idx) => (
+                                        <div key={idx}>
+                                            {att.type.startsWith('image') ? (
+                                                <div
+                                                    className="relative w-full max-w-sm rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity ring-1 ring-black/5"
+                                                    onClick={() => openLightbox('image', att.url)}
+                                                >
+                                                    <Image
+                                                        src={att.url}
+                                                        alt={att.name}
+                                                        width={400}
+                                                        height={300}
+                                                        className="object-cover w-full h-auto"
+                                                        unoptimized
+                                                    />
+                                                </div>
+                                            ) : att.type.startsWith('video') ? (
+                                                <div
+                                                    className="relative w-full max-w-sm rounded-xl overflow-hidden cursor-pointer ring-1 ring-black/5"
+                                                    onClick={() => openLightbox('video', att.url)}
+                                                >
+                                                    <video
+                                                        src={att.url}
+                                                        className="w-full h-auto rounded-lg"
+                                                        controls={false}
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
+                                                        <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+                                                            <Video className="h-6 w-6 text-white" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : att.type.startsWith('audio') ? (
+                                                <AudioPlayer url={att.url} isSender={isSender} />
+                                            ) : (
+                                                <div
+                                                    className={`flex items-center gap-3 p-2.5 rounded-xl border ${isSender ? 'bg-white/10 border-white/20' : 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700/50'
+                                                        }`}
+                                                >
+                                                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${isSender ? 'bg-white/20' : 'bg-blue-100 dark:bg-blue-900/40'
+                                                        }`}>
+                                                        {att.type.includes('pdf') ? <FileText className={`h-5 w-5 ${isSender ? 'text-white' : 'text-blue-600'}`} /> : <Paperclip className={`h-5 w-5 ${isSender ? 'text-white' : 'text-blue-600'}`} />}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-xs font-medium truncate">{att.name}</p>
+                                                        <a href={att.url} target="_blank" rel="noopener noreferrer" className={`text-[10px] hover:underline opacity-70`}>
+                                                            Download File
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {content && !isVoiceNoteOnly && !isAttachmentOnly && (
+                                <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words px-0.5">
+                                    {content}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className={`
+                            flex items-center gap-1.5 mt-1 px-1
+                            ${isSender ? 'text-gray-400' : 'text-gray-500'}
+                        `}>
+                            <span className="text-[10.5px] font-medium uppercase tracking-wider">
+                                {timestamp}
+                                {isEdited && <span className="ml-1 opacity-70 italic lowercase">(edited)</span>}
+                            </span>
+                            {isSender && (
+                                isRead
+                                    ? <CheckCircle2 className="h-3 w-3 text-blue-500 fill-blue-500/10" />
+                                    : <CheckCircle2 className="h-3 w-3 text-gray-300" />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Lightbox Dialog */}
             <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>

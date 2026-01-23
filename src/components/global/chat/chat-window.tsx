@@ -304,6 +304,7 @@ const ChatWindow = ({
                                     onEdit={onEditMessage}
                                     onForward={onForwardMessage}
                                     replyTo={msg.replyTo}
+                                    type={msg.type}
                                 />
                             ))}
                             {typingUsers.size > 0 && (

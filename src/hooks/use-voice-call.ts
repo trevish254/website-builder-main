@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 export type CallStatus = 'idle' | 'calling' | 'ringing' | 'active' | 'ended'
 
 interface CallSignal {
-    type: 'offer' | 'answer' | 'candidate' | 'call-initiated' | 'call-declined' | 'call-ended'
+    type: 'offer' | 'answer' | 'candidate' | 'call-initiated' | 'call-accepted' | 'call-declined' | 'call-ended'
     senderId: string
     targetId: string
     signalData?: any
@@ -30,6 +30,9 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
     const pcRef = useRef<RTCPeerConnection | null>(null)
     const channelRef = useRef<any>(null)
     const durationIntervalRef = useRef<any>(null)
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const ringtoneRef = useRef<HTMLAudioElement | null>(null)
+    const ringbackRef = useRef<HTMLAudioElement | null>(null)
 
     // Configuration for PeerConnection (Free STUN servers)
     const iceConfig = {
@@ -40,7 +43,46 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
         ]
     }
 
+    const playRingtone = useCallback(() => {
+        if (!ringtoneRef.current) {
+            // Melodic incoming ringtone
+            ringtoneRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3')
+            ringtoneRef.current.loop = true
+        }
+        ringtoneRef.current.play().catch(e => console.log('Inbound ringtone failed:', e))
+    }, [])
+
+    const stopRingtone = useCallback(() => {
+        if (ringtoneRef.current) {
+            ringtoneRef.current.pause()
+            ringtoneRef.current.currentTime = 0
+        }
+    }, [])
+
+    const playRingback = useCallback(() => {
+        if (!ringbackRef.current) {
+            // Standard "tut-tut" outgoing calling sound
+            ringbackRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1353/1353-preview.mp3')
+            ringbackRef.current.loop = true
+            ringbackRef.current.volume = 0.5
+        }
+        ringbackRef.current.play().catch(e => console.log('Outbound ringback failed:', e))
+    }, [])
+
+    const stopRingback = useCallback(() => {
+        if (ringbackRef.current) {
+            ringbackRef.current.pause()
+            ringbackRef.current.currentTime = 0
+        }
+    }, [])
+
     const cleanup = useCallback(() => {
+        stopRingtone()
+        stopRingback()
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+            timeoutRef.current = null
+        }
         if (pcRef.current) {
             pcRef.current.close()
             pcRef.current = null
@@ -56,7 +98,7 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
         setCallId(null)
         setRemotePeerId(null)
         setDuration(0)
-    }, [localStream])
+    }, [localStream, stopRingtone, stopRingback])
 
     // Signaling Listener
     useEffect(() => {
@@ -84,6 +126,14 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
                         setRemotePeerName(payload.senderName || 'Unknown')
                         setRemotePeerAvatar(payload.senderAvatar)
                         setStatus('ringing')
+                        playRingtone()
+                        break
+
+                    case 'call-accepted':
+                        if (payload.callId !== callId) return
+                        stopRingback()
+                        setStatus('active')
+                        handleStartNegotiation(payload.senderId, payload.callId)
                         break
 
                     case 'offer':
@@ -131,7 +181,28 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [currentUserId, status, callId, cleanup])
+    }, [currentUserId, status, callId, cleanup, playRingtone, playRingback, stopRingback])
+
+    // Call Timeout Handler (30 seconds)
+    useEffect(() => {
+        if (status === 'calling' || status === 'ringing') {
+            timeoutRef.current = setTimeout(() => {
+                if (status === 'ringing') {
+                    toast.info('Missed call')
+                } else if (status === 'calling') {
+                    toast.error('No answer')
+                }
+                hangUp()
+            }, 30000)
+        }
+
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current)
+                timeoutRef.current = null
+            }
+        }
+    }, [status])
 
     const sendSignal = (targetId: string, type: CallSignal['type'], id: string, data?: any) => {
         if (channelRef.current) {
@@ -173,13 +244,16 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
         }
 
         pc.ontrack = (event) => {
+            console.log('WebRTC: Received remote track')
             const remoteAudio = document.getElementById('remote-audio') as HTMLAudioElement
             if (remoteAudio && event.streams[0]) {
                 remoteAudio.srcObject = event.streams[0]
+                remoteAudio.play().catch(e => console.error('Error playing remote audio:', e))
             }
         }
 
         pc.onconnectionstatechange = () => {
+            console.log('WebRTC Connection State:', pc.connectionState)
             if (pc.connectionState === 'connected') {
                 setStatus('active')
                 startDurationCounter()
@@ -206,12 +280,15 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
         setRemotePeerName(targetUserName)
         setRemotePeerAvatar(targetUserAvatar)
         setStatus('calling')
+        playRingback()
 
         sendSignal(targetUserId, 'call-initiated', id)
+    }
 
+    const handleStartNegotiation = async (targetUserId: string, id: string) => {
         const stream = await startLocalStream()
         if (!stream) {
-            cleanup()
+            hangUp()
             return
         }
 
@@ -225,22 +302,15 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
     }
 
     const acceptCall = async () => {
+        stopRingtone()
         if (!callId || !remotePeerId) return
 
-        const stream = await startLocalStream()
-        if (!stream) {
-            declineCall()
-            return
-        }
-
-        setStatus('active') // optimistically or wait for connection? Let's say active means we are trying to connect
-
-        // Peer Connection is created when we handle the offer or here if not already
-        // But for receiving, we actually need to wait for the offer to set up the PC properly.
-        // Actually, handleReceiveOffer does it.
+        setStatus('active')
+        sendSignal(remotePeerId, 'call-accepted', callId)
     }
 
     const handleReceiveOffer = async (payload: CallSignal) => {
+        stopRingtone()
         const stream = await startLocalStream()
         if (!stream) {
             sendSignal(payload.senderId, 'call-declined', payload.callId)

@@ -48,6 +48,7 @@ interface ChatMessage {
   senderAvatar?: string
   isRead?: boolean
   isEdited?: boolean
+  type?: string
 }
 
 const AgencyMessagesPage = ({ params }: Props) => {
@@ -155,7 +156,47 @@ const AgencyMessagesPage = ({ params }: Props) => {
     declineCall,
     hangUp,
     toggleMute
-  } = useVoiceCall(user?.id || '', user?.email || 'Me')
+  } = useVoiceCall(user?.id || '', user?.name || 'Me')
+
+  // Log call events to chat history
+  useEffect(() => {
+    if (!selectedConversationId || !user?.id) return
+
+    const handleCallHistoryLog = async () => {
+      // 1. Started Call
+      if (callStatus === 'calling' && prevCallStatus.current === 'idle') {
+        activeCallConvId.current = selectedConversationId
+        await sendMessageApi({
+          conversationId: selectedConversationId,
+          senderId: user.id,
+          content: `${user.name} started an audio call`,
+          type: 'call'
+        })
+      }
+
+      // 2. Received Call (Setting active conv for receiver)
+      if (callStatus === 'ringing' && prevCallStatus.current === 'idle') {
+        activeCallConvId.current = selectedConversationId
+      }
+
+      // 3. Ended Call (Transition to idle from calling, ringing or active)
+      if (callStatus === 'idle' && (prevCallStatus.current === 'calling' || prevCallStatus.current === 'ringing' || prevCallStatus.current === 'active')) {
+        if (activeCallConvId.current) {
+          await sendMessageApi({
+            conversationId: activeCallConvId.current,
+            senderId: user.id,
+            content: `Audio call ended`,
+            type: 'call'
+          })
+          activeCallConvId.current = null
+        }
+      }
+
+      prevCallStatus.current = callStatus
+    }
+
+    handleCallHistoryLog()
+  }, [callStatus, user?.id, user?.name, selectedConversationId])
 
   // Fetch agency users for new message dialog
   useEffect(() => {
@@ -167,6 +208,10 @@ const AgencyMessagesPage = ({ params }: Props) => {
     }
     loadAgencyUsers()
   }, [user?.id, params.agencyId])
+
+  // Track the current call conversation ID to send "Call ended" message
+  const activeCallConvId = useRef<string | null>(null)
+  const prevCallStatus = useRef<'idle' | 'calling' | 'ringing' | 'active' | 'ended'>('idle')
 
   // Fetch conversations for current user with participant info
   const loadConversations = React.useCallback(async () => {
@@ -375,7 +420,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
           senderAvatar: isMe ? user?.avatarUrl : (senderUser as any)?.avatarUrl,
           isEdited: m.isEdited || false,
           attachments: metadata?.attachments || [],
-          replyTo: metadata?.replyingTo
+          replyTo: metadata?.replyingTo,
+          type: m.type
         }
       })
 
