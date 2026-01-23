@@ -26,10 +26,17 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: P
     const [allLanes, setAllLanes] = useState(lanes)
     const { setOpen } = useModal()
     const router = useRouter()
+    const [isMounted, setIsMounted] = useState(false)
+
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
 
     useEffect(() => {
         setAllLanes(lanes)
     }, [lanes])
+
+    if (!isMounted) return null
 
     const onDragEnd = async (result: DropResult) => {
         const { destination, source, type } = result
@@ -123,6 +130,7 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: P
             <CustomModal
                 title="Create a Task"
                 subheading="Add a new task to your board."
+                className="max-w-[750px] w-full"
             >
                 <CreateTaskForm laneId={defaultLaneId} subAccountUsers={teamMembers} lanes={allLanes} />
             </CustomModal>
@@ -130,7 +138,7 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: P
     }
 
     return (
-        <div className="flex flex-col h-full w-full overflow-hidden bg-white dark:bg-neutral-900">
+        <div className="flex flex-col h-full w-full overflow-hidden bg-neutral-50 dark:bg-zinc-950">
             {/* Main Header */}
             <div className="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800">
                 <h1 className="text-3xl font-bold">Tasks</h1>
@@ -146,7 +154,7 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: P
             </div>
 
             {/* Sub Header - View Toggles & Filters */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm">
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <button className="flex items-center gap-2 text-blue-600 font-medium">
@@ -192,7 +200,7 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: P
                 <Droppable droppableId="board" direction="horizontal" type="lane">
                     {(provided) => (
                         <div
-                            className="flex gap-6 overflow-x-auto h-full p-6 bg-neutral-50 dark:bg-neutral-900/50"
+                            className="flex gap-6 overflow-x-auto h-full p-6"
                             ref={provided.innerRef}
                             {...provided.droppableProps}
                         >
@@ -204,6 +212,7 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: P
                                     agencyId={agencyId}
                                     subAccountId={subAccountId}
                                     teamMembers={teamMembers}
+                                    allLanes={allLanes}
                                 />
                             ))}
                             {provided.placeholder}

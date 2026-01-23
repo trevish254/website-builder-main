@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Search, MessageSquare, Pin, Star, Circle, Trash2, Edit, Users } from 'lucide-react'
+import ConnectivityIndicator from '@/components/global/connectivity-indicator'
 
 export interface InboxItem {
     id: string
@@ -120,7 +121,10 @@ const ChatSidebar = ({
             {/* Header */}
             <div className="p-3 pb-1">
                 <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Message</h2>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Message</h2>
+                        <ConnectivityIndicator />
+                    </div>
                     <div className="flex items-center gap-1">
                         {notificationSettings}
                         <Button
@@ -205,7 +209,7 @@ const ChatSidebar = ({
             </div>
 
             {/* Messages List */}
-            <ScrollArea className="flex-1 px-1">
+            <div className="flex-1 overflow-y-auto px-1 custom-scrollbar" data-lenis-prevent>
                 <div className="space-y-0.5 p-1">
                     {filteredMessages.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
@@ -263,7 +267,7 @@ const ChatSidebar = ({
                         ))
                     )}
                 </div>
-            </ScrollArea>
+            </div>
         </div>
     )
 }

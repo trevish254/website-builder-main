@@ -2830,16 +2830,37 @@ export const getMpesaSettings = async (agencyId?: string, subAccountId?: string)
 
 export const getTaskBoardDetails = async (subAccountId: string) => {
   console.log('🔍 getTaskBoardDetails called for subAccount:', subAccountId)
-  const { data: board } = await supabase
-    .from('TaskBoard')
-    .select('*')
-    .eq('subAccountId', subAccountId)
-    .single()
+  const supabase = createClient()
 
-  if (!board) {
+  // Fetch all boards with their lanes and tasks to find the most active one
+  const { data: boards, error: fetchError } = await supabase
+    .from('TaskBoard')
+    .select(`
+      *,
+      TaskLane (
+        *,
+        Task (
+          *,
+          TaskAssignee (
+            userId,
+            User (
+              name,
+              avatarUrl
+            )
+          )
+        )
+      )
+    `)
+    .eq('subAccountId', subAccountId)
+
+  if (fetchError) {
+    console.error('❌ Error fetching task boards:', fetchError)
+    return null
+  }
+
+  if (!boards || boards.length === 0) {
     console.log('⚠️ No board found, creating default board...')
     const newBoardId = v4()
-    // Create default board if not exists
     const { data: newBoard, error: createError } = await supabase
       .from('TaskBoard')
       .insert({
@@ -2859,43 +2880,50 @@ export const getTaskBoardDetails = async (subAccountId: string) => {
 
     if (newBoard) {
       console.log('✅ Default board created:', newBoard.id)
-      // Create default lanes
       const defaultLanes = [
         { id: v4(), name: 'To Do', boardId: newBoard.id, order: 0, color: '#3b82f6', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
         { id: v4(), name: 'In Progress', boardId: newBoard.id, order: 1, color: '#eab308', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
         { id: v4(), name: 'Done', boardId: newBoard.id, order: 2, color: '#22c55e', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
       ]
       const { error: lanesError } = await supabase.from('TaskLane').insert(defaultLanes as AnyRecord[])
+      if (lanesError) console.error('❌ Error creating default lanes:', lanesError)
 
-      if (lanesError) {
-        console.error('❌ Error creating default lanes:', lanesError)
-      } else {
-        console.log('✅ Default lanes created')
-      }
-
-      // Return new board with lanes (need to refetch to get structure right or just return board and let page fetch lanes)
       return { ...newBoard, TaskLane: defaultLanes.map(lane => ({ ...lane, Task: [] })) }
     }
     return null
   }
 
-  console.log('✅ Board found:', board.id)
-  const { data: lanes } = await supabase
-    .from('TaskLane')
-    .select(`
-      *,
-      Task (*)
-    `)
-    .eq('boardId', board.id)
-    .order('order')
+  // Heuristic: Pick the board with the most lanes. If even, pick the one with most tasks.
+  // This helps if multiple boards were accidentally created.
+  let bestBoard = boards[0]
+  if (boards.length > 1) {
+    console.warn(`🚨 Multiple boards (${boards.length}) found for subAccount: ${subAccountId}`)
+    boards.forEach((b, idx) => {
+      console.log(` Board ${idx}: ID=${b.id}, Lanes=${b.TaskLane?.length || 0}`)
+    })
 
-  // Sort tasks by order
-  const lanesWithTasks = lanes?.map(lane => ({
+    bestBoard = boards.reduce((prev, current) => {
+      const prevLanes = prev.TaskLane?.length || 0
+      const currentLanes = current.TaskLane?.length || 0
+      if (currentLanes > prevLanes) return current
+      if (currentLanes < prevLanes) return prev
+
+      const prevTasks = prev.TaskLane?.reduce((acc: number, l: any) => acc + (l.Task?.length || 0), 0) || 0
+      const currentTasks = current.TaskLane?.reduce((acc: number, l: any) => acc + (l.Task?.length || 0), 0) || 0
+      return currentTasks >= prevTasks ? current : prev
+    })
+    console.log(`✅ Selected most active board: ${bestBoard.id}`)
+  }
+
+  // Sort lanes by order
+  const lanesWithSortedTasks = bestBoard.TaskLane?.sort((a: any, b: any) => a.order - b.order).map((lane: any) => ({
     ...lane,
     Task: lane.Task?.sort((a: any, b: any) => a.order - b.order) || []
   })) || []
 
-  return { ...board, TaskLane: lanesWithTasks }
+  const result = { ...bestBoard, TaskLane: lanesWithSortedTasks }
+  console.log('✅ Board details retrieved successfully')
+  return result
 }
 
 export const getDistinctBrands = async (subAccountId: string) => {
@@ -3257,16 +3285,37 @@ export const upsertContact = async (contact: {
 
 export const getAgencyTaskBoardDetails = async (agencyId: string) => {
   console.log('🔍 getAgencyTaskBoardDetails called for agency:', agencyId)
-  const { data: board } = await supabase
-    .from('TaskBoard')
-    .select('*')
-    .eq('agencyId', agencyId)
-    .single()
+  const supabase = createClient()
 
-  if (!board) {
+  // Fetch all boards with their lanes and tasks to find the most active one
+  const { data: boards, error: fetchError } = await supabase
+    .from('TaskBoard')
+    .select(`
+      *,
+      TaskLane (
+        *,
+        Task (
+          *,
+          TaskAssignee (
+            userId,
+            User (
+              name,
+              avatarUrl
+            )
+          )
+        )
+      )
+    `)
+    .eq('agencyId', agencyId)
+
+  if (fetchError) {
+    console.error('❌ Error fetching agency task boards:', fetchError)
+    return null
+  }
+
+  if (!boards || boards.length === 0) {
     console.log('⚠️ No board found, creating default board...')
     const newBoardId = v4()
-    // Create default board if not exists
     const { data: newBoard, error: createError } = await supabase
       .from('TaskBoard')
       .insert({
@@ -3286,52 +3335,43 @@ export const getAgencyTaskBoardDetails = async (agencyId: string) => {
 
     if (newBoard) {
       console.log('✅ Default board created:', newBoard.id)
-      // Create default lanes
       const defaultLanes = [
         { id: v4(), name: 'To Do', boardId: newBoard.id, order: 0, color: '#3b82f6', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
         { id: v4(), name: 'In Progress', boardId: newBoard.id, order: 1, color: '#eab308', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
         { id: v4(), name: 'Done', boardId: newBoard.id, order: 2, color: '#22c55e', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
       ]
       const { error: lanesError } = await supabase.from('TaskLane').insert(defaultLanes as AnyRecord[])
+      if (lanesError) console.error('❌ Error creating default lanes:', lanesError)
 
-      if (lanesError) {
-        console.error('❌ Error creating default lanes:', lanesError)
-      } else {
-        console.log('✅ Default lanes created')
-      }
-
-      // Return new board with lanes
       return { ...newBoard, TaskLane: defaultLanes.map(lane => ({ ...lane, Task: [] })) }
     }
     return null
   }
 
-  console.log('✅ Board found:', board.id)
-  const { data: lanes } = await supabase
-    .from('TaskLane')
-    .select(`
-      *,
-      Task (
-        *,
-        TaskAssignee (
-          userId,
-          User (
-            name,
-            avatarUrl
-          )
-        )
-      )
-    `)
-    .eq('boardId', board.id)
-    .order('order')
+  // Heuristic: Pick the board with the most lanes. If even, pick the one with most tasks.
+  let bestBoard = boards[0]
+  if (boards.length > 1) {
+    console.warn(`🚨 Multiple agency boards (${boards.length}) found for agency: ${agencyId}`)
+    bestBoard = boards.reduce((prev, current) => {
+      const prevLanes = prev.TaskLane?.length || 0
+      const currentLanes = current.TaskLane?.length || 0
+      if (currentLanes > prevLanes) return current
+      if (currentLanes < prevLanes) return prev
 
-  // Sort tasks by order
-  const lanesWithTasks = lanes?.map(lane => ({
+      const prevTasks = prev.TaskLane?.reduce((acc: number, l: any) => acc + (l.Task?.length || 0), 0) || 0
+      const currentTasks = current.TaskLane?.reduce((acc: number, l: any) => acc + (l.Task?.length || 0), 0) || 0
+      return currentTasks >= prevTasks ? current : prev
+    })
+    console.log(`✅ Selected most active agency board: ${bestBoard.id}`)
+  }
+
+  // Sort lanes by order
+  const lanesWithSortedTasks = bestBoard.TaskLane?.sort((a: any, b: any) => a.order - b.order).map((lane: any) => ({
     ...lane,
     Task: lane.Task?.sort((a: any, b: any) => a.order - b.order) || []
   })) || []
 
-  return { ...board, TaskLane: lanesWithTasks }
+  return { ...bestBoard, TaskLane: lanesWithSortedTasks }
 }
 
 // ============================================

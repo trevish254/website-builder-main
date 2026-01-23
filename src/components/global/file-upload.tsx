@@ -2,10 +2,10 @@ import { FileIcon, X } from 'lucide-react'
 import Image from 'next/image'
 import React from 'react'
 import { Button } from '../ui/button'
-import { UploadDropzone } from '@/lib/uploadthing'
+import { UploadButton, UploadDropzone } from '@/lib/uploadthing'
 
 type Props = {
-  apiEndpoint: 'agencyLogo' | 'avatar' | 'subaccountLogo' | 'productImage'
+  apiEndpoint: 'agencyLogo' | 'avatar' | 'subaccountLogo' | 'productImage' | 'media' | 'subaccountFile'
   onChange: (url?: string | string[]) => void
   value?: string | string[]
   multiple?: boolean
@@ -48,7 +48,7 @@ const FileUpload = ({ apiEndpoint, onChange, value, multiple }: Props) => {
           ))}
         </div>
         {multiple && (
-          <UploadDropzone
+          <UploadButton
             endpoint={apiEndpoint}
             onClientUploadComplete={(res) => {
               if (res) {
@@ -56,7 +56,11 @@ const FileUpload = ({ apiEndpoint, onChange, value, multiple }: Props) => {
                 onChange([...(Array.isArray(value) ? value : [value]), ...newUrls])
               }
             }}
-            className="ut-label:text-primary ut-button:bg-primary ut-button:ut-readying:bg-primary/50"
+            appearance={{
+              button: "ut-ready:bg-blue-600 ut-uploading:cursor-not-allowed bg-blue-600 bg-none after:bg-blue-700",
+              container: "w-full focus-within:ring-blue-600",
+              allowedContent: "text-neutral-400 text-[10px]"
+            }}
           />
         )}
         {!multiple && (
@@ -73,8 +77,8 @@ const FileUpload = ({ apiEndpoint, onChange, value, multiple }: Props) => {
     )
   }
   return (
-    <div className="w-full bg-muted/30 p-4 border-2 border-dashed rounded-lg">
-      <UploadDropzone
+    <div className="w-full h-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl bg-neutral-50/50 dark:bg-neutral-900/50 hover:border-blue-500/50 transition-all duration-300">
+      <UploadButton
         endpoint={apiEndpoint}
         onClientUploadComplete={(res) => {
           if (res) {
@@ -84,15 +88,21 @@ const FileUpload = ({ apiEndpoint, onChange, value, multiple }: Props) => {
         }}
         onUploadError={(error: Error) => {
           console.error('❌ Upload error:', error)
-          alert('Failed to upload image. Please try again or skip the logo.')
         }}
         onUploadBegin={(name) => {
           console.log('📤 Upload began:', name)
         }}
+        appearance={{
+          button: "ut-ready:bg-blue-600 ut-uploading:cursor-not-allowed bg-blue-600 bg-none after:bg-blue-700 h-10 px-6 rounded-xl font-bold transition-all hover:scale-[1.02] active:scale-[0.98]",
+          container: "w-fit",
+          allowedContent: "text-neutral-400 text-[10px] mt-2 font-medium"
+        }}
       />
-      <p className="text-sm text-muted-foreground mt-2">
-        Logo is optional. You can skip this step and add a logo later.
-      </p>
+      {!value && (
+        <p className="text-[10px] text-neutral-400 mt-4 uppercase tracking-widest font-bold">
+          Click above to auto-upload
+        </p>
+      )}
     </div>
   )
 }

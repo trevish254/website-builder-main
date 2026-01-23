@@ -11,6 +11,7 @@ import MessageBubble from './message-bubble'
 import { InboxItem } from './chat-sidebar'
 import { useToast } from '@/components/ui/use-toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import ConnectivityIndicator from '@/components/global/connectivity-indicator'
 
 interface ChatMessage {
     id: string
@@ -47,6 +48,7 @@ interface ChatWindowProps {
     onCancelEdit?: () => void
     typingUsers?: Set<string>
     chatParticipants?: Map<string, { id: string, name: string, avatarUrl: string }>
+    onVoiceCall?: () => void
 }
 
 const ChatWindow = ({
@@ -68,7 +70,8 @@ const ChatWindow = ({
     editingMessage,
     onCancelEdit,
     typingUsers = new Set(),
-    chatParticipants = new Map()
+    chatParticipants = new Map(),
+    onVoiceCall
 }: ChatWindowProps) => {
     const scrollRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -138,22 +141,19 @@ const ChatWindow = ({
         }
     }
 
-    // Scroll to bottom function that works with ScrollArea
+    // Scroll to bottom function
     const scrollToBottom = () => {
         if (scrollRef.current) {
-            // ScrollArea wraps content in a viewport div, we need to find it
-            const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]')
-            if (viewport) {
-                viewport.scrollTop = viewport.scrollHeight
-            }
+            scrollRef.current.scrollTo({
+                top: scrollRef.current.scrollHeight,
+                behavior: 'smooth'
+            })
         }
     }
 
     // Detect if user has scrolled up
     useEffect(() => {
-        if (!scrollRef.current) return
-
-        const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]')
+        const viewport = scrollRef.current
         if (!viewport) return
 
         const handleScroll = () => {
@@ -247,13 +247,15 @@ const ChatWindow = ({
                                 )}
                             </p>
                         </div>
+                        <ConnectivityIndicator />
                     </div>
                     <div className="flex items-center gap-4">
                         <Button
                             variant="ghost"
                             size="icon"
                             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                            onClick={() => handleComingSoon('Voice Call')}
+                            onClick={onVoiceCall}
+                            disabled={!selectedMsg || selectedMsg.type === 'group'}
                         >
                             <Phone className="h-5 w-5" />
                         </Button>
@@ -278,12 +280,14 @@ const ChatWindow = ({
             </CardHeader>
 
             {/* Chat Messages */}
-            <CardContent className="flex-1 overflow-hidden p-0 flex flex-col relative">
-
-
-                <ScrollArea className="flex-1 px-6 h-full" ref={scrollRef}>
-                    <div className="min-h-full flex flex-col justify-end">
-                        <div className="space-y-4 py-6 pb-32">
+            <CardContent className="flex-1 p-0 flex flex-col relative min-h-0 overflow-hidden">
+                <div
+                    className="flex-1 overflow-y-auto px-6 custom-scrollbar h-0"
+                    ref={scrollRef}
+                    data-lenis-prevent
+                >
+                    <div className="flex flex-col">
+                        <div className="space-y-4 py-6 pb-40">
                             {chatMessages.map((msg) => (
                                 <MessageBubble
                                     key={msg.id}
@@ -315,7 +319,7 @@ const ChatWindow = ({
                             )}
                         </div>
                     </div>
-                </ScrollArea>
+                </div>
 
                 {/* Scroll to Bottom Button */}
                 {showScrollButton && (

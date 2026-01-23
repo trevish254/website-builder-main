@@ -19,15 +19,17 @@ export const upsertTaskLane = async (lane: Partial<TaskLane>) => {
         return { error: error.message }
     }
 
-    // Fetch board to get subAccountId for revalidation
+    // Fetch board to get IDs for revalidation
     const { data: board } = await supabase
         .from('TaskBoard')
-        .select('subAccountId')
+        .select('subAccountId, agencyId')
         .eq('id', lane.boardId)
         .single()
 
     if (board?.subAccountId) {
         revalidatePath(`/subaccount/${board.subAccountId}/tasks`)
+    } else if (board?.agencyId) {
+        revalidatePath(`/agency/${board.agencyId}/tasks`)
     }
 
     return { data }
@@ -47,9 +49,11 @@ export const deleteTaskLane = async (laneId: string) => {
     }
 
     if (lane?.boardId) {
-        const { data: board } = await supabase.from('TaskBoard').select('subAccountId').eq('id', lane.boardId).single()
+        const { data: board } = await supabase.from('TaskBoard').select('subAccountId, agencyId').eq('id', lane.boardId).single()
         if (board?.subAccountId) {
             revalidatePath(`/subaccount/${board.subAccountId}/tasks`)
+        } else if (board?.agencyId) {
+            revalidatePath(`/agency/${board.agencyId}/tasks`)
         }
     }
 
@@ -103,12 +107,14 @@ export const upsertTask = async (task: Partial<Task> & { assignees?: string[] })
         }
     }
 
-    // Get subAccountId for revalidation
+    // Get IDs for revalidation
     const { data: lane } = await supabase.from('TaskLane').select('boardId').eq('id', task.laneId).single()
     if (lane?.boardId) {
-        const { data: board } = await supabase.from('TaskBoard').select('subAccountId').eq('id', lane.boardId).single()
+        const { data: board } = await supabase.from('TaskBoard').select('subAccountId, agencyId').eq('id', lane.boardId).single()
         if (board?.subAccountId) {
             revalidatePath(`/subaccount/${board.subAccountId}/tasks`)
+        } else if (board?.agencyId) {
+            revalidatePath(`/agency/${board.agencyId}/tasks`)
         }
     }
 
@@ -131,9 +137,11 @@ export const deleteTask = async (taskId: string) => {
     if (task?.laneId) {
         const { data: lane } = await supabase.from('TaskLane').select('boardId').eq('id', task.laneId).single()
         if (lane?.boardId) {
-            const { data: board } = await supabase.from('TaskBoard').select('subAccountId').eq('id', lane.boardId).single()
+            const { data: board } = await supabase.from('TaskBoard').select('subAccountId, agencyId').eq('id', lane.boardId).single()
             if (board?.subAccountId) {
                 revalidatePath(`/subaccount/${board.subAccountId}/tasks`)
+            } else if (board?.agencyId) {
+                revalidatePath(`/agency/${board.agencyId}/tasks`)
             }
         }
     }

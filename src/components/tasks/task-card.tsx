@@ -38,8 +38,13 @@ const TaskCard = ({ task, index, subAccountUsers }: Props) => {
                 >
                     <Card
                         className={`
-                            hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing border-none shadow-sm bg-white dark:bg-neutral-900 overflow-hidden
-                            ${snapshot.isDragging ? 'shadow-2xl ring-2 ring-blue-500/20 rotate-2 scale-105 opacity-90 z-50' : ''}
+                            group/card cursor-grab active:cursor-grabbing 
+                            border-white/20 dark:border-neutral-800/20 shadow-sm 
+                            bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-xl overflow-hidden
+                            ${snapshot.isDragging
+                                ? 'shadow-2xl ring-2 ring-blue-500/40 opacity-100 z-[100] !transition-none'
+                                : 'transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 hover:border-blue-500/30'
+                            }
                         `}
                     >
                         {task.coverImage && (

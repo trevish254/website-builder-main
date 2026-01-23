@@ -19,17 +19,32 @@ type Props = {
 
 const CustomModal = ({ children, defaultOpen, subheading, title, className }: Props) => {
   const { isOpen, setClose } = useModal()
+  let sidebarContext: any = null
+
+  try {
+    sidebarContext = useSidebar()
+  } catch (e) {
+    // Silent fail if outside sidebar context
+  }
+
+  const isCollapsed = sidebarContext?.isPanelCollapsed
+
   return (
     <Dialog
       open={isOpen || defaultOpen}
       onOpenChange={setClose}
     >
-      <DialogContent className={cn("overflow-scroll md:max-h-[700px] md:h-fit h-screen bg-card", className)}>
-        <DialogHeader className="pt-8 text-left">
-          <DialogTitle className="text-2xl font-bold">{title}</DialogTitle>
-          <DialogDescription>{subheading}</DialogDescription>
-          {children}
+      <DialogContent className={cn(
+        "overflow-hidden max-h-[90vh] md:max-h-[85vh] bg-card/95 backdrop-blur-sm border-neutral-200/50 dark:border-neutral-800/50 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] rounded-[2rem]",
+        className
+      )}>
+        <DialogHeader className="p-8 text-left">
+          <DialogTitle className="text-3xl font-extrabold tracking-tight">{title}</DialogTitle>
+          <DialogDescription className="text-neutral-500 dark:text-neutral-400">{subheading}</DialogDescription>
         </DialogHeader>
+        <div className="overflow-hidden">
+          {children}
+        </div>
       </DialogContent>
     </Dialog>
   )

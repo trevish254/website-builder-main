@@ -1,7 +1,7 @@
 import { paystack } from './src/lib/paystack'
 
 async function checkPlan() {
-    const planCode = 'PLN_94lyi50x08ydc2u'
+    const planCode = 'PLN_ke53vnn0sw7v8xa'
     console.log('--- CHECKING PLAN:', planCode, '---')
     // We don't have a fetchPlan utility, so let's use fetch directly
     const res = await fetch(`https://api.paystack.co/plan/${planCode}`, {

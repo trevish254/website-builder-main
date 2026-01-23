@@ -71,7 +71,7 @@ export const pricingCards = [
     highlight: 'Everything in Starter, plus',
     features: ['Unlimited Sub accounts', 'Unlimited Team members'],
     priceId: 'price_1OYxkqFj9oKEERu1NbKUxXxN', // TODO: Update this ID in Stripe Dashboard to match KSh 5,000
-    paystackPlanCode: 'PLN_94lyi50x08ydc2u', // TODO: Go to Paystack Dashboard > Plans and copy the Plan Code here
+    paystackPlanCode: 'PLN_ke53vnn0sw7v8xa', // TODO: Go to Paystack Dashboard > Plans and copy the Plan Code here
   },
 ]
 

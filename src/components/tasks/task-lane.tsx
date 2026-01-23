@@ -17,9 +17,10 @@ type Props = {
     agencyId?: string
     subAccountId?: string
     teamMembers: { id: string; name: string; avatarUrl: string }[]
+    allLanes: (TaskLaneType & { Task: Task[] })[]
 }
 
-const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers }: Props) => {
+const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes }: Props) => {
     const { setOpen } = useModal()
 
     const handleAddTask = () => {
@@ -27,8 +28,13 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers }: Props) =
             <CustomModal
                 title="Create a Task"
                 subheading="Add a new task to your board."
+                className="max-w-[750px] w-full"
             >
-                <CreateTaskForm laneId={lane.id} subAccountUsers={teamMembers} />
+                <CreateTaskForm
+                    laneId={lane.id}
+                    subAccountUsers={teamMembers}
+                    lanes={allLanes}
+                />
             </CustomModal>
         )
     }
@@ -39,17 +45,26 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers }: Props) =
                 <div
                     {...provided.draggableProps}
                     ref={provided.innerRef}
-                    className={`h-full min-w-[300px] max-w-[300px] flex flex-col rounded-lg transition-colors duration-300 ${snapshot.isDragging ? 'opacity-50' : ''}`}
+                    className={`
+                        h-full min-w-[320px] max-w-[320px] flex flex-col 
+                        rounded-2xl p-4
+                        bg-neutral-100/90 dark:bg-neutral-900/90
+                        border border-white/20 dark:border-neutral-800/20
+                        shadow-sm
+                        ${snapshot.isDragging
+                            ? 'opacity-50 z-[100]'
+                            : 'transition-[background-color,border-color,box-shadow,opacity] duration-300 ease-out'}
+                    `}
                 >
                     <div
                         {...provided.dragHandleProps}
                         className="flex items-center justify-between mb-4 px-1 cursor-grab active:cursor-grabbing group"
                     >
-                        <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                        <div className="flex items-center gap-3">
+                            <span className="font-bold text-sm tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-blue-600 transition-colors">
                                 {lane.name}
                             </span>
-                            <span className="text-xs text-muted-foreground bg-neutral-200 dark:bg-neutral-800 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-black tracking-tighter text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-800/50 min-w-[28px] text-center">
                                 {(lane.Task || []).length.toString().padStart(2, '0')}
                             </span>
                         </div>
@@ -75,8 +90,10 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers }: Props) =
                                 {...provided.droppableProps}
                                 className={`
                                     flex-1 flex flex-col gap-3 overflow-y-auto pb-4 px-1
-                                    transition-colors duration-200 rounded-lg
-                                    ${snapshot.isDraggingOver ? 'bg-neutral-100/50 dark:bg-neutral-800/50' : ''}
+                                    transition-all duration-300 rounded-xl mt-2
+                                    ${snapshot.isDraggingOver
+                                        ? 'bg-blue-500/[0.08] dark:bg-blue-500/[0.12] ring-2 ring-blue-500/20 ring-inset'
+                                        : 'bg-transparent'}
                                 `}
                             >
                                 {(lane.Task || []).map((task, index) => (

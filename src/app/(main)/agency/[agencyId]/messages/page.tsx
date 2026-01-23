@@ -31,6 +31,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { NotificationQueue, InAppNotification } from '@/components/global/chat/message-notification'
 import { NotificationSettingsDialog } from '@/components/global/chat/notification-settings'
 import { showMessageNotification, playNotificationSound, isInConversation, getNotificationPermission } from '@/lib/notifications'
+import VoiceCallOverlay from '@/components/global/chat/voice-call-overlay'
+import { useVoiceCall } from '@/hooks/use-voice-call'
 
 type Props = {
   params: { agencyId: string }
@@ -140,6 +142,20 @@ const AgencyMessagesPage = ({ params }: Props) => {
     setNotificationSettings(settings)
     localStorage.setItem('messageNotificationSettings', JSON.stringify(settings))
   }
+
+  // Voice Call logic
+  const {
+    status: callStatus,
+    duration: callDuration,
+    isMuted: isCallMuted,
+    remotePeerName,
+    remotePeerAvatar,
+    initiateCall,
+    acceptCall,
+    declineCall,
+    hangUp,
+    toggleMute
+  } = useVoiceCall(user?.id || '', user?.email || 'Me')
 
   // Fetch agency users for new message dialog
   useEffect(() => {
@@ -970,7 +986,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-white dark:bg-background">
+    <div className="flex h-[calc(100vh-96px)] bg-white dark:bg-background rounded-2xl overflow-hidden border shadow-sm">
       {/* Notification Queue */}
       <NotificationQueue
         notifications={inAppNotifications}
@@ -1042,8 +1058,29 @@ const AgencyMessagesPage = ({ params }: Props) => {
             setEditingMessage(null)
             setNewMessage('')
           }}
+          onVoiceCall={() => {
+            if (selectedMsg?.participantInfo) {
+              initiateCall(
+                selectedMsg.participantInfo.id,
+                selectedMsg.participantInfo.name,
+                selectedMsg.participantInfo.avatarUrl
+              )
+            }
+          }}
         />
       </div>
+
+      <VoiceCallOverlay
+        status={callStatus}
+        receiverName={remotePeerName}
+        receiverAvatar={remotePeerAvatar}
+        duration={callDuration}
+        isMuted={isCallMuted}
+        onMuteToggle={toggleMute}
+        onHangUp={hangUp}
+        onAccept={acceptCall}
+        onDecline={declineCall}
+      />
 
       {/* Hidden Dialog for New Message */}
       <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
