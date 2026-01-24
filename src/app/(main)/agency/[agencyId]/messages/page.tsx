@@ -10,15 +10,17 @@ import {
   User,
   Camera,
   Check,
-  Info
+  Info,
+  Video
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase/client'
 import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
-import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getAgencyUsers, ensureDirectConversation, getConversationWithParticipantsManual, deleteConversation, searchAgenciesByEmail, getAgencyOwner, updateMessage, createGroupConversation, deleteMessage } from '@/lib/supabase-queries'
+import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getAgencyUsers, ensureDirectConversation, getConversationWithParticipantsManual, hideConversationForUser, hideConversationsBulk, searchAgenciesByEmail, getAgencyOwner, updateMessage, createGroupConversation, deleteMessage, getConversationAttachments } from '@/lib/supabase-queries'
 import { getConversationsWithParticipants, getMessagesForConversation, sendMessage } from '@/lib/queries'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +45,7 @@ interface ChatMessage {
   sender: 'me' | 'other'
   text: string
   timestamp: string
+  createdAt: string
   attachments?: { type: string; name: string; url: string }[]
   senderName?: string
   senderAvatar?: string
@@ -54,6 +57,8 @@ interface ChatMessage {
 const AgencyMessagesPage = ({ params }: Props) => {
   console.log('🎯 AgencyMessagesPage component loaded')
   const { user } = useSupabaseUser()
+  const userName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Me'
+  const userAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || ''
   const { toast } = useToast()
   const browserClient = createClient()
 
@@ -77,7 +82,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'all' | 'team' | 'groups'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'team' | 'groups' | 'video'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -100,6 +105,9 @@ const AgencyMessagesPage = ({ params }: Props) => {
   const [dialogTab, setDialogTab] = useState<'team' | 'agencies'>('team')
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null)
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null)
+  const [hasMoreMessages, setHasMoreMessages] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [allAttachments, setAllAttachments] = useState<any[]>([])
 
   // Track all user details discovered in conversations to avoid "Unknown" labels
   const [chatParticipants, setChatParticipants] = useState<Map<string, { id: string, name: string, avatarUrl: string }>>(new Map())
@@ -110,6 +118,11 @@ const AgencyMessagesPage = ({ params }: Props) => {
   const [groupDescription, setGroupDescription] = useState('')
   const [groupIcon, setGroupIcon] = useState('')
   const [selectedGroupUsers, setSelectedGroupUsers] = useState<string[]>([])
+
+  // Video Room creation state
+  const [showNewVideoRoomDialog, setShowNewVideoRoomDialog] = useState(false)
+  const [videoRoomTitle, setVideoRoomTitle] = useState('')
+  const [selectedVideoUsers, setSelectedVideoUsers] = useState<string[]>([])
 
   // Notification state
   const [inAppNotifications, setInAppNotifications] = useState<InAppNotification[]>([])
@@ -156,7 +169,41 @@ const AgencyMessagesPage = ({ params }: Props) => {
     declineCall,
     hangUp,
     toggleMute
-  } = useVoiceCall(user?.id || '', user?.name || 'Me')
+  } = useVoiceCall(user?.id || '', userName)
+
+  // Listen for global video call invites
+  useEffect(() => {
+    if (!user?.id) return
+
+    const channel = supabase.channel('video-calls', {
+      config: { broadcast: { self: false } }
+    })
+
+    channel
+      .on('broadcast', { event: 'invite' }, ({ payload }) => {
+        // payload: { roomId, senderName, senderId, targetIds }
+        if (payload.targetIds.includes(user.id)) {
+          toast({
+            title: 'Incoming Video Call',
+            description: `${payload.senderName} is calling you...`,
+            action: (
+              <Button
+                onClick={() => window.open(`/video/${payload.roomId}`, '_blank')}
+                className="bg-rose-500 hover:bg-rose-600 text-white text-xs h-8"
+              >
+                Join Now
+              </Button>
+            ),
+            duration: 15000 // Show for 15 seconds
+          })
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id, params.agencyId])
 
   // Log call events to chat history
   useEffect(() => {
@@ -169,7 +216,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
         await sendMessageApi({
           conversationId: selectedConversationId,
           senderId: user.id,
-          content: `${user.name} started an audio call`,
+          content: `${userName} started an audio call`,
           type: 'call'
         })
       }
@@ -237,7 +284,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
         title: c.title || otherParticipant?.User?.name || 'Conversation',
         preview: lastMessage?.content || '',
         timestamp: c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleDateString() : '',
-        unread: true, // TODO: Calculate based on lastReadAt
+        unread: (c.unreadCount || 0) > 0,
+        unreadCount: c.unreadCount || 0,
         starred: false,
         pinned: false,
         avatar: otherParticipant?.User?.avatarUrl,
@@ -334,20 +382,53 @@ const AgencyMessagesPage = ({ params }: Props) => {
     }
   }, [])
 
-  // Realtime subscription for inbox updates
-  useEffect(() => {
-    if (!user?.id) return
 
-    console.log('[REALTIME] Setting up inbox subscription')
+  // Global Realtime subscription for messages in ANY of user's conversations
+  // This handles unread counts for conversations not currently selected
+  useEffect(() => {
+    if (!user?.id || inboxItems.length === 0) return
+
+    const allMyConvIds = inboxItems.map(i => i.id)
+
+    console.log('[REALTIME] Setting up global message listener for unread tracking')
     const channel = supabase
-      .channel('inbox-updates')
+      .channel('global-unread-updates')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'Conversation' },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'Message',
+          filter: `conversationId=in.(${allMyConvIds.join(',')})`
+        },
         (payload) => {
-          console.log('[REALTIME] Conversation updated:', payload)
-          // Refresh inbox when any conversation is updated (e.g. new message)
-          loadConversations()
+          const m = payload.new as any
+          if (m.senderId === user.id) return
+
+          // Update the specific inbox item
+          setInboxItems(prev => {
+            const updated = prev.map(item => {
+              if (item.id === m.conversationId) {
+                const isCurrentlyViewing = selectedConversationId === item.id
+
+                return {
+                  ...item,
+                  preview: m.content,
+                  timestamp: new Date().toLocaleDateString(),
+                  unread: !isCurrentlyViewing,
+                  unreadCount: isCurrentlyViewing ? 0 : (item.unreadCount || 0) + 1
+                }
+              }
+              return item
+            })
+
+            // Sort so the updated conversation moves to top
+            return [...updated].sort((a, b) => {
+              if (a.id === m.conversationId) return -1
+              if (b.id === m.conversationId) return 1
+              return 0
+            })
+          })
         }
       )
       .subscribe()
@@ -355,25 +436,96 @@ const AgencyMessagesPage = ({ params }: Props) => {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user?.id, loadConversations])
+  }, [user?.id, inboxItems.length, selectedConversationId])
 
-  // Load messages for selected conversation (merging all conversations with the same user)
+  const loadMoreMessages = async () => {
+    if (!selectedConversationId || !user?.id || !hasMoreMessages || isLoadingMore) {
+      console.log('[PAGINATION] Skipping loadMore:', { hasMore: hasMoreMessages, loading: isLoadingMore })
+      return
+    }
+
+    setIsLoadingMore(true)
+    const oldestMessage = chatMessages[0]
+    if (!oldestMessage) {
+      setIsLoadingMore(false)
+      return
+    }
+
+    console.log('[PAGINATION] Loading more messages before:', oldestMessage.createdAt)
+
+    const selectedItem = inboxItems.find(i => i.id === selectedConversationId)
+    if (!selectedItem) return
+
+    let relevantConversationIds = [selectedConversationId]
+    if (selectedItem.type === 'direct' && selectedItem.participantInfo?.id) {
+      const { data: participations } = await supabase
+        .from('ConversationParticipant')
+        .select('conversationId, Conversation!inner(type)')
+        .eq('userId', selectedItem.participantInfo.id)
+        .eq('Conversation.type', 'direct')
+
+      if (participations && participations.length > 0) {
+        const possibleIds = participations.map(p => p.conversationId)
+        const { data: myParticipations } = await supabase
+          .from('ConversationParticipant')
+          .select('conversationId')
+          .eq('userId', user.id)
+          .in('conversationId', possibleIds)
+
+        if (myParticipations) {
+          relevantConversationIds = myParticipations.map(p => p.conversationId)
+        }
+      }
+    }
+
+    const messages = await getConversationMessages(relevantConversationIds, 30, oldestMessage.createdAt)
+    console.log('[PAGINATION] Received older messages:', messages.length)
+
+    if (messages.length < 30) {
+      setHasMoreMessages(false)
+    }
+
+    if (messages.length === 0) {
+      setIsLoadingMore(false)
+      return
+    }
+
+    // Map and prepend (ordering correctly)
+    const mappedMore: ChatMessage[] = messages.reverse().map(m => {
+      const isMe = m.senderId === user?.id
+      const senderUser = isMe ? null : (agencyUsers.find(u => u.id === m.senderId) || chatParticipants.get(m.senderId))
+      const metadata = m.metadata as any
+
+      return {
+        id: m.id,
+        sender: isMe ? 'me' : 'other',
+        text: m.content,
+        timestamp: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+        senderName: isMe ? userName : senderUser?.name || 'Unknown User',
+        senderAvatar: isMe ? userAvatar : (senderUser as any)?.avatarUrl,
+        isEdited: m.isEdited || false,
+        attachments: metadata?.attachments || [],
+        replyTo: metadata?.replyingTo,
+        type: m.type,
+        createdAt: m.createdAt
+      }
+    })
+
+    setChatMessages(prev => [...mappedMore, ...prev])
+    setIsLoadingMore(false)
+  }
+
+  // Load initial messages for selected conversation
   useEffect(() => {
     const loadMessages = async () => {
       if (!selectedConversationId || !user?.id) return
+      setHasMoreMessages(true)
 
-      // Find the selected item to get the participant ID
       const selectedItem = inboxItems.find(i => i.id === selectedConversationId)
       if (!selectedItem) return
 
       let relevantConversationIds = [selectedConversationId]
-
-      // 1. If it's a DIRECT conversation, find ALL conversation IDs with this user to merge bubbles
       if (selectedItem.type === 'direct' && selectedItem.participantInfo?.id) {
-        console.log('[MESSAGES] Loading messages for direct user:', selectedItem.participantInfo.name)
-
-        // Find all conversations where BOTH the current user and the target user are participants
-        // IMPORTANT: We filter by Conversation!inner(type) to ensure we ONLY merge 'direct' messages
         const { data: participations } = await supabase
           .from('ConversationParticipant')
           .select('conversationId, Conversation!inner(type)')
@@ -392,23 +544,23 @@ const AgencyMessagesPage = ({ params }: Props) => {
             relevantConversationIds = myParticipations.map(p => p.conversationId)
           }
         }
-      } else {
-        console.log('[MESSAGES] Loading messages for group/other conversation:', selectedItem.title)
       }
 
-      console.log('[MESSAGES] Relevant IDs:', relevantConversationIds)
+      console.log('[MESSAGES] Initial load for conversation:', selectedConversationId)
+      const messages = await getConversationMessages(relevantConversationIds, 30)
+      console.log('[MESSAGES] Received initial batch:', messages.length)
 
-      // 2. Load all messages for these IDs
-      const messages = await getConversationMessages(relevantConversationIds, 100)
+      if (messages.length < 30) {
+        setHasMoreMessages(false)
+      }
 
-      // Sort messages by creation time before mapping
       const sortedMessages = messages.sort((a: any, b: any) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       )
 
       const mappedMessages: ChatMessage[] = sortedMessages.map(m => {
         const isMe = m.senderId === user?.id
-        const senderUser = isMe ? user : (agencyUsers.find(u => u.id === m.senderId) || chatParticipants.get(m.senderId))
+        const senderUser = isMe ? null : (agencyUsers.find(u => u.id === m.senderId) || chatParticipants.get(m.senderId))
         const metadata = m.metadata as any
 
         return {
@@ -416,20 +568,33 @@ const AgencyMessagesPage = ({ params }: Props) => {
           sender: isMe ? 'me' : 'other',
           text: m.content,
           timestamp: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-          senderName: isMe ? user?.name : senderUser?.name || 'Unknown User',
-          senderAvatar: isMe ? user?.avatarUrl : (senderUser as any)?.avatarUrl,
+          senderName: isMe ? userName : senderUser?.name || 'Unknown User',
+          senderAvatar: isMe ? userAvatar : (senderUser as any)?.avatarUrl,
           isEdited: m.isEdited || false,
           attachments: metadata?.attachments || [],
           replyTo: metadata?.replyingTo,
-          type: m.type
+          type: m.type,
+          createdAt: m.createdAt
         }
       })
 
       setChatMessages(mappedMessages)
-      if (user?.id) await markConversationRead(selectedConversationId, user.id)
+
+      // 3. Load ALL attachments for the sidebar (all-time history)
+      const attachments = await getConversationAttachments(relevantConversationIds)
+      setAllAttachments(attachments)
+
+      if (user?.id) {
+        setInboxItems(prev => prev.map(item =>
+          item.id === selectedConversationId
+            ? { ...item, unread: false, unreadCount: 0 }
+            : item
+        ))
+        await markConversationRead(selectedConversationId, user.id)
+      }
     }
     loadMessages()
-  }, [selectedConversationId, user?.id, inboxItems, agencyUsers, params.agencyId, chatParticipants])
+  }, [selectedConversationId, user?.id])
 
   // Realtime subscription for messages in ALL relevant conversations for this user
   useEffect(() => {
@@ -486,8 +651,20 @@ const AgencyMessagesPage = ({ params }: Props) => {
                 if (prev.some(existing => existing.id === m.id)) return prev
 
                 const metadata = m.metadata as any
+
+                // If this message has attachments, add them to allAttachments state
+                if (metadata?.attachments && Array.isArray(metadata.attachments)) {
+                  const newAtts = metadata.attachments.map((att: any) => ({
+                    ...att,
+                    messageId: m.id,
+                    senderId: m.senderId,
+                    createdAt: m.createdAt
+                  }))
+                  setAllAttachments(prevAtts => [...newAtts, ...prevAtts])
+                }
+
                 const isMe = m.senderId === user?.id
-                const senderUser = isMe ? user : (agencyUsers.find(u => u.id === m.senderId) || chatParticipants.get(m.senderId))
+                const senderUser = isMe ? null : (agencyUsers.find(u => u.id === m.senderId) || chatParticipants.get(m.senderId))
 
                 return [
                   ...prev,
@@ -496,8 +673,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
                     sender: isMe ? 'me' : 'other',
                     text: m.content,
                     timestamp: new Date(m.createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    senderName: isMe ? user?.name : senderUser?.name || 'Unknown User',
-                    senderAvatar: isMe ? user?.avatarUrl : (senderUser as any)?.avatarUrl,
+                    senderName: isMe ? userName : senderUser?.name || 'Unknown User',
+                    senderAvatar: isMe ? userAvatar : (senderUser as any)?.avatarUrl,
                     attachments: metadata?.attachments || [],
                     replyTo: metadata?.replyingTo,
                     isEdited: m.isEdited
@@ -776,7 +953,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
       setChatMessages([])
     }
 
-    const success = await deleteConversation(conversationId, user.id)
+    const success = await hideConversationForUser(conversationId, user.id)
     if (success) {
       toast({
         title: 'Conversation deleted',
@@ -787,6 +964,31 @@ const AgencyMessagesPage = ({ params }: Props) => {
         variant: 'destructive',
         title: 'Error',
         description: 'Failed to delete conversation'
+      })
+    }
+  }
+
+  const handleDeleteBulk = async (conversationIds: string[]) => {
+    if (!user?.id || conversationIds.length === 0) return
+
+    // Optimistic update
+    setInboxItems(prev => prev.filter(i => !conversationIds.includes(i.id)))
+    if (selectedConversationId && conversationIds.includes(selectedConversationId)) {
+      setSelectedConversationId(null)
+      setChatMessages([])
+    }
+
+    const success = await hideConversationsBulk(conversationIds, user.id)
+    if (success) {
+      toast({
+        title: 'Conversations deleted',
+        description: `${conversationIds.length} conversations have been removed.`
+      })
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete conversations'
       })
     }
   }
@@ -1007,6 +1209,69 @@ const AgencyMessagesPage = ({ params }: Props) => {
     }
   }
 
+  const handleCreateVideoRoom = async () => {
+    if (!user || !videoRoomTitle.trim() || selectedVideoUsers.length === 0) return
+
+    // Safety check for 10 member limit (creator + 9 others)
+    if (selectedVideoUsers.length > 9) {
+      toast({
+        variant: 'destructive',
+        title: 'Limit reached',
+        description: 'Video rooms support a maximum of 10 members.'
+      })
+      return
+    }
+
+    try {
+      setLoading(true)
+      const newConvId = await createGroupConversation({
+        title: videoRoomTitle,
+        type: 'video', // key for the video tab
+        userIds: [user.id, ...selectedVideoUsers],
+        agencyId: params.agencyId
+      })
+
+      if (newConvId) {
+        toast({
+          title: 'Success',
+          description: 'Video room created successfully.'
+        })
+        setShowNewVideoRoomDialog(false)
+        setVideoRoomTitle('')
+        setSelectedVideoUsers([])
+        await loadConversations()
+        setSelectedConversationId(newConvId)
+
+        // Open the video room in a new tab (Distraction-free)
+        window.open(`/video/${newConvId}`, '_blank')
+      }
+    } catch (error) {
+      console.error('Error creating video room:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to create video room.'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleVideoUserSelection = (userId: string) => {
+    setSelectedVideoUsers(prev => {
+      const isSelected = prev.includes(userId)
+      if (isSelected) return prev.filter(id => id !== userId)
+      if (prev.length >= 9) { // 9 others + creator = 10
+        toast({
+          title: 'Member Limit',
+          description: 'Max 10 members allowed in a video room.'
+        })
+        return prev
+      }
+      return [...prev, userId]
+    })
+  }
+
   const toggleUserSelection = (userId: string) => {
     setSelectedGroupUsers(prev =>
       prev.includes(userId)
@@ -1057,10 +1322,12 @@ const AgencyMessagesPage = ({ params }: Props) => {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onDeleteConversation={handleDeleteConversation}
+          onDeleteBulk={handleDeleteBulk}
           agencyUsers={agencyUsers}
           onlineUsers={onlineUsers}
           onNewMessage={() => setShowNewMessageDialog(true)}
           onNewGroup={() => setShowNewGroupDialog(true)}
+          onNewVideoRoom={() => setShowNewVideoRoomDialog(true)}
           notificationSettings={
             <NotificationSettingsDialog
               settings={notificationSettings}
@@ -1086,6 +1353,10 @@ const AgencyMessagesPage = ({ params }: Props) => {
           isUploading={isUploading}
           typingUsers={selectedConversationId ? typingStates[selectedConversationId] : new Set()}
           chatParticipants={chatParticipants}
+          onLoadMore={loadMoreMessages}
+          hasMoreMessages={hasMoreMessages}
+          isLoadingMore={isLoadingMore}
+          allAttachments={allAttachments}
           onInputKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
@@ -1096,6 +1367,63 @@ const AgencyMessagesPage = ({ params }: Props) => {
           onReplyMessage={handleReplyMessage}
           onEditMessage={handleEditMessage}
           onForwardMessage={handleForwardMessage}
+          onVideoCall={() => {
+            if (selectedMsg && user) {
+              const videoRoomId = selectedMsg.id
+              const targetIds = (selectedMsg.participants || [])
+                .map((p: any) => p.id)
+                .filter((id: string) => id && id !== user.id)
+
+              console.log('[VIDEO] Initiating call for room:', videoRoomId, 'Targets:', targetIds)
+
+              toast({
+                title: 'Launching Video Call',
+                description: 'A new tab is opening for your video session.'
+              })
+
+              // 1. Open local session (Distraction-free)
+              const win = window.open(`/video/${videoRoomId}`, '_blank')
+              if (!win) {
+                toast({
+                  variant: 'destructive',
+                  title: 'Popup Blocked',
+                  description: 'Please allow popups or click here to open the call.',
+                  action: (
+                    <Button
+                      onClick={() => window.location.href = `/video/${videoRoomId}`}
+                      className="bg-primary text-white text-xs h-8"
+                    >
+                      Open Link
+                    </Button>
+                  )
+                })
+              }
+
+              // 2. Broadcast invite if it's a direct/group chat (not a persistent video room)
+              if (selectedMsg.type !== 'video' && targetIds.length > 0) {
+                const channel = supabase.channel('video-calls')
+                channel.subscribe(() => {
+                  channel.send({
+                    type: 'broadcast',
+                    event: 'invite',
+                    payload: {
+                      roomId: videoRoomId,
+                      senderId: user.id,
+                      senderName: user.name,
+                      targetIds: targetIds
+                    }
+                  })
+                  console.log('[VIDEO] Invite broadcasted to:', targetIds)
+                })
+              }
+            } else {
+              toast({
+                variant: 'destructive',
+                title: 'Operation Failed',
+                description: 'Please select a conversation and ensure you are logged in.'
+              })
+            }
+          }}
           activeTab={activeTab}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
@@ -1448,6 +1776,109 @@ const AgencyMessagesPage = ({ params }: Props) => {
               className="bg-amber-500 hover:bg-amber-600 text-white px-8 h-10 shadow-lg shadow-amber-500/20"
             >
               Create Group Channel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video Room Creation Dialog */}
+      <Dialog open={showNewVideoRoomDialog} onOpenChange={setShowNewVideoRoomDialog}>
+        <DialogContent className="max-w-2xl text-gray-900 dark:text-gray-100">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-rose-500 flex items-center justify-center">
+                <Video className="h-5 w-5 text-white" />
+              </div>
+              Create Video Room
+            </DialogTitle>
+            <DialogDescription>
+              Host a video room with up to 10 members.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-gray-500">Room Title</Label>
+              <Input
+                placeholder="e.g. Weekly Sync, Design Review..."
+                value={videoRoomTitle}
+                onChange={(e) => setVideoRoomTitle(e.target.value)}
+                className="h-11 bg-gray-50 dark:bg-gray-900 border-none shadow-inner"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-500">Invite Members</Label>
+                <Badge variant="secondary" className="bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400 font-mono">
+                  {selectedVideoUsers.length + 1}/10 Members
+                </Badge>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search agency members..."
+                  value={searchUserQuery}
+                  onChange={(e) => setSearchUserQuery(e.target.value)}
+                  className="pl-10 h-10 border-gray-100 dark:border-gray-800"
+                />
+              </div>
+              <ScrollArea className="h-[250px] pr-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {filteredUsers.map((agencyUser) => (
+                    <div
+                      key={agencyUser.id}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                        selectedVideoUsers.includes(agencyUser.id)
+                          ? "bg-rose-50 border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/50 ring-1 ring-rose-500/20"
+                          : "bg-white dark:bg-black/20 border-gray-100 dark:border-gray-800 hover:border-rose-200 dark:hover:border-rose-900 shadow-sm"
+                      )}
+                      onClick={() => toggleVideoUserSelection(agencyUser.id)}
+                    >
+                      <Checkbox
+                        id={`video-user-${agencyUser.id}`}
+                        checked={selectedVideoUsers.includes(agencyUser.id)}
+                        onCheckedChange={() => toggleVideoUserSelection(agencyUser.id)}
+                        className="data-[state=checked]:bg-rose-500 data-[state=checked]:border-rose-500"
+                      />
+                      <Label
+                        htmlFor={`video-user-${agencyUser.id}`}
+                        className="flex items-center gap-3 cursor-pointer flex-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Avatar className="h-9 w-9 ring-2 ring-white dark:ring-gray-900">
+                          <AvatarImage src={agencyUser.avatarUrl || ''} />
+                          <AvatarFallback className="bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400">
+                            {agencyUser.name?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate leading-none mb-1">{agencyUser.name}</p>
+                          <p className="text-[11px] text-gray-500 truncate">{agencyUser.email}</p>
+                        </div>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2 border-t mt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setShowNewVideoRoomDialog(false)}
+              className="px-6"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateVideoRoom}
+              disabled={!videoRoomTitle.trim() || selectedVideoUsers.length === 0}
+              className="bg-rose-500 hover:bg-rose-600 text-white px-8 h-10 shadow-lg shadow-rose-500/20"
+            >
+              Launch Video Room
             </Button>
           </div>
         </DialogContent>

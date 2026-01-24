@@ -1,17 +1,20 @@
 'use client'
 
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Archive, Trash2, MoreVertical, Paperclip, Image as ImageIcon, Smile, Send, Loader2, Phone, Video, X, Mail, MapPin, Calendar, ShieldCheck, Mic, Check } from 'lucide-react'
+import { Archive, Trash2, MoreVertical, Paperclip, Image as ImageIcon, Smile, Send, Loader2, Phone, Video, X, Mail, MapPin, Calendar, ShieldCheck, Mic, Check, CalendarClock, Zap, Settings, Clock, Link, BellRing, UserCheck, Plus, FileText, Search, Palette } from 'lucide-react'
 import MessageBubble from './message-bubble'
 import { InboxItem } from './chat-sidebar'
 import { useToast } from '@/components/ui/use-toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import ConnectivityIndicator from '@/components/global/connectivity-indicator'
+import { createClient } from '@/lib/supabase/client'
 
 interface ChatMessage {
     id: string
@@ -26,6 +29,7 @@ interface ChatMessage {
         text: string
         senderName?: string
     }
+    createdAt: string
 }
 
 interface ChatWindowProps {
@@ -49,6 +53,11 @@ interface ChatWindowProps {
     typingUsers?: Set<string>
     chatParticipants?: Map<string, { id: string, name: string, avatarUrl: string }>
     onVoiceCall?: () => void
+    onVideoCall?: () => void
+    onLoadMore?: () => void
+    hasMoreMessages?: boolean
+    isLoadingMore?: boolean
+    allAttachments?: any[]
 }
 
 const ChatWindow = ({
@@ -71,12 +80,18 @@ const ChatWindow = ({
     onCancelEdit,
     typingUsers = new Set(),
     chatParticipants = new Map(),
-    onVoiceCall
+    onVoiceCall,
+    onVideoCall,
+    onLoadMore,
+    hasMoreMessages,
+    isLoadingMore,
+    allAttachments = []
 }: ChatWindowProps) => {
     const scrollRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [showScrollButton, setShowScrollButton] = useState(false)
     const [showProfile, setShowProfile] = useState(false)
+    const [lastScrollHeight, setLastScrollHeight] = useState(0)
     const { toast } = useToast()
 
     const handleComingSoon = (feature: string) => {
@@ -89,9 +104,183 @@ const ChatWindow = ({
     // Voice recording state
     const [isRecording, setIsRecording] = useState(false)
     const [recordingDuration, setRecordingDuration] = useState(0)
+    const [showScheduleDialog, setShowScheduleDialog] = useState(false)
+    const [showResourcesDialog, setShowResourcesDialog] = useState(false)
+    const [scheduledMeetings, setScheduledMeetings] = useState<any[]>([])
+    const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null)
+    const [meetingForm, setMeetingForm] = useState({
+        title: '',
+        description: '',
+        location: '',
+        date: '',
+        time: '',
+        label: '#3b82f6', // Default blue
+        attachment: null as File | null,
+        notifications: [] as string[]
+    })
+    const [resourceSearch, setResourceSearch] = useState('')
+    const [activeAutomations, setActiveAutomations] = useState<Set<string>>(new Set(['Auto-Follow up']))
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const audioChunksRef = useRef<Blob[]>([])
     const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+    // Extract shared resources (Filtering out voice notes)
+    const sharedResources = useMemo(() => {
+        // Use allAttachments if provided (all-time history), or fallback to currently loaded chatMessages
+        const source = allAttachments.length > 0 ? allAttachments : []
+
+        if (allAttachments.length > 0) {
+            return allAttachments
+                .filter(att => !att.type?.startsWith('audio'))
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        }
+
+        // Fallback for safety (though allAttachments should be preferred)
+        const resources: { type: string; name: string; url: string; createdAt: string }[] = []
+        chatMessages.forEach(msg => {
+            if (msg.attachments && msg.attachments.length > 0) {
+                msg.attachments.forEach(att => {
+                    if (!att.type.startsWith('audio')) {
+                        resources.push({
+                            ...att,
+                            createdAt: msg.createdAt
+                        })
+                    }
+                })
+            }
+        })
+        return resources.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    }, [allAttachments, chatMessages])
+
+    const categorizedResources = useMemo(() => {
+        const filtered = sharedResources.filter(r => r.name.toLowerCase().includes(resourceSearch.toLowerCase()))
+        return {
+            images: filtered.filter(r => r.type.startsWith('image')),
+            videos: filtered.filter(r => r.type.startsWith('video')),
+            documents: filtered.filter(r =>
+                r.type.includes('pdf') ||
+                r.type.includes('doc') ||
+                r.type.includes('excel') ||
+                r.type.includes('spreadsheet') ||
+                r.type.includes('text') ||
+                r.type.includes('presentation') ||
+                r.type.includes('csv')
+            ),
+            others: filtered.filter(r =>
+                !r.type.startsWith('image') &&
+                !r.type.startsWith('video') &&
+                !r.type.includes('pdf') &&
+                !r.type.includes('doc') &&
+                !r.type.includes('excel') &&
+                !r.type.includes('spreadsheet') &&
+                !r.type.includes('text') &&
+                !r.type.includes('presentation') &&
+                !r.type.includes('csv')
+            )
+        }
+    }, [sharedResources, resourceSearch])
+
+    const handleScheduleMeeting = async () => {
+        if (!meetingForm.title || !meetingForm.date || !meetingForm.time) return
+
+        const supabase = createClient()
+
+        // Construct Start/End Time
+        const startDateTime = new Date(`${meetingForm.date}T${meetingForm.time}`)
+        const endDateTime = new Date(startDateTime.getTime() + 45 * 60000) // Default 45 min duration
+
+        try {
+            let result;
+
+            if (editingMeetingId) {
+                // UPDATE existing meeting
+                result = await supabase
+                    .from('Meetings')
+                    .update({
+                        title: meetingForm.title,
+                        description: meetingForm.description,
+                        location: meetingForm.location,
+                        startTime: startDateTime.toISOString(),
+                        endTime: endDateTime.toISOString(),
+                        color: meetingForm.label,
+                        notifications: meetingForm.notifications,
+                    })
+                    .eq('id', editingMeetingId)
+                    .select()
+                    .single()
+            } else {
+                // INSERT new meeting
+                // Get current user for RLS policy
+                const { data: { user } } = await supabase.auth.getUser()
+
+                result = await supabase
+                    .from('Meetings')
+                    .insert({
+                        title: meetingForm.title,
+                        description: meetingForm.description,
+                        location: meetingForm.location,
+                        startTime: startDateTime.toISOString(),
+                        endTime: endDateTime.toISOString(),
+                        color: meetingForm.label,
+                        notifications: meetingForm.notifications,
+                        status: 'scheduled',
+                        senderId: user?.id, // Required for RLS policy
+                    })
+                    .select()
+                    .single()
+            }
+
+            const { data, error } = result
+            if (error) throw error
+
+            // Update UI
+            const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+            const dateObj = new Date(meetingForm.date)
+
+            const meetingObj = {
+                ...data, // Store full DB object to support editing later
+                date: `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}`,
+                time: meetingForm.time,
+            }
+
+            if (editingMeetingId) {
+                setScheduledMeetings(prev => prev.map(m => m.id === editingMeetingId ? meetingObj : m))
+                toast({ title: 'Meeting Updated', description: `"${meetingObj.title}" has been updated.` })
+            } else {
+                setScheduledMeetings(prev => [meetingObj, ...prev])
+                toast({ title: 'Meeting Scheduled', description: `"${meetingObj.title}" has been saved.` })
+            }
+
+            setShowScheduleDialog(false)
+            setMeetingForm({ title: '', description: '', location: '', date: '', time: '', label: '#3b82f6', attachment: null, notifications: [] })
+            setEditingMeetingId(null)
+
+        } catch (error: any) {
+            console.error('Error saving meeting:', error)
+            console.error('Error details:', {
+                message: error?.message,
+                details: error?.details,
+                hint: error?.hint,
+                code: error?.code
+            })
+            toast({
+                title: 'Error',
+                description: error?.message || 'Failed to save meeting. Please try again.',
+                variant: 'destructive'
+            })
+        }
+    }
+
+    const toggleAutomation = (name: string) => {
+        const newSet = new Set(activeAutomations)
+        if (newSet.has(name)) newSet.delete(name)
+        else newSet.add(name)
+        setActiveAutomations(newSet)
+        toast({
+            title: newSet.has(name) ? 'Automation Enabled' : 'Automation Disabled',
+            description: `${name} has been ${newSet.has(name) ? 'activated' : 'deactivated'} for this user.`,
+        })
+    }
 
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
@@ -142,16 +331,22 @@ const ChatWindow = ({
     }
 
     // Scroll to bottom function
-    const scrollToBottom = () => {
+    const scrollToBottom = (force = false, smooth = false) => {
         if (scrollRef.current) {
-            scrollRef.current.scrollTo({
-                top: scrollRef.current.scrollHeight,
-                behavior: 'smooth'
-            })
+            const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+            // Use a tighter threshold (100px) for auto-scrolling
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+
+            if (force || isNearBottom) {
+                scrollRef.current.scrollTo({
+                    top: scrollRef.current.scrollHeight,
+                    behavior: smooth ? 'smooth' : 'auto'
+                })
+            }
         }
     }
 
-    // Detect if user has scrolled up
+    // Detect scroll events (bottom/top)
     useEffect(() => {
         const viewport = scrollRef.current
         if (!viewport) return
@@ -161,29 +356,66 @@ const ChatWindow = ({
             // Show button if user is more than 100px from bottom
             const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
             setShowScrollButton(!isNearBottom)
+
+            // Trigger load more if at top
+            if (scrollTop === 0 && hasMoreMessages && !isLoadingMore && onLoadMore) {
+                console.log('[SCROLL] Reached top, loading more messages...')
+                setLastScrollHeight(scrollHeight)
+                onLoadMore()
+            }
         }
 
         viewport.addEventListener('scroll', handleScroll)
         return () => viewport.removeEventListener('scroll', handleScroll)
-    }, [scrollRef.current, selectedMsg])
+    }, [scrollRef.current, selectedMsg, hasMoreMessages, isLoadingMore, onLoadMore])
 
-    // Auto-scroll to bottom when messages change
+    // Handle scroll preservation when prepending older messages
     useEffect(() => {
-        // Use setTimeout to ensure DOM has fully updated
-        const timer = setTimeout(() => {
-            scrollToBottom()
-        }, 50)
-        return () => clearTimeout(timer)
-    }, [chatMessages, typingUsers.size > 0])
+        if (scrollRef.current && lastScrollHeight > 0) {
+            const newScrollHeight = scrollRef.current.scrollHeight
+            const delta = newScrollHeight - lastScrollHeight
+            if (delta > 0) {
+                // Use 'instant' to prevent visual flicker during preservation
+                scrollRef.current.scrollTop = delta
+            }
+            // Reset preserve flag after successful adjustment
+            setLastScrollHeight(0)
+        }
+    }, [chatMessages.length, lastScrollHeight])
+
+    // Auto-scroll to bottom only when NEW messages arrive (Append)
+    const prevLastMsgId = useRef<string | null>(null)
+
+    useEffect(() => {
+        const lastMessage = chatMessages[chatMessages.length - 1]
+
+        // CASE: If last message changed, it's a new message (APPEND) 
+        // OR it's the first load. We should scroll.
+        // CASE: If last message is the SAME, it's likely a PREPEND (Pagination). 
+        // We must STAY PUT.
+        const isNewMessageArrival = lastMessage?.id !== prevLastMsgId.current
+        prevLastMsgId.current = lastMessage?.id || null
+
+        // Don't auto-scroll to bottom if we are preserving scroll from pagination
+        if (lastScrollHeight > 0) return
+
+        if (isNewMessageArrival) {
+            const isMyMessage = lastMessage?.sender === 'me'
+            const timer = setTimeout(() => {
+                scrollToBottom(isMyMessage)
+            }, 50)
+            return () => clearTimeout(timer)
+        }
+    }, [chatMessages, typingUsers.size])
 
     // Scroll to bottom immediately when conversation is selected
     useEffect(() => {
         if (selectedMsg) {
-            // Immediate scroll
-            scrollToBottom()
+            // Immediate force scroll to bottom on new convo selection
+            scrollToBottom(true, false)
             // Also scroll after a delay to catch late-loading messages
             const timer = setTimeout(() => {
-                scrollToBottom()
+                scrollToBottom(true, false)
             }, 200)
             return () => clearTimeout(timer)
         }
@@ -263,7 +495,8 @@ const ChatWindow = ({
                             variant="ghost"
                             size="icon"
                             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                            onClick={() => handleComingSoon('Video Call')}
+                            onClick={onVideoCall}
+                            disabled={!selectedMsg}
                         >
                             <Video className="h-5 w-5" />
                         </Button>
@@ -288,6 +521,14 @@ const ChatWindow = ({
                 >
                     <div className="flex flex-col">
                         <div className="space-y-4 py-6 pb-40">
+                            {isLoadingMore && (
+                                <div className="flex items-center justify-center py-4 w-full">
+                                    <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-zinc-900 rounded-full border border-gray-100 dark:border-gray-800 shadow-sm animate-pulse">
+                                        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                        <span className="text-xs font-medium text-gray-500">Loading history...</span>
+                                    </div>
+                                </div>
+                            )}
                             {chatMessages.map((msg) => (
                                 <MessageBubble
                                     key={msg.id}
@@ -325,7 +566,7 @@ const ChatWindow = ({
                 {/* Scroll to Bottom Button */}
                 {showScrollButton && (
                     <Button
-                        onClick={scrollToBottom}
+                        onClick={() => scrollToBottom(true, true)}
                         className="absolute bottom-32 right-8 rounded-full w-12 h-12 shadow-lg bg-blue-600 hover:bg-blue-700 text-white z-20 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
                         size="icon"
                     >
@@ -569,7 +810,7 @@ const ChatWindow = ({
                     </div>
 
                     {/* Sidebar Content */}
-                    <ScrollArea className="flex-1">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar h-0" data-lenis-prevent>
                         <div className="p-6 flex flex-col items-center text-center">
                             <Avatar className="h-24 w-24 mb-4 border-4 border-blue-50 dark:border-blue-900/20">
                                 <AvatarImage src={selectedMsg.type === 'group' ? (selectedMsg.iconUrl || '') : (selectedMsg.avatar || selectedMsg.participantInfo?.avatarUrl || '')} />
@@ -652,44 +893,505 @@ const ChatWindow = ({
                                         </div>
 
                                         <div className="space-y-3 px-1">
-                                            <div className="flex items-center gap-3 text-sm">
-                                                <Mail className="h-4 w-4 text-gray-400" />
-                                                <span>{selectedMsg.participantInfo?.email || 'N/A'}</span>
+                                            <div className="flex items-center gap-3 text-xs">
+                                                <Mail className="h-3.5 w-3.5 text-blue-500" />
+                                                <span className="text-gray-600 dark:text-gray-300">{selectedMsg.participantInfo?.email || 'N/A'}</span>
                                             </div>
-                                            <div className="flex items-center gap-3 text-sm">
-                                                <ShieldCheck className="h-4 w-4 text-gray-400" />
-                                                <span className="capitalize">{activeTab || 'Team Member'}</span>
+                                            <div className="flex items-center gap-3 text-xs">
+                                                <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
+                                                <span className="capitalize text-gray-600 dark:text-gray-300">{activeTab || 'Team Member'}</span>
                                             </div>
-                                            <div className="flex items-center gap-3 text-sm">
-                                                <MapPin className="h-4 w-4 text-gray-400" />
-                                                <span>San Francisco, CA</span>
+                                            <div className="flex items-center gap-3 text-xs">
+                                                <MapPin className="h-3.5 w-3.5 text-blue-500" />
+                                                <span className="text-gray-600 dark:text-gray-300">San Francisco, CA</span>
                                             </div>
-                                            <div className="flex items-center gap-3 text-sm">
-                                                <Calendar className="h-4 w-4 text-gray-400" />
-                                                <span>Joined January 2024</span>
+                                        </div>
+
+                                        {/* Scheduling & Booking Section */}
+                                        <div className="pt-6 border-t w-full">
+                                            <div className="flex items-center justify-between mb-3 text-left">
+                                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <CalendarClock className="h-3 w-3" />
+                                                    Booking & Scheduling
+                                                </h4>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-5 w-5 hover:bg-blue-50 text-blue-500"
+                                                    onClick={() => setShowScheduleDialog(true)}
+                                                >
+                                                    <Plus className="h-3 w-3" />
+                                                </Button>
                                             </div>
+                                            <div className="space-y-2">
+                                                {scheduledMeetings.map((meeting) => (
+                                                    <div
+                                                        key={meeting.id}
+                                                        className="p-2 gap-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/20 rounded-xl flex items-center hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer group"
+                                                        onClick={() => {
+                                                            setEditingMeetingId(meeting.id)
+                                                            // Convert stored ISO string back to YYYY-MM-DD for input
+                                                            const start = new Date(meeting.startTime)
+                                                            const dateStr = start.toISOString().split('T')[0]
+                                                            const timeStr = start.toTimeString().slice(0, 5) // HH:MM
+
+                                                            setMeetingForm({
+                                                                title: meeting.title,
+                                                                description: meeting.description || '',
+                                                                location: meeting.location || '',
+                                                                date: dateStr,
+                                                                time: timeStr,
+                                                                label: meeting.color || '#3b82f6',
+                                                                attachment: null, // Attachments might need separate handling to show existing
+                                                                notifications: meeting.notifications || []
+                                                            })
+                                                            setShowScheduleDialog(true)
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className="h-8 w-8 rounded-lg flex flex-col items-center justify-center text-white shrink-0 shadow-sm"
+                                                            style={{ backgroundColor: meeting.color || '#3b82f6' }}
+                                                        >
+                                                            <span className="text-[8px] font-bold leading-none">{meeting.date.split(' ')[0]}</span>
+                                                            <span className="text-xs font-bold leading-none">{meeting.date.split(' ')[1]}</span>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0 text-left">
+                                                            <p className="text-[11px] font-bold text-gray-900 dark:text-gray-100 truncate">{meeting.title}</p>
+                                                            <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                                                                <Clock className="h-2.5 w-2.5" /> {meeting.time}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full text-[10px] h-8 font-bold border-dashed border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-500 rounded-lg"
+                                                    onClick={() => setShowScheduleDialog(true)}
+                                                >
+                                                    Schedule New Meeting
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Automations Section */}
+                                        <div className="pt-6 border-t w-full text-left">
+                                            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                                                <Zap className="h-3 w-3" />
+                                                Active Automations
+                                            </h4>
+                                            <div className="space-y-2">
+                                                {[
+                                                    { name: 'Auto-Follow up', icon: BellRing, color: 'text-emerald-500' },
+                                                    { name: 'Status Monitor', icon: UserCheck, color: 'text-gray-400' }
+                                                ].map((auto, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-colors group">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className={`p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 ${activeAutomations.has(auto.name) ? auto.color : 'text-gray-300'}`}>
+                                                                <auto.icon className="h-3 w-3" />
+                                                            </div>
+                                                            <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">{auto.name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => toggleAutomation(auto.name)}
+                                                                className={`h-4 w-7 rounded-full transition-colors relative ${activeAutomations.has(auto.name) ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                                            >
+                                                                <div className={`absolute top-0.5 h-3 w-3 bg-white rounded-full transition-all ${activeAutomations.has(auto.name) ? 'left-3.5' : 'left-0.5'}`} />
+                                                            </button>
+                                                            <Settings className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 cursor-pointer" />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Quick Resources */}
+                                        <div className="pt-6 border-t w-full text-left">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <Link className="h-3 w-3" />
+                                                    Shared Resources ({sharedResources.length})
+                                                </h4>
+                                                {sharedResources.length > 4 && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="h-5 px-1.5 text-[9px] font-bold text-blue-500 hover:bg-blue-50"
+                                                        onClick={() => setShowResourcesDialog(true)}
+                                                    >
+                                                        View All
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            {sharedResources.length > 0 ? (
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {sharedResources.slice(0, 4).map((res, idx) => (
+                                                        <a
+                                                            key={idx}
+                                                            href={res.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="p-2 border rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors cursor-pointer block group"
+                                                        >
+                                                            <div className={`h-6 w-6 rounded flex items-center justify-center mb-1.5 ${res.type.startsWith('image') ? 'bg-emerald-100 dark:bg-emerald-900/30' :
+                                                                res.type.startsWith('video') ? 'bg-rose-100 dark:bg-rose-900/30' :
+                                                                    'bg-blue-100 dark:bg-blue-900/30'
+                                                                }`}>
+                                                                {res.type.startsWith('image') ? <ImageIcon className="h-3 w-3 text-emerald-600" /> :
+                                                                    res.type.startsWith('video') ? <Video className="h-3 w-3 text-rose-600" /> :
+                                                                        <Paperclip className="h-3 w-3 text-blue-600" />}
+                                                            </div>
+                                                            <p className="text-[10px] font-bold truncate group-hover:text-blue-600 transition-colors">{res.name}</p>
+                                                            <p className="text-[8px] text-gray-400 uppercase truncate">
+                                                                {new Date(res.createdAt).toLocaleDateString()}
+                                                            </p>
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-4 bg-gray-50 dark:bg-zinc-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 text-center">
+                                                    <p className="text-[9px] text-gray-400 font-medium">No files shared yet in this chat</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </>
                                 )}
                             </div>
 
                             <div className="w-full mt-8 pt-6 border-t">
-                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 text-left">Actions</h4>
+                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-left">Management Actions</h4>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                                        <Archive className="h-5 w-5" />
-                                        <span className="text-xs">Archive</span>
+                                    <Button variant="outline" className="w-full h-14 flex flex-col gap-1 rounded-xl">
+                                        <Archive className="h-3.5 w-3.5 text-gray-500" />
+                                        <span className="text-[9px] font-bold uppercase tracking-tighter">Archive Chat</span>
                                     </Button>
-                                    <Button variant="outline" className="w-full h-20 flex flex-col gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10">
-                                        <Trash2 className="h-5 w-5" />
-                                        <span className="text-xs">Block</span>
+                                    <Button variant="outline" className="w-full h-14 flex flex-col gap-1 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10">
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        <span className="text-[9px] font-bold uppercase tracking-tighter">Block Account</span>
                                     </Button>
                                 </div>
                             </div>
                         </div>
-                    </ScrollArea>
+                    </div>
                 </div>
             </div>
+
+            {/* Scheduling Dialog */}
+            <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <CalendarClock className="h-5 w-5 text-blue-500" />
+                            Schedule Meeting
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            Propose a new meeting time for {selectedMsg.type === 'group' ? selectedMsg.title : selectedMsg.participantInfo?.name}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <ScrollArea className="h-[60vh] pr-4">
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Meeting Title</label>
+                                <Input
+                                    placeholder="e.g. Weekly Update"
+                                    className="h-9 text-sm"
+                                    value={meetingForm.title}
+                                    onChange={(e) => setMeetingForm(prev => ({ ...prev, title: e.target.value }))}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Description</label>
+                                <Textarea
+                                    placeholder="Agenda, meeting notes, or topics to discuss..."
+                                    className="min-h-[80px] text-sm resize-none"
+                                    value={meetingForm.description}
+                                    onChange={(e) => setMeetingForm(prev => ({ ...prev, description: e.target.value }))}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Location / Link</label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <Input
+                                        placeholder="Google Meet Link or Physical Address"
+                                        className="pl-9 h-9 text-sm"
+                                        value={meetingForm.location}
+                                        onChange={(e) => setMeetingForm(prev => ({ ...prev, location: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Date</label>
+                                    <Input
+                                        type="date"
+                                        className="h-9 text-sm"
+                                        value={meetingForm.date}
+                                        onChange={(e) => setMeetingForm(prev => ({ ...prev, date: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Time</label>
+                                    <Input
+                                        type="time"
+                                        className="h-9 text-sm"
+                                        value={meetingForm.time}
+                                        onChange={(e) => setMeetingForm(prev => ({ ...prev, time: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                                <Palette className="h-3 w-3" /> Label Color
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { name: 'Tomato', color: '#ef4444' },
+                                    { name: 'Tangerine', color: '#f97316' },
+                                    { name: 'Banana', color: '#eab308' },
+                                    { name: 'Basil', color: '#22c55e' },
+                                    { name: 'Sage', color: '#10b981' },
+                                    { name: 'Peacock', color: '#06b6d4' },
+                                    { name: 'Blueberry', color: '#3b82f6' },
+                                    { name: 'Lavender', color: '#8b5cf6' },
+                                    { name: 'Grape', color: '#d946ef' },
+                                    { name: 'Flamingo', color: '#f43f5e' },
+                                    { name: 'Graphite', color: '#4b5563' },
+                                    { name: 'Default', color: '#3b82f6' },
+                                ].map((c) => (
+                                    <button
+                                        key={c.name}
+                                        onClick={() => setMeetingForm(prev => ({ ...prev, label: c.color }))}
+                                        className={`h-6 w-6 rounded-full border-2 transition-all ${meetingForm.label === c.color ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent hover:scale-110'}`}
+                                        style={{ backgroundColor: c.color }}
+                                        title={c.name}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                                <Paperclip className="h-3 w-3" /> Attachments
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs"
+                                    onClick={() => document.getElementById('meeting-attachment')?.click()}
+                                >
+                                    <span className="mr-2">📎</span>
+                                    {meetingForm.attachment ? 'Change File' : 'Upload File'}
+                                </Button>
+                                <input
+                                    id="meeting-attachment"
+                                    type="file"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        if (e.target.files?.[0]) {
+                                            setMeetingForm(prev => ({ ...prev, attachment: e.target.files![0] }))
+                                        }
+                                    }}
+                                />
+                                {meetingForm.attachment && (
+                                    <div className="flex items-center gap-2 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-600 dark:text-blue-400">
+                                        <span className="truncate max-w-[100px]">{meetingForm.attachment.name}</span>
+                                        <button onClick={() => setMeetingForm(prev => ({ ...prev, attachment: null }))}>
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Notifications */}
+                            <div className="grid gap-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                                    <BellRing className="h-3 w-3" /> Notifications
+                                </label>
+                                <div className="space-y-2">
+                                    {meetingForm.notifications.map((note, index) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            <div className="flex-1 h-9 px-3 rounded-md border border-input bg-transparent text-sm flex items-center">
+                                                {note}
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-9 w-9 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                onClick={() => {
+                                                    const newNotes = [...meetingForm.notifications]
+                                                    newNotes.splice(index, 1)
+                                                    setMeetingForm(prev => ({ ...prev, notifications: newNotes }))
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    <div className="flex gap-2">
+                                        <select
+                                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-900"
+                                            onChange={(e) => {
+                                                if (e.target.value) {
+                                                    setMeetingForm(prev => ({
+                                                        ...prev,
+                                                        notifications: [...prev.notifications, e.target.value]
+                                                    }))
+                                                    e.target.value = ''
+                                                }
+                                            }}
+                                        >
+                                            <option value="">Add a notification...</option>
+                                            <option value="10 minutes before">10 minutes before</option>
+                                            <option value="30 minutes before">30 minutes before</option>
+                                            <option value="1 hour before">1 hour before</option>
+                                            <option value="1 day before">1 day before</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </ScrollArea>
+                    <div className="flex justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setShowScheduleDialog(false)} className="text-xs h-9">Cancel</Button>
+                        <Button
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 px-6"
+                            onClick={handleScheduleMeeting}
+                        >
+                            Send Invite
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog >
+
+            {/* View All Resources Dialog */}
+            < Dialog open={showResourcesDialog} onOpenChange={setShowResourcesDialog} >
+                <DialogContent className="max-w-7xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
+                    <DialogHeader className="p-6 border-b space-y-4">
+                        <DialogTitle className="flex items-center gap-2">
+                            <Link className="h-5 w-5 text-blue-500" />
+                            All Shared Resources
+                        </DialogTitle>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                placeholder="Search files..."
+                                className="pl-9 h-10 bg-gray-50 dark:bg-zinc-900/50"
+                                value={resourceSearch}
+                                onChange={(e) => setResourceSearch(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-none">
+                            {['All', 'Images', 'Videos', 'Documents', 'Others'].map((cat) => {
+                                const key = cat.toLowerCase() as keyof typeof categorizedResources
+                                const count = cat === 'All' ? sharedResources.length : (categorizedResources[key]?.length || 0)
+                                if (count === 0 && cat !== 'All') return null
+                                return (
+                                    <button
+                                        key={cat}
+                                        onClick={() => {
+                                            if (cat === 'All') {
+                                                document.querySelector('.custom-scrollbar')?.scrollTo({ top: 0, behavior: 'smooth' })
+                                            } else {
+                                                document.getElementById(`res-cat-${cat}`)?.scrollIntoView({ behavior: 'smooth' })
+                                            }
+                                        }}
+                                        className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold whitespace-nowrap transition-colors"
+                                    >
+                                        {cat} <span className="text-gray-500 ml-1">{count}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar" data-lenis-prevent>
+                        <div className="space-y-8">
+                            {/* Images Section */}
+                            {categorizedResources.images.length > 0 && (
+                                <section id="res-cat-Images" className="scroll-mt-4">
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Images ({categorizedResources.images.length})</h4>
+                                    <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                                        {categorizedResources.images.map((res, i) => (
+                                            <a key={i} href={res.url} target="_blank" rel="noopener noreferrer" className="group relative aspect-square rounded-xl overflow-hidden border bg-gray-100 dark:bg-gray-800">
+                                                <img src={res.url} alt={res.name} className="object-cover w-full h-full transition-transform group-hover:scale-110" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
+                                                    <p className="text-[10px] text-white font-medium text-center truncate w-full">{res.name}</p>
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+                            {/* Videos Section */}
+                            {categorizedResources.videos.length > 0 && (
+                                <section id="res-cat-Videos" className="scroll-mt-4">
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Videos ({categorizedResources.videos.length})</h4>
+                                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                        {categorizedResources.videos.map((res, i) => (
+                                            <a key={i} href={res.url} target="_blank" rel="noopener noreferrer" className="group relative aspect-video rounded-xl overflow-hidden border bg-black/5">
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <Video className="h-8 w-8 text-gray-400" />
+                                                </div>
+                                                <video src={res.url} className="object-cover w-full h-full" muted />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
+                                                    <p className="text-[10px] text-white font-medium text-center truncate w-full">{res.name}</p>
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+
+                            {/* Documents Section */}
+                            {categorizedResources.documents.length > 0 && (
+                                <section id="res-cat-Documents" className="scroll-mt-4">
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Documents ({categorizedResources.documents.length})</h4>
+                                    <div className="space-y-2">
+                                        {categorizedResources.documents.map((res, i) => (
+                                            <a key={i} href={res.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 rounded-xl border hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+                                                <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                                    <FileText className="h-5 w-5 text-blue-600" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold truncate">{res.name}</p>
+                                                    <p className="text-xs text-gray-500 uppercase">{new Date(res.createdAt).toLocaleDateString()} • DOCUMENT</p>
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+
+                            {/* Others Section */}
+                            {categorizedResources.others.length > 0 && (
+                                <section id="res-cat-Others" className="scroll-mt-4">
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Other Files ({categorizedResources.others.length})</h4>
+                                    <div className="space-y-2">
+                                        {categorizedResources.others.map((res, i) => (
+                                            <a key={i} href={res.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 rounded-xl border hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+                                                <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                                                    <Paperclip className="h-5 w-5" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold truncate">{res.name}</p>
+                                                    <p className="text-xs text-gray-500 uppercase">{new Date(res.createdAt).toLocaleDateString()} • FILE</p>
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="p-4 border-t bg-gray-50 dark:bg-zinc-900 flex justify-end">
+                        <Button onClick={() => setShowResourcesDialog(false)}>Close</Button>
+                    </div>
+                </DialogContent>
+            </Dialog >
         </Card >
     )
 }

@@ -3,6 +3,7 @@ import { ThemeProvider } from '@/providers/theme-provider'
 import ModalProvider from '@/providers/modal-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnarToaster } from '@/components/ui/sonner'
+import VideoCallInvitationListener from '@/components/global/video-call-invitation-listener'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -13,6 +14,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       disableTransitionOnChange
     >
       <ModalProvider>
+        <VideoCallInvitationListener />
         {children}
         <Toaster />
         <SonnarToaster position="bottom-left" />

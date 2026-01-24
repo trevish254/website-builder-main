@@ -600,34 +600,40 @@ export const getConversationsWithParticipants = async (
 
     const userMap = new Map(allUsers?.map((u) => [u.id, u]))
 
-    // 5. Fetch recent messages
-    const { data: recentMessages } = await supabaseAdmin
+    // 5. Fetch all messages (or counts) for these conversations to calculate unread status
+    // Optimization: In a real app with many messages, you'd use a grouped count query.
+    // For now, we'll fetch messages from the last 7 days or similar to calculate unread counts.
+    const { data: allRecentMessages } = await supabaseAdmin
       .from('Message')
-      .select('id, conversationId, content, createdAt, type, senderId')
+      .select('id, conversationId, createdAt, senderId, content')
       .in('conversationId', conversationIds)
       .order('createdAt', { ascending: false })
+      .limit(1000)
 
-    // Group messages by conversation
-    const messagesByConv = new Map()
-    recentMessages?.forEach((msg: any) => {
-      if (!messagesByConv.has(msg.conversationId)) {
-        messagesByConv.set(msg.conversationId, msg)
-      }
-    })
-
-    // Map everything together
+    // 6. Map everything together
     const result = conversations?.map((conv) => {
       const participants = allParticipants?.filter((p: any) => p.conversationId === conv.id) || []
       const participantsWithUsers = participants.map((p: any) => ({
         ...p,
         User: userMap.get(p.userId) || null
       }))
-      const message = messagesByConv.get(conv.id)
+
+      const me = participants.find((p: any) => p.userId === userId)
+      const lastReadAt = me?.lastReadAt ? new Date(me.lastReadAt).getTime() : 0
+
+      const convMessages = allRecentMessages?.filter((m: any) => m.conversationId === conv.id) || []
+      const lastMessage = convMessages[0]
+
+      const unreadCount = convMessages.filter((m: any) => {
+        const msgTime = new Date(m.createdAt).getTime()
+        return m.senderId !== userId && msgTime > lastReadAt
+      }).length
 
       return {
         ...conv,
         ConversationParticipant: participantsWithUsers,
-        Message: message ? [message] : []
+        Message: lastMessage ? [lastMessage] : [],
+        unreadCount
       }
     })
 

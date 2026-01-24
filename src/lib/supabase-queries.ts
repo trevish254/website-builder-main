@@ -479,15 +479,8 @@ export const getConversationParticipants = async (conversationId: string) => {
   return data
 }
 
-export const getConversationMessages = async (conversationId: string | string[], limit = 50) => {
-  console.log('[QUERY] getConversationMessages called with conversationId:', conversationId, 'limit:', limit)
-
-  // DEBUG: Check if we can see ANY messages in the table
-  const { count, error: countError } = await supabase
-    .from('Message')
-    .select('*', { count: 'exact', head: true })
-
-  console.log('[DEBUG] Total messages visible to client:', count, 'Error:', countError)
+export const getConversationMessages = async (conversationId: string | string[], limit = 50, before?: string) => {
+  console.log('[QUERY] getConversationMessages called with conversationId:', conversationId, 'limit:', limit, 'before:', before)
 
   let query = supabase
     .from('Message')
@@ -501,6 +494,10 @@ export const getConversationMessages = async (conversationId: string | string[],
     query = query.eq('conversationId', conversationId)
   }
 
+  if (before) {
+    query = query.lt('createdAt', before)
+  }
+
   const { data, error } = await query
 
   console.log('[QUERY] getConversationMessages result - data:', data, 'error:', error)
@@ -512,6 +509,44 @@ export const getConversationMessages = async (conversationId: string | string[],
 
   console.log('[QUERY] Returning', data?.length || 0, 'messages')
   return data
+}
+
+export const getConversationAttachments = async (conversationId: string | string[]) => {
+  let query = supabase
+    .from('Message')
+    .select('id, metadata, createdAt, senderId')
+    .not('metadata', 'is', null)
+    .order('createdAt', { ascending: false })
+
+  if (Array.isArray(conversationId)) {
+    query = query.in('conversationId', conversationId)
+  } else {
+    query = query.eq('conversationId', conversationId)
+  }
+
+  const { data, error } = await query
+  if (error) {
+    console.error('[QUERY] Error fetching attachments:', error)
+    return []
+  }
+
+  // Extract and flat map attachments from metadata
+  const attachments: any[] = []
+  data.forEach(m => {
+    const meta = m.metadata as any
+    if (meta?.attachments && Array.isArray(meta.attachments)) {
+      meta.attachments.forEach((att: any) => {
+        attachments.push({
+          ...att,
+          messageId: m.id,
+          senderId: m.senderId,
+          createdAt: m.createdAt
+        })
+      })
+    }
+  })
+
+  return attachments
 }
 
 export const sendMessage = async (payload: {
@@ -607,6 +642,34 @@ export const markConversationRead = async (conversationId: string, userId: strin
 
   if (error) {
     console.error('Error marking conversation as read:', error)
+    return false
+  }
+  return true
+}
+
+export const removeParticipant = async (conversationId: string, userId: string) => {
+  const { error } = await supabase
+    .from('ConversationParticipant')
+    .delete()
+    .eq('conversationId', conversationId)
+    .eq('userId', userId)
+
+  if (error) {
+    console.error('Error removing participant:', error)
+    return false
+  }
+  return true
+}
+
+export const removeParticipantsBulk = async (conversationIds: string[], userId: string) => {
+  const { error } = await supabase
+    .from('ConversationParticipant')
+    .delete()
+    .in('conversationId', conversationIds)
+    .eq('userId', userId)
+
+  if (error) {
+    console.error('Error removing participants bulk:', error)
     return false
   }
   return true
@@ -738,6 +801,7 @@ export const createGroupConversation = async (params: {
   description?: string
   iconUrl?: string
   subAccountId?: string | null
+  type?: string
 }) => {
   console.log('[QUERY] createGroupConversation called:', params.title)
 
@@ -746,7 +810,7 @@ export const createGroupConversation = async (params: {
     .from('Conversation')
     .insert({
       id: conversationId,
-      type: 'group',
+      type: params.type || 'group',
       title: params.title,
       description: params.description || null,
       iconUrl: params.iconUrl || null,
@@ -1060,15 +1124,32 @@ export const getConversationWithParticipantsManual = async (conversationId: stri
   }
 }
 
-// Delete a conversation
-export const deleteConversation = async (conversationId: string) => {
+// Hide conversation for a specific user (Delete participant record)
+export const hideConversationForUser = async (conversationId: string, userId: string) => {
   const { error } = await supabase
-    .from('Conversation')
+    .from('ConversationParticipant')
     .delete()
-    .eq('id', conversationId)
+    .eq('conversationId', conversationId)
+    .eq('userId', userId)
 
   if (error) {
-    console.error('Error deleting conversation:', error)
+    console.error('Error hiding conversation:', error)
+    return false
+  }
+
+  return true
+}
+
+// Hide multiple conversations for a specific user
+export const hideConversationsBulk = async (conversationIds: string[], userId: string) => {
+  const { error } = await supabase
+    .from('ConversationParticipant')
+    .delete()
+    .in('conversationId', conversationIds)
+    .eq('userId', userId)
+
+  if (error) {
+    console.error('Error hiding conversations bulk:', error)
     return false
   }
 

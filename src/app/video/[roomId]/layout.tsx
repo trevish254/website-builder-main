@@ -1,0 +1,24 @@
+import React from 'react'
+import { ThemeProvider } from '@/providers/theme-provider'
+import ModalProvider from '@/providers/modal-provider'
+import { Toaster } from '@/components/ui/toaster'
+import { Toaster as SonnarToaster } from '@/components/ui/sonner'
+
+const VideoLayout = ({ children }: { children: React.ReactNode }) => {
+    return (
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <ModalProvider>
+                {children}
+                <Toaster />
+                <SonnarToaster position="bottom-left" />
+            </ModalProvider>
+        </ThemeProvider>
+    )
+}
+
+export default VideoLayout
