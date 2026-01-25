@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 import { toast } from 'sonner'
+import { useConnectivity } from '@/lib/hooks/use-connectivity'
 
 export type RoomStatus = 'idle' | 'joining' | 'active' | 'ended'
 
@@ -39,6 +40,7 @@ export const useVideoConference = (currentUserId: string, currentUserName?: stri
     const [isScreenSharing, setIsScreenSharing] = useState(false)
     const [isHandRaised, setIsHandRaised] = useState(false)
     const [messages, setMessages] = useState<any[]>([])
+    const { quality } = useConnectivity()
 
     // Using refs for WebRTC objects to avoid re-render cycles
     const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map())
@@ -244,7 +246,6 @@ export const useVideoConference = (currentUserId: string, currentUserName?: stri
     }, [currentUserId, roomId, createPeerConnection, sendSignal, removeParticipant, isMuted, isVideoOff, isHandRaised])
 
     const joinRoom = useCallback(async (id: string) => {
-        // Prevent multiple simultaneous joins
         if (status === 'joining' || status === 'active' || (id === roomId && status !== 'idle')) {
             console.log('Already in the process of joining or active in this room')
             return
@@ -255,7 +256,18 @@ export const useVideoConference = (currentUserId: string, currentUserName?: stri
         setRoomId(id)
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+            // Adaptive initial constraints
+            const videoConstraints = quality === 'excellent' || quality === 'good'
+                ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
+                : quality === 'fair'
+                    ? { width: { ideal: 854 }, height: { ideal: 480 }, frameRate: { ideal: 24 } }
+                    : { width: { ideal: 426 }, height: { ideal: 240 }, frameRate: { ideal: 15 } }
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: videoConstraints
+            })
+
             setLocalStream(stream)
             localStreamRef.current = stream
             setParticipants([{
@@ -271,7 +283,54 @@ export const useVideoConference = (currentUserId: string, currentUserName?: stri
             toast.error('Could not access camera/microphone')
             cleanup()
         }
-    }, [cleanup, currentUserId, currentUserName, currentUserAvatar, roomId, status])
+    }, [cleanup, currentUserId, currentUserName, currentUserAvatar, roomId, status, quality])
+
+    // Adaptive Resolution Effect - Adjust parameters of existing senders when quality changes
+    useEffect(() => {
+        if (status !== 'active') return
+
+        const adjustQuality = async () => {
+            console.log(`[VIDEO] Adaptive resolution: Quality is now ${quality}`)
+
+            for (const [targetId, pc] of pcsRef.current.entries()) {
+                const senders = pc.getSenders()
+                const videoSender = senders.find(s => s.track?.kind === 'video')
+
+                if (videoSender) {
+                    try {
+                        const params = videoSender.getParameters()
+                        if (!params.encodings) params.encodings = [{}]
+
+                        switch (quality) {
+                            case 'excellent':
+                            case 'good':
+                                params.encodings[0].maxBitrate = 2500000 // 2.5 Mbps
+                                params.encodings[0].scaleResolutionDownBy = 1
+                                break
+                            case 'fair':
+                                params.encodings[0].maxBitrate = 1000000 // 1 Mbps
+                                params.encodings[0].scaleResolutionDownBy = 1.5
+                                break
+                            case 'poor':
+                                params.encodings[0].maxBitrate = 300000 // 300 Kbps
+                                params.encodings[0].scaleResolutionDownBy = 2
+                                break
+                            case 'offline':
+                                params.encodings[0].maxBitrate = 50000
+                                break
+                        }
+
+                        await videoSender.setParameters(params)
+                        console.log(`[VIDEO] Successfully adjusted sender params for ${targetId}`)
+                    } catch (err) {
+                        console.warn(`[VIDEO] Could not adjust sender params for ${targetId}:`, err)
+                    }
+                }
+            }
+        }
+
+        adjustQuality()
+    }, [quality, status])
 
     const leaveRoom = useCallback(() => {
         if (roomId) {

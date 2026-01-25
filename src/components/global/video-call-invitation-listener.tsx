@@ -66,7 +66,7 @@ const VideoCallInvitationListener = () => {
 
     const handleJoin = () => {
         if (incomingCall) {
-            router.push(`/video/${incomingCall.roomId}`)
+            window.open(`/video/${incomingCall.roomId}`, '_blank')
             setIncomingCall(null)
         }
     }
