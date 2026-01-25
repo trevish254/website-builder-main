@@ -164,6 +164,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
     isMuted: isCallMuted,
     remotePeerName,
     remotePeerAvatar,
+    remoteStream,
     initiateCall,
     acceptCall,
     declineCall,
