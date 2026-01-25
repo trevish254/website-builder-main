@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Archive, Trash2, MoreVertical, Paperclip, Image as ImageIcon, Smile, Send, Loader2, Phone, Video, X, Mail, MapPin, Calendar, ShieldCheck, Mic, Check, CalendarClock, Zap, Settings, Clock, Link, BellRing, UserCheck, Plus, FileText, Search, Palette } from 'lucide-react'
+import { Archive, Trash2, MoreVertical, Paperclip, Image as ImageIcon, Smile, Send, Loader2, Phone, Video, X, Mail, MapPin, Calendar, ShieldCheck, Mic, Check, CalendarClock, Zap, Settings, Clock, Link, BellRing, UserCheck, Plus, FileText, Search, Palette, ArrowLeft } from 'lucide-react'
 import MessageBubble from './message-bubble'
 import { InboxItem } from './chat-sidebar'
 import { useToast } from '@/components/ui/use-toast'
@@ -58,6 +58,7 @@ interface ChatWindowProps {
     hasMoreMessages?: boolean
     isLoadingMore?: boolean
     allAttachments?: any[]
+    onBack?: () => void
 }
 
 const ChatWindow = ({
@@ -85,7 +86,8 @@ const ChatWindow = ({
     onLoadMore,
     hasMoreMessages,
     isLoadingMore,
-    allAttachments = []
+    allAttachments = [],
+    onBack
 }: ChatWindowProps) => {
     const scrollRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -120,6 +122,14 @@ const ChatWindow = ({
     })
     const [resourceSearch, setResourceSearch] = useState('')
     const [activeAutomations, setActiveAutomations] = useState<Set<string>>(new Set(['Auto-Follow up']))
+    const [showAddMemberDialog, setShowAddMemberDialog] = useState(false)
+    const [showEditGroupDialog, setShowEditGroupDialog] = useState(false)
+    const [groupForm, setGroupForm] = useState({
+        name: '',
+        description: '',
+        icon: null as File | null
+    })
+    const [memberSearchQuery, setMemberSearchQuery] = useState('')
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const audioChunksRef = useRef<Blob[]>([])
     const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -194,6 +204,10 @@ const ChatWindow = ({
 
             if (editingMeetingId) {
                 // UPDATE existing meeting
+                const recipientId = selectedMsg.participantInfo?.id ||
+                    selectedMsg.participants?.find((p: any) => p.id !== user?.id)?.id ||
+                    null;
+
                 result = await supabase
                     .from('Meetings')
                     .update({
@@ -204,34 +218,54 @@ const ChatWindow = ({
                         endTime: endDateTime.toISOString(),
                         color: meetingForm.label,
                         notifications: meetingForm.notifications,
+                        conversationId: selectedMsg.id,
+                        recipientId: recipientId,
                     })
                     .eq('id', editingMeetingId)
-                    .select()
+                    .select('*')
                     .single()
             } else {
                 // INSERT new meeting
                 // Get current user for RLS policy
                 const { data: { user } } = await supabase.auth.getUser()
 
+                const recipientId = selectedMsg.participantInfo?.id ||
+                    selectedMsg.participants?.find((p: any) => p.id !== user?.id)?.id ||
+                    null;
+
+                const dbPayload = {
+                    title: meetingForm.title,
+                    description: meetingForm.description,
+                    location: meetingForm.location,
+                    startTime: startDateTime.toISOString(),
+                    endTime: endDateTime.toISOString(),
+                    color: meetingForm.label,
+                    notifications: meetingForm.notifications,
+                    status: 'scheduled',
+                    senderId: user?.id,
+                    conversationId: selectedMsg.id,
+                    recipientId: recipientId,
+                };
+
+                console.log('[MEETINGS] 🚀 Inserting new meeting with payload:', dbPayload);
+
+                if (!selectedMsg.id) {
+                    toast({ variant: 'destructive', title: 'Error', description: 'Conversation ID lost. Please re-select the chat.' });
+                    return;
+                }
+
                 result = await supabase
                     .from('Meetings')
-                    .insert({
-                        title: meetingForm.title,
-                        description: meetingForm.description,
-                        location: meetingForm.location,
-                        startTime: startDateTime.toISOString(),
-                        endTime: endDateTime.toISOString(),
-                        color: meetingForm.label,
-                        notifications: meetingForm.notifications,
-                        status: 'scheduled',
-                        senderId: user?.id, // Required for RLS policy
-                    })
-                    .select()
+                    .insert(dbPayload)
+                    .select('*')
                     .single()
             }
 
             const { data, error } = result
             if (error) throw error
+
+            console.log('[MEETINGS] ✅ Result from DB:', data)
+
 
             // Update UI
             const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
@@ -247,6 +281,10 @@ const ChatWindow = ({
                 setScheduledMeetings(prev => prev.map(m => m.id === editingMeetingId ? meetingObj : m))
                 toast({ title: 'Meeting Updated', description: `"${meetingObj.title}" has been updated.` })
             } else {
+                // VERIFICATION: Check if the returned data actually has the IDs we sent
+                if (!data.conversationId) {
+                    console.error('[MEETINGS] ❌ WARNING: Database did not return conversationId. Check if column exists:', data);
+                }
                 setScheduledMeetings(prev => [meetingObj, ...prev])
                 toast({ title: 'Meeting Scheduled', description: `"${meetingObj.title}" has been saved.` })
             }
@@ -266,6 +304,156 @@ const ChatWindow = ({
             toast({
                 title: 'Error',
                 description: error?.message || 'Failed to save meeting. Please try again.',
+                variant: 'destructive'
+            })
+        }
+    }
+
+    const handleUpdateGroup = async () => {
+        if (!groupForm.name || !selectedMsg.id) return
+
+        const supabase = createClient()
+
+        try {
+            let iconUrl = selectedMsg.iconUrl
+
+            // Upload new icon if provided
+            if (groupForm.icon) {
+                const fileExt = groupForm.icon.name.split('.').pop()
+                const fileName = `${selectedMsg.id}-${Date.now()}.${fileExt}`
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('group-icons')
+                    .upload(fileName, groupForm.icon)
+
+                if (uploadError) throw uploadError
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('group-icons')
+                    .getPublicUrl(fileName)
+
+                iconUrl = publicUrl
+            }
+
+            // Update conversation
+            const { error } = await supabase
+                .from('Conversation')
+                .update({
+                    title: groupForm.name,
+                    description: groupForm.description,
+                    iconUrl: iconUrl,
+                })
+                .eq('id', selectedMsg.id)
+
+            if (error) throw error
+
+            toast({
+                title: 'Group Updated',
+                description: 'Group details have been updated successfully.',
+            })
+
+            setShowEditGroupDialog(false)
+            setGroupForm({ name: '', description: '', icon: null })
+
+        } catch (error: any) {
+            console.error('Error updating group:', error)
+            toast({
+                title: 'Error',
+                description: error?.message || 'Failed to update group.',
+                variant: 'destructive'
+            })
+        }
+    }
+
+    const handleAddMember = async (userId: string, userName: string) => {
+        if (!selectedMsg.id) return
+
+        const supabase = createClient()
+
+        try {
+            const { error } = await supabase
+                .from('ConversationParticipant')
+                .insert({
+                    conversationId: selectedMsg.id,
+                    userId: userId,
+                    role: 'member'
+                })
+
+            if (error) throw error
+
+            toast({
+                title: 'Member Added',
+                description: `${userName} has been added to the group.`,
+            })
+
+        } catch (error: any) {
+            console.error('Error adding member:', error)
+            toast({
+                title: 'Error',
+                description: error?.message || 'Failed to add member.',
+                variant: 'destructive'
+            })
+        }
+    }
+
+    const handleLeaveGroup = async () => {
+        if (!selectedMsg.id) return
+
+        const supabase = createClient()
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { error } = await supabase
+                .from('ConversationParticipant')
+                .delete()
+                .eq('conversationId', selectedMsg.id)
+                .eq('userId', user.id)
+
+            if (error) throw error
+
+            toast({
+                title: 'Left Group',
+                description: `You have left ${selectedMsg.title}.`,
+            })
+
+            setShowProfile(false)
+
+        } catch (error: any) {
+            console.error('Error leaving group:', error)
+            toast({
+                title: 'Error',
+                description: error?.message || 'Failed to leave group.',
+                variant: 'destructive'
+            })
+        }
+    }
+
+    const handleDeleteGroup = async () => {
+        if (!selectedMsg.id) return
+
+        const supabase = createClient()
+
+        try {
+            const { error } = await supabase
+                .from('Conversation')
+                .delete()
+                .eq('id', selectedMsg.id)
+
+            if (error) throw error
+
+            toast({
+                title: 'Group Deleted',
+                description: `${selectedMsg.title} has been deleted.`,
+            })
+
+            setShowProfile(false)
+
+        } catch (error: any) {
+            console.error('Error deleting group:', error)
+            toast({
+                title: 'Error',
+                description: error?.message || 'Failed to delete group.',
                 variant: 'destructive'
             })
         }
@@ -408,6 +596,46 @@ const ChatWindow = ({
         }
     }, [chatMessages, typingUsers.size])
 
+    // Fetch meetings when conversation is selected
+    useEffect(() => {
+        if (!selectedMsg?.id) {
+            setScheduledMeetings([])
+            return
+        }
+
+        const fetchMeetings = async () => {
+            const supabase = createClient()
+            console.log(`[MEETINGS] Fetching for conversation: ${selectedMsg.id}`)
+            try {
+                const { data, error } = await supabase
+                    .from('Meetings')
+                    .select('*')
+                    .eq('conversationId', selectedMsg.id)
+                    .order('startTime', { ascending: false })
+
+                if (error) throw error
+
+                console.log(`[MEETINGS] Found ${data?.length || 0} meetings`)
+                if (data) {
+                    const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+                    const formatted = data.map(m => {
+                        const dateObj = new Date(m.startTime)
+                        return {
+                            ...m,
+                            date: `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}`,
+                            time: dateObj.toTimeString().slice(0, 5)
+                        }
+                    })
+                    setScheduledMeetings(formatted)
+                }
+            } catch (err) {
+                console.error('[MEETINGS] Error fetching meetings:', err)
+            }
+        }
+
+        fetchMeetings()
+    }, [selectedMsg?.id])
+
     // Scroll to bottom immediately when conversation is selected
     useEffect(() => {
         if (selectedMsg) {
@@ -423,7 +651,7 @@ const ChatWindow = ({
 
     if (!selectedMsg) {
         return (
-            <Card className="lg:col-span-2 flex flex-col overflow-hidden h-full">
+            <Card className="flex-1 w-full flex flex-col overflow-hidden h-full">
                 <CardContent className="flex-1 flex items-center justify-center">
                     <div className="text-center">
                         <div className="h-16 w-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
@@ -442,11 +670,22 @@ const ChatWindow = ({
     }
 
     return (
-        <Card className="lg:col-span-2 flex flex-col overflow-hidden h-full">
+        <Card className="flex-1 w-full flex flex-col overflow-hidden h-full border-none shadow-none md:border md:shadow-sm">
+
             {/* Chat Header */}
             <CardHeader className="py-2.5 px-4 border-b">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
+                        {onBack && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="md:hidden text-gray-500 hover:text-gray-700 -ml-2"
+                                onClick={onBack}
+                            >
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        )}
                         <div className="relative">
                             <Avatar
                                 className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity"
@@ -515,7 +754,7 @@ const ChatWindow = ({
             {/* Chat Messages */}
             <CardContent className="flex-1 p-0 flex flex-col relative min-h-0 overflow-hidden">
                 <div
-                    className="flex-1 overflow-y-auto px-6 custom-scrollbar h-0"
+                    className="flex-1 overflow-y-auto px-6 custom-scrollbar h-0 overscroll-contain"
                     ref={scrollRef}
                     data-lenis-prevent
                 >
@@ -812,14 +1051,33 @@ const ChatWindow = ({
                     {/* Sidebar Content */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar h-0" data-lenis-prevent>
                         <div className="p-6 flex flex-col items-center text-center">
-                            <Avatar className="h-24 w-24 mb-4 border-4 border-blue-50 dark:border-blue-900/20">
-                                <AvatarImage src={selectedMsg.type === 'group' ? (selectedMsg.iconUrl || '') : (selectedMsg.avatar || selectedMsg.participantInfo?.avatarUrl || '')} />
-                                <AvatarFallback className="text-2xl">
-                                    {selectedMsg.type === 'group'
-                                        ? selectedMsg.title?.charAt(0) || 'G'
-                                        : selectedMsg.participantInfo?.name?.charAt(0) || selectedMsg.title?.charAt(0) || 'U'}
-                                </AvatarFallback>
-                            </Avatar>
+                            <div className="relative mb-4">
+                                <Avatar className="h-24 w-24 border-4 border-blue-50 dark:border-blue-900/20">
+                                    <AvatarImage src={selectedMsg.type === 'group' ? (selectedMsg.iconUrl || '') : (selectedMsg.avatar || selectedMsg.participantInfo?.avatarUrl || '')} />
+                                    <AvatarFallback className="text-2xl">
+                                        {selectedMsg.type === 'group'
+                                            ? selectedMsg.title?.charAt(0) || 'G'
+                                            : selectedMsg.participantInfo?.name?.charAt(0) || selectedMsg.title?.charAt(0) || 'U'}
+                                    </AvatarFallback>
+                                </Avatar>
+                                {selectedMsg.type === 'group' && (
+                                    <Button
+                                        size="icon"
+                                        variant="secondary"
+                                        className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-lg"
+                                        onClick={() => {
+                                            setGroupForm({
+                                                name: selectedMsg.title || '',
+                                                description: selectedMsg.description || '',
+                                                icon: null
+                                            })
+                                            setShowEditGroupDialog(true)
+                                        }}
+                                    >
+                                        <FileText className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
 
                             <h2 className="text-xl font-bold mb-1">{selectedMsg.type === 'group' ? selectedMsg.title : (selectedMsg.participantInfo?.name || selectedMsg.title)}</h2>
                             <p className="text-sm text-muted-foreground mb-6">
@@ -837,7 +1095,12 @@ const ChatWindow = ({
                                             <div className="space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Members</h4>
-                                                    <Button variant="ghost" size="sm" className="h-6 text-xs text-blue-600 hover:text-blue-700 p-0">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 text-xs text-blue-600 hover:text-blue-700 p-0"
+                                                        onClick={() => setShowAddMemberDialog(true)}
+                                                    >
                                                         Add Member
                                                     </Button>
                                                 </div>
@@ -1058,17 +1321,59 @@ const ChatWindow = ({
                             </div>
 
                             <div className="w-full mt-8 pt-6 border-t">
-                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-left">Management Actions</h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <Button variant="outline" className="w-full h-14 flex flex-col gap-1 rounded-xl">
-                                        <Archive className="h-3.5 w-3.5 text-gray-500" />
-                                        <span className="text-[9px] font-bold uppercase tracking-tighter">Archive Chat</span>
-                                    </Button>
-                                    <Button variant="outline" className="w-full h-14 flex flex-col gap-1 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10">
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                        <span className="text-[9px] font-bold uppercase tracking-tighter">Block Account</span>
-                                    </Button>
-                                </div>
+                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-left">
+                                    {selectedMsg.type === 'group' ? 'Group Settings' : 'Management Actions'}
+                                </h4>
+                                {selectedMsg.type === 'group' ? (
+                                    <div className="space-y-2">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full h-12 flex items-center justify-start gap-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10"
+                                            onClick={() => {
+                                                setGroupForm({
+                                                    name: selectedMsg.title || '',
+                                                    description: selectedMsg.description || '',
+                                                    icon: null
+                                                })
+                                                setShowEditGroupDialog(true)
+                                            }}
+                                        >
+                                            <FileText className="h-4 w-4 text-blue-500" />
+                                            <span className="text-xs font-medium">Edit Group Details</span>
+                                        </Button>
+                                        <Button variant="outline" className="w-full h-12 flex items-center justify-start gap-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900">
+                                            <BellRing className="h-4 w-4 text-gray-500" />
+                                            <span className="text-xs font-medium">Manage Notifications</span>
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full h-12 flex items-center justify-start gap-3 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/10 text-orange-600"
+                                            onClick={handleLeaveGroup}
+                                        >
+                                            <Archive className="h-4 w-4" />
+                                            <span className="text-xs font-medium">Leave Group</span>
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full h-12 flex items-center justify-start gap-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600"
+                                            onClick={handleDeleteGroup}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="text-xs font-medium">Delete Group</span>
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button variant="outline" className="w-full h-14 flex flex-col gap-1 rounded-xl">
+                                            <Archive className="h-3.5 w-3.5 text-gray-500" />
+                                            <span className="text-[9px] font-bold uppercase tracking-tighter">Archive Chat</span>
+                                        </Button>
+                                        <Button variant="outline" className="w-full h-14 flex flex-col gap-1 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10">
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            <span className="text-[9px] font-bold uppercase tracking-tighter">Block Account</span>
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1392,6 +1697,163 @@ const ChatWindow = ({
                     </div>
                 </DialogContent>
             </Dialog >
+
+            {/* Edit Group Dialog */}
+            <Dialog open={showEditGroupDialog} onOpenChange={setShowEditGroupDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-blue-500" />
+                            Edit Group Details
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            Update your group's name, description, and icon.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Group Name</label>
+                            <Input
+                                placeholder="e.g. Project Team"
+                                className="h-9 text-sm"
+                                value={groupForm.name}
+                                onChange={(e) => setGroupForm(prev => ({ ...prev, name: e.target.value }))}
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Description</label>
+                            <Textarea
+                                placeholder="What is this group about?"
+                                className="min-h-[80px] text-sm resize-none"
+                                value={groupForm.description}
+                                onChange={(e) => setGroupForm(prev => ({ ...prev, description: e.target.value }))}
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Group Icon</label>
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-16 w-16">
+                                    <AvatarImage src={selectedMsg.iconUrl || ''} />
+                                    <AvatarFallback className="text-xl">
+                                        {groupForm.name?.charAt(0) || selectedMsg.title?.charAt(0) || 'G'}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs"
+                                    onClick={() => document.getElementById('group-icon-upload')?.click()}
+                                >
+                                    <ImageIcon className="h-4 w-4 mr-2" />
+                                    {groupForm.icon ? 'Change Icon' : 'Upload Icon'}
+                                </Button>
+                                <input
+                                    id="group-icon-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        if (e.target.files?.[0]) {
+                                            setGroupForm(prev => ({ ...prev, icon: e.target.files![0] }))
+                                        }
+                                    }}
+                                />
+                            </div>
+                            {groupForm.icon && (
+                                <p className="text-xs text-blue-600 dark:text-blue-400">
+                                    Selected: {groupForm.icon.name}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setShowEditGroupDialog(false)} className="text-xs h-9">
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 px-6"
+                            onClick={handleUpdateGroup}
+                        >
+                            Save Changes
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Member Dialog */}
+            <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Plus className="h-5 w-5 text-blue-500" />
+                            Add Members to Group
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            Search and add new members to {selectedMsg.title}.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4 py-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                placeholder="Search by name or email..."
+                                className="pl-9 h-10"
+                                value={memberSearchQuery}
+                                onChange={(e) => setMemberSearchQuery(e.target.value)}
+                            />
+                        </div>
+
+                        <ScrollArea className="h-[300px] pr-4">
+                            <div className="space-y-2">
+                                {/* Mock users - replace with actual search results */}
+                                {[
+                                    { id: '1', name: 'John Doe', email: 'john@example.com', avatar: '' },
+                                    { id: '2', name: 'Jane Smith', email: 'jane@example.com', avatar: '' },
+                                    { id: '3', name: 'Mike Johnson', email: 'mike@example.com', avatar: '' },
+                                ].filter(user =>
+                                    user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+                                    user.email.toLowerCase().includes(memberSearchQuery.toLowerCase())
+                                ).map((user) => (
+                                    <div
+                                        key={user.id}
+                                        className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-colors cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={user.avatar} />
+                                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="text-sm font-medium">{user.name}</p>
+                                                <p className="text-xs text-gray-500">{user.email}</p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 text-xs"
+                                            onClick={() => handleAddMember(user.id, user.name)}
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
+
+                    <div className="flex justify-end">
+                        <Button variant="ghost" onClick={() => setShowAddMemberDialog(false)} className="text-xs h-9">
+                            Done
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Card >
     )
 }

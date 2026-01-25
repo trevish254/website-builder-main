@@ -151,7 +151,8 @@ const ChatSidebar = ({
     }, [agencyUsers, inboxItems, onlineUsers])
 
     return (
-        <div className="lg:col-span-1 flex flex-col h-full bg-white dark:bg-background border-r">
+        <div className="flex flex-col h-full bg-white dark:bg-background overflow-hidden">
+
             {/* Header */}
             <div className="p-3 pb-1">
                 <div className="flex items-center justify-between mb-2">
@@ -242,7 +243,7 @@ const ChatSidebar = ({
             </div>
 
             {/* Messages List */}
-            <div className="flex-1 overflow-y-auto px-1 custom-scrollbar" data-lenis-prevent>
+            <div className="flex-1 overflow-y-auto px-1 custom-scrollbar overscroll-contain" data-lenis-prevent>
                 <div className="space-y-0.5 p-1">
                     {filteredMessages.length === 0 ? (
                         <div className="text-center py-12 px-4">

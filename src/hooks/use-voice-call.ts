@@ -26,6 +26,7 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
     const [duration, setDuration] = useState(0)
     const [isMuted, setIsMuted] = useState(false)
     const [localStream, setLocalStream] = useState<MediaStream | null>(null)
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
 
     const pcRef = useRef<RTCPeerConnection | null>(null)
     const channelRef = useRef<any>(null)
@@ -88,8 +89,14 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
             pcRef.current = null
         }
         if (localStream) {
+            console.log('WebRTC: Stopping local stream tracks')
             localStream.getTracks().forEach(track => track.stop())
             setLocalStream(null)
+        }
+        if (remoteStream) {
+            console.log('WebRTC: Stopping remote stream tracks')
+            remoteStream.getTracks().forEach(track => track.stop())
+            setRemoteStream(null)
         }
         if (durationIntervalRef.current) {
             clearInterval(durationIntervalRef.current)
@@ -97,6 +104,7 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
         setStatus('idle')
         setCallId(null)
         setRemotePeerId(null)
+        setRemoteStream(null)
         setDuration(0)
     }, [localStream, stopRingtone, stopRingback])
 
@@ -244,11 +252,14 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
         }
 
         pc.ontrack = (event) => {
-            console.log('WebRTC: Received remote track')
-            const remoteAudio = document.getElementById('remote-audio') as HTMLAudioElement
-            if (remoteAudio && event.streams[0]) {
-                remoteAudio.srcObject = event.streams[0]
-                remoteAudio.play().catch(e => console.error('Error playing remote audio:', e))
+            console.log('WebRTC: Received remote track:', event.track.kind, event.streams[0]?.id)
+            if (event.streams[0]) {
+                setRemoteStream(event.streams[0])
+            } else {
+                // Some browsers might not provide the stream at once, fallback to track-based
+                console.log('WebRTC: Creating new MediaStream from track')
+                const stream = new MediaStream([event.track])
+                setRemoteStream(stream)
             }
         }
 
@@ -358,6 +369,8 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
         remotePeerAvatar,
         duration,
         isMuted,
+        localStream,
+        remoteStream,
         initiateCall,
         acceptCall,
         declineCall,

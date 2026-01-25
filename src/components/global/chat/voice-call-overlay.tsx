@@ -21,6 +21,7 @@ interface VoiceCallOverlayProps {
     onHangUp: () => void
     onAccept?: () => void
     onDecline?: () => void
+    remoteStream?: MediaStream | null
 }
 
 const VoiceCallOverlay = ({
@@ -32,9 +33,21 @@ const VoiceCallOverlay = ({
     onMuteToggle,
     onHangUp,
     onAccept,
-    onDecline
+    onDecline,
+    remoteStream
 }: VoiceCallOverlayProps) => {
     const [isMinimized, setIsMinimized] = useState(false)
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+
+    useEffect(() => {
+        if (audioRef.current && remoteStream) {
+            console.log('Attaching remote stream to audio element')
+            audioRef.current.srcObject = remoteStream
+            audioRef.current.play().catch(e => {
+                console.warn('Audio play failed, may need user interaction:', e)
+            })
+        }
+    }, [remoteStream])
     const { quality } = useConnectivity()
 
     const isConnectionPoor = quality === 'poor' || quality === 'offline'
@@ -186,7 +199,7 @@ const VoiceCallOverlay = ({
             </Card>
 
             {/* Hidden audio element for the actual stream */}
-            <audio id="remote-audio" autoPlay className="hidden" />
+            <audio ref={audioRef} autoPlay className="hidden" />
         </div>
     )
 }

@@ -171,39 +171,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
     toggleMute
   } = useVoiceCall(user?.id || '', userName)
 
-  // Listen for global video call invites
-  useEffect(() => {
-    if (!user?.id) return
-
-    const channel = supabase.channel('video-calls', {
-      config: { broadcast: { self: false } }
-    })
-
-    channel
-      .on('broadcast', { event: 'invite' }, ({ payload }) => {
-        // payload: { roomId, senderName, senderId, targetIds }
-        if (payload.targetIds.includes(user.id)) {
-          toast({
-            title: 'Incoming Video Call',
-            description: `${payload.senderName} is calling you...`,
-            action: (
-              <Button
-                onClick={() => window.open(`/video/${payload.roomId}`, '_blank')}
-                className="bg-rose-500 hover:bg-rose-600 text-white text-xs h-8"
-              >
-                Join Now
-              </Button>
-            ),
-            duration: 15000 // Show for 15 seconds
-          })
-        }
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [user?.id, params.agencyId])
+  // Global video call invites are handled by the VideoCallInvitationListener components in the layout
+  // to ensure Accept/Decline UI is available across the entire dashboard.
 
   // Log call events to chat history
   useEffect(() => {
@@ -1297,7 +1266,18 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-96px)] bg-white dark:bg-background rounded-2xl overflow-hidden border shadow-sm">
+    <div className="flex w-full h-[calc(100dvh-96px)] md:h-[calc(100vh-96px)] bg-white dark:bg-background md:rounded-2xl overflow-hidden border-none md:border shadow-none md:shadow-sm overscroll-none">
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          body, html {
+            overflow: hidden !important;
+            height: 100% !important;
+            position: fixed !important;
+            width: 100% !important;
+            overscroll-behavior: none !important;
+          }
+        }
+      `}</style>
       {/* Notification Queue */}
       <NotificationQueue
         notifications={inAppNotifications}
@@ -1308,14 +1288,17 @@ const AgencyMessagesPage = ({ params }: Props) => {
         }}
       />
 
-      {/* Sidebar */}
-      <div className="w-[300px] border-r border-gray-200 dark:border-gray-800 h-full">
+      {/* Inbox List - Always visible on desktop (md+), hidden on mobile when a chat is open */}
+      <div className={cn(
+        "h-full border-r border-gray-200 dark:border-gray-800 shrink-0 md:!flex md:w-[320px] lg:w-[380px]",
+        selectedConversationId ? "hidden" : "flex w-full"
+      )}>
         <ChatSidebar
           inboxItems={inboxItems}
           selectedConversationId={selectedConversationId || ''}
           onSelectConversation={(id) => {
             setSelectedConversationId(id)
-            setChatMessages([]) // Clear messages while loading new ones
+            setChatMessages([])
           }}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -1338,8 +1321,11 @@ const AgencyMessagesPage = ({ params }: Props) => {
         />
       </div>
 
-      {/* Chat Window */}
-      <div className="flex-1 h-full overflow-hidden">
+      {/* Chat Area - Always visible on desktop (md+), hidden on mobile when no chat is open */}
+      <div className={cn(
+        "h-full flex-1 min-w-0 md:!flex",
+        selectedConversationId ? "flex w-full" : "hidden"
+      )}>
         <ChatWindow
           selectedMsg={selectedMsg}
           chatMessages={chatMessages}
@@ -1367,6 +1353,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
           onReplyMessage={handleReplyMessage}
           onEditMessage={handleEditMessage}
           onForwardMessage={handleForwardMessage}
+          onBack={() => setSelectedConversationId(null)}
           onVideoCall={() => {
             if (selectedMsg && user) {
               const videoRoomId = selectedMsg.id
@@ -1399,21 +1386,27 @@ const AgencyMessagesPage = ({ params }: Props) => {
                 })
               }
 
-              // 2. Broadcast invite if it's a direct/group chat (not a persistent video room)
+              // 2. Broadcast invite to each participant's private channel
               if (selectedMsg.type !== 'video' && targetIds.length > 0) {
-                const channel = supabase.channel('video-calls')
-                channel.subscribe(() => {
-                  channel.send({
-                    type: 'broadcast',
-                    event: 'invite',
-                    payload: {
-                      roomId: videoRoomId,
-                      senderId: user.id,
-                      senderName: user.name,
-                      targetIds: targetIds
+                targetIds.forEach(targetId => {
+                  const channel = supabase.channel(`user-notifications:${targetId}`)
+                  channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                      channel.send({
+                        type: 'broadcast',
+                        event: 'video-call-invite',
+                        payload: {
+                          roomId: videoRoomId,
+                          roomTitle: selectedMsg.title || 'Direct Chat',
+                          inviterName: userName,
+                          inviterId: user.id
+                        }
+                      })
+                      console.log(`[VIDEO] Invite sent to user: ${targetId}`)
+                      // Cleanup channel after sending
+                      setTimeout(() => supabase.removeChannel(channel), 5000)
                     }
                   })
-                  console.log('[VIDEO] Invite broadcasted to:', targetIds)
                 })
               }
             } else {
@@ -1450,6 +1443,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
         receiverAvatar={remotePeerAvatar}
         duration={callDuration}
         isMuted={isCallMuted}
+        remoteStream={remoteStream}
         onMuteToggle={toggleMute}
         onHangUp={hangUp}
         onAccept={acceptCall}

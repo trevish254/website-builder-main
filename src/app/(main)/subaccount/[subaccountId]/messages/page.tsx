@@ -7,19 +7,22 @@ import {
     MessageSquare,
     Search,
     Plus,
-    User
-} from 'lucide-react'
+    User,
+import { Video, ChevronLeft } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase/client'
 import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
-import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getSubaccountUsers, ensureDirectConversation, getConversationWithParticipants, getConversationWithParticipantsManual } from '@/lib/supabase-queries'
+import { getUserConversations, getConversationMessages, sendMessage as sendMessageApi, markConversationRead, getSubaccountUsers, ensureDirectConversation, getConversationWithParticipants, getConversationWithParticipantsManual, createGroupConversation } from '@/lib/supabase-queries'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import ChatSidebar, { InboxItem } from '@/components/global/chat/chat-sidebar'
 import ChatWindow from '@/components/global/chat/chat-window'
 import { useToast } from '@/components/ui/use-toast'
+import VoiceCallOverlay from '@/components/global/chat/voice-call-overlay'
+import { useVoiceCall } from '@/hooks/use-voice-call'
 
 type Props = {
     params: { subaccountId: string }
@@ -39,6 +42,7 @@ interface ChatMessage {
 const SubaccountMessagesPage = ({ params }: Props) => {
     console.log('🎯 SubaccountMessagesPage component loaded')
     const { user } = useSupabaseUser()
+    const userName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Me'
     const { toast } = useToast()
     const browserClient = createClient()
 
@@ -74,6 +78,61 @@ const SubaccountMessagesPage = ({ params }: Props) => {
     const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set())
     const [isUploading, setIsUploading] = useState(false)
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+    // Voice Call logic
+    const {
+        status: callStatus,
+        duration: callDuration,
+        isMuted: isCallMuted,
+        remotePeerName,
+        remotePeerAvatar,
+        remoteStream,
+        initiateCall,
+        acceptCall,
+        declineCall,
+        hangUp,
+        toggleMute
+    } = useVoiceCall(user?.id || '', userName)
+
+    // Track the current call conversation ID to send "Call ended" message
+    const activeCallConvId = useRef<string | null>(null)
+    const prevCallStatus = useRef<'idle' | 'calling' | 'ringing' | 'active' | 'ended'>('idle')
+
+    // Global video call invites are handled by the VideoCallInvitationListener components in the layout
+    // to ensure Accept/Decline UI is available across the entire dashboard.
+
+    // Log call events to chat history
+    useEffect(() => {
+        if (!selectedConversationId || !user?.id) return
+
+        const handleCallHistoryLog = async () => {
+            if (callStatus === 'calling' && prevCallStatus.current === 'idle') {
+                activeCallConvId.current = selectedConversationId
+                await sendMessageApi({
+                    conversationId: selectedConversationId,
+                    senderId: user.id,
+                    content: `${userName} started an audio call`,
+                    type: 'call'
+                })
+            }
+            if (callStatus === 'ringing' && prevCallStatus.current === 'idle') {
+                activeCallConvId.current = selectedConversationId
+            }
+            if (callStatus === 'idle' && (prevCallStatus.current === 'calling' || prevCallStatus.current === 'ringing' || prevCallStatus.current === 'active')) {
+                if (activeCallConvId.current) {
+                    await sendMessageApi({
+                        conversationId: activeCallConvId.current,
+                        senderId: user.id,
+                        content: `Audio call ended`,
+                        type: 'call'
+                    })
+                    activeCallConvId.current = null
+                }
+            }
+            prevCallStatus.current = callStatus
+        }
+        handleCallHistoryLog()
+    }, [callStatus, user?.id, selectedConversationId])
 
     // Fetch subaccount users for new message dialog
     useEffect(() => {
@@ -611,9 +670,27 @@ const SubaccountMessagesPage = ({ params }: Props) => {
     }, [subaccountUsers, searchUserQuery])
 
     return (
-        <div className="flex flex-col h-[calc(100vh-80px)] p-6 gap-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+        <div className="flex flex-col h-[calc(100dvh-80px)] md:h-[calc(100vh-80px)] p-0 md:p-6 gap-0 md:gap-6 overscroll-none">
+            <style jsx global>{`
+                @media (max-width: 768px) {
+                    body, html {
+                        overflow: hidden !important;
+                        height: 100% !important;
+                        position: fixed !important;
+                        width: 100% !important;
+                        overscroll-behavior: none !important;
+                    }
+                }
+            `}</style>
+
+
+            {/* Header - Hidden on mobile if a conversation is selected to save space */}
+            <div className={cn(
+                "flex items-center justify-between p-4 md:p-0",
+                selectedConversationId ? "hidden md:flex" : "flex"
+            )}>
+
+
                 <div>
                     <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
                         <MessageSquare className="h-10 w-10 text-blue-600" />
@@ -700,41 +777,116 @@ const SubaccountMessagesPage = ({ params }: Props) => {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
-                <ChatSidebar
-                    inboxItems={inboxItems.map(item => ({
-                        ...item,
-                        isOnline: item.participantInfo ? onlineUsers.has(item.participantInfo.id) : false
-                    }))}
-                    selectedConversationId={selectedConversationId || ''}
-                    onSelectConversation={setSelectedConversationId}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                    onDeleteConversation={handleDeleteConversation}
-                />
+            <div className="flex-1 flex w-full min-h-0 relative overflow-hidden bg-white dark:bg-background md:rounded-2xl border-none md:border md:shadow-sm">
 
-                <ChatWindow
-                    selectedMsg={selectedMsg}
-                    chatMessages={chatMessages}
-                    newMessage={newMessage}
-                    onNewMessageChange={(val) => {
-                        setNewMessage(val)
-                        handleTyping()
-                    }}
-                    onSendMessage={handleSendMessage}
-                    onFileUpload={handleFileUpload}
-                    isUploading={isUploading}
-                    isTyping={typingUsers.size > 0}
-                    onInputKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault()
-                            handleSendMessage()
-                        }
-                    }}
-                />
+
+                {/* Inbox List - Always visible on desktop (md+), hidden on mobile when a chat is open */}
+                <div className={cn(
+                    "h-full border-r border-gray-200 dark:border-gray-800 shrink-0 md:!flex md:w-[320px] lg:w-[380px]",
+                    selectedConversationId ? "hidden" : "flex w-full"
+                )}>
+                    <ChatSidebar
+                        inboxItems={inboxItems.map(item => ({
+                            ...item,
+                            isOnline: item.participantInfo ? onlineUsers.has(item.participantInfo.id) : false
+                        }))}
+                        selectedConversationId={selectedConversationId || ''}
+                        onSelectConversation={setSelectedConversationId}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                        onDeleteConversation={handleDeleteConversation}
+                    />
+                </div>
+
+                {/* Chat Area - Always visible on desktop (md+), hidden on mobile when no chat is open */}
+                <div className={cn(
+                    "h-full flex-1 min-w-0 md:!flex",
+                    selectedConversationId ? "flex w-full" : "hidden"
+                )}>
+                    <ChatWindow
+                        selectedMsg={selectedMsg}
+                        chatMessages={chatMessages}
+                        newMessage={newMessage}
+                        onNewMessageChange={(val) => {
+                            setNewMessage(val)
+                            handleTyping()
+                        }}
+                        onSendMessage={handleSendMessage}
+                        onFileUpload={handleFileUpload}
+                        isUploading={isUploading}
+                        isTyping={typingUsers.size > 0}
+                        onBack={() => setSelectedConversationId(null)}
+                        onInputKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                handleSendMessage()
+                            }
+                        }}
+                        onVoiceCall={() => {
+                            if (selectedMsg?.participantInfo) {
+                                initiateCall(
+                                    selectedMsg.participantInfo.id,
+                                    selectedMsg.participantInfo.name,
+                                    selectedMsg.participantInfo.avatarUrl
+                                )
+                            }
+                        }}
+                        onVideoCall={() => {
+                            if (selectedMsg && user) {
+                                const videoRoomId = selectedMsg.id
+                                const participants = (selectedMsg as any).participants || []
+                                const targetIds = participants
+                                    .map((p: any) => p.id)
+                                    .filter((id: string) => id && id !== user.id)
+
+                                toast({
+                                    title: 'Launching Video Call',
+                                    description: 'A new tab is opening for your video session.'
+                                })
+
+                                window.open(`/video/${videoRoomId}`, '_blank')
+
+                                // Broadcast invite to each participant's private channel
+                                if (targetIds.length > 0) {
+                                    targetIds.forEach((targetId: string) => {
+                                        const channel = supabase.channel(`user-notifications:${targetId}`)
+                                        channel.subscribe((status) => {
+                                            if (status === 'SUBSCRIBED') {
+                                                channel.send({
+                                                    type: 'broadcast',
+                                                    event: 'video-call-invite',
+                                                    payload: {
+                                                        roomId: videoRoomId,
+                                                        roomTitle: selectedMsg.title || 'Direct Chat',
+                                                        inviterName: userName,
+                                                        inviterId: user.id
+                                                    }
+                                                })
+                                                setTimeout(() => supabase.removeChannel(channel), 5000)
+                                            }
+                                        })
+                                    })
+                                }
+                            }
+                        }}
+                    />
+                </div>
             </div>
+
+            <VoiceCallOverlay
+                status={callStatus}
+                receiverName={remotePeerName}
+                receiverAvatar={remotePeerAvatar}
+                duration={callDuration}
+                isMuted={isCallMuted}
+                remoteStream={remoteStream}
+                onMuteToggle={toggleMute}
+                onHangUp={hangUp}
+                onAccept={acceptCall}
+                onDecline={declineCall}
+            />
         </div>
     )
 }
