@@ -8,7 +8,9 @@ import {
     Search,
     Plus,
     User,
-import { Video, ChevronLeft } from 'lucide-react'
+    Video,
+    ChevronLeft
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
