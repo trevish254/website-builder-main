@@ -149,12 +149,7 @@ const Page = async ({
     { id: 'SPD-6390', amount: '365.000', status: 'Paid' },
   ]
 
-  // Mock tax data
-  const taxLiabilities = [
-    { type: 'Tax on Service', date: 'Oct 18, 2024', amount: '250.000', status: 'Success' },
-    { type: 'Value Added Tax', date: 'Oct 15, 2024', amount: '150.000', status: 'Success' },
-    { type: 'Employee Income Tax', date: 'Oct 10, 2024', amount: '180.000', status: 'Pending' },
-  ]
+
 
   // Mock cash flow data
   const cashFlowData = [
@@ -422,85 +417,7 @@ const Page = async ({
             </CardContent>
           </Card >
 
-          {/* Tax Liabilities */}
-          < Card className="xl:w-[400px] w-full" >
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Tax Liabilities</CardTitle>
-                <select className="text-sm border rounded-md px-2 py-1">
-                  <option>Yearly</option>
-                  <option>Monthly</option>
-                  <option>Quarterly</option>
-                </select>
-              </div>
-              <CardDescription className="text-lg font-semibold">
-                $32.872,00 Total Tax /2024
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Value Added Tax</span>
-                    <span className="font-medium">44%</span>
-                  </div>
-                  <Progress value={44} className="h-2" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Employee Income Tax</span>
-                    <span className="font-medium">36%</span>
-                  </div>
-                  <Progress value={36} className="h-2" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Tax on Services</span>
-                    <span className="font-medium">20%</span>
-                  </div>
-                  <Progress value={20} className="h-2" />
-                </div>
-              </div>
 
-              <Separator className="my-4" />
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b text-muted-foreground">
-                      <th className="pb-2 pr-2 font-medium text-left">
-                        TYPE
-                      </th>
-                      <th className="pb-2 pr-2 font-medium text-left">DATE</th>
-                      <th className="pb-2 pr-2 font-medium text-left">
-                        AMOUNT
-                      </th>
-                      <th className="pb-2 font-medium text-left">STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {taxLiabilities.map((tax, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="py-2 pr-2 text-xs">{tax.type}</td>
-                        <td className="py-2 pr-2 text-xs">{tax.date}</td>
-                        <td className="py-2 pr-2 text-xs">${tax.amount}</td>
-                        <td className="py-2">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${tax.status === 'Success'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                              }`}
-                          >
-                            {tax.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

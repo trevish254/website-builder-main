@@ -55,7 +55,6 @@ const ALL_MENU_CATEGORIES = [
     { id: 'automation', label: 'Automation', matchNames: ['Automations'] },
     { id: 'finance', label: 'Finance', matchNames: ['Finance'] },
     { id: 'upgrade', label: 'Upgrade', matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing'] },
-    { id: 'kra', label: 'KRA', matchNames: ['Government Services'] },
     { id: 'calendar', label: 'Calendar', matchNames: ['Calendar'] }
 ]
 
@@ -152,9 +151,9 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
             style={adjustedTop !== null ? { top: `${adjustedTop}px`, bottom: 'auto' } : {}}
             id="sidebar-fixed-panel"
             className={cn(
-                "fixed z-20 bg-orange-500/20 dark:bg-rose-950/20 backdrop-blur-xl border-r border-white/10 shadow-xl transition-all duration-300 ease-out flex flex-col",
-                (hoveredMenuItem ? "w-[240px] left-[60px] opacity-100 pointer-events-auto h-auto max-h-[calc(100vh-80px)] rounded-[4px] border border-white/10" : "w-0 opacity-0 pointer-events-none bottom-0"),
-                !isPanelCollapsed && "md:w-[240px] md:left-[60px] md:bottom-0 md:top-16 md:rounded-none md:border-y-0 md:opacity-100 md:pointer-events-auto md:max-h-[calc(100vh-64px)]"
+                "fixed z-20 bg-white dark:bg-black backdrop-blur-xl border border-gray-200 dark:border-gray-800 shadow-xl transition-all duration-300 ease-out flex flex-col",
+                (hoveredMenuItem ? "w-[240px] left-[76px] top-[68px] opacity-100 pointer-events-auto h-auto max-h-[calc(100vh-72px)] rounded-2xl" : "w-0 opacity-0 pointer-events-none bottom-0"),
+                !isPanelCollapsed && "md:w-[240px] md:left-[76px] md:top-[68px] md:bottom-2 md:rounded-2xl md:opacity-100 md:pointer-events-auto md:max-h-[calc(100vh-72px)]"
             )}
         >
             <div className="p-4 border-b border-gray-200 dark:border-gray-800">
@@ -170,10 +169,10 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                     </button>
                 </div>
                 <div className="relative group">
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400 group-focus-within:text-primary transition-colors" />
                     <Input
                         placeholder="Search..."
-                        className="pl-8 h-8 text-xs bg-gray-50/50 dark:bg-zinc-900/50 border-gray-200 dark:border-gray-800 focus:ring-1 focus:ring-orange-500/20"
+                        className="pl-8 h-8 text-xs bg-gray-50/50 dark:bg-zinc-900/50 border-gray-200 dark:border-gray-800 focus:ring-1 focus:ring-primary/20"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -185,7 +184,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                     <div className="space-y-3">
                         <Link href={`/dashboards?openAdd=true`} className="block">
                             <Button
-                                className="w-full justify-start gap-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white"
+                                className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                                 size="sm"
                             >
                                 <PlusCircleIcon className="w-4 h-4" />
@@ -257,7 +256,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                         {type === 'agency' && (
                             <Link href={`/agency/${currentAgencyId}/team?openAdd=true`} className="block">
                                 <Button
-                                    className="w-full justify-start gap-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white"
+                                    className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                                     size="sm"
                                 >
                                     <UserPlus className="w-4 h-4" />
@@ -278,18 +277,18 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                             href={option.link}
                                             className={cn(
                                                 'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                                isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                                                isActive && 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary'
                                             )}
                                         >
                                             <IconComponent
                                                 className={cn(
                                                     'w-4 h-4',
-                                                    isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                                    isActive ? 'text-primary dark:text-primary' : 'text-gray-600 dark:text-gray-400'
                                                 )}
                                             />
                                             <span className={cn(
                                                 'text-sm',
-                                                isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                isActive ? 'text-primary dark:text-primary font-medium' : 'text-gray-700 dark:text-gray-300'
                                             )}>
                                                 {option.name}
                                             </span>
@@ -304,14 +303,14 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                         <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Online</span>
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">Online</span>
                                                             </div>
-                                                            <span className="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                            <span className="text-[10px] bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
                                                         <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Offline</span>
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">Offline</span>
                                                             </div>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
@@ -324,7 +323,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                     <div className="space-y-0.5">
                                                         {['Suspended', 'Archived'].map((status) => (
                                                             <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                                 <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                             </div>
                                                         ))}
@@ -344,7 +343,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                         <div key={status.label} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className={cn("w-1.5 h-1.5 rounded-full", status.color)} />
-                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status.label}</span>
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status.label}</span>
                                                             </div>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
@@ -367,7 +366,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         key={member.id}
                                         className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
                                     >
-                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white text-xs font-semibold">
+                                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
                                             {member.name?.charAt(0).toUpperCase() || 'U'}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -384,7 +383,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                         {type === 'agency' && (
                             <Link href={`/agency/${currentAgencyId}/all-subaccounts?openAdd=true`} className="block">
                                 <Button
-                                    className="w-full justify-start gap-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white"
+                                    className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                                     size="sm"
                                 >
                                     <PlusCircleIcon className="w-4 h-4" />
@@ -405,18 +404,18 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                             href={option.link}
                                             className={cn(
                                                 'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                                isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                                                isActive && 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary'
                                             )}
                                         >
                                             <IconComponent
                                                 className={cn(
                                                     'w-4 h-4',
-                                                    isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                                    isActive ? 'text-primary dark:text-primary' : 'text-gray-600 dark:text-gray-400'
                                                 )}
                                             />
                                             <span className={cn(
                                                 'text-sm',
-                                                isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                isActive ? 'text-primary dark:text-primary font-medium' : 'text-gray-700 dark:text-gray-300'
                                             )}>
                                                 {option.name}
                                             </span>
@@ -429,11 +428,11 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Active</p>
                                                     <div className="space-y-0.5">
                                                         <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Today</span>
-                                                            <span className="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">Today</span>
+                                                            <span className="text-[10px] bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
                                                         <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Week</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">Week</span>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
                                                     </div>
@@ -445,7 +444,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                     <div className="space-y-0.5">
                                                         {['Paused', 'Suspended', 'Churned'].map((status) => (
                                                             <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                                 <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                             </div>
                                                         ))}
@@ -513,18 +512,18 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         href={item.link}
                                         className={cn(
                                             'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                            isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                                            isActive && 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary'
                                         )}
                                     >
                                         <item.icon
                                             className={cn(
                                                 'w-4 h-4',
-                                                isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                                isActive ? 'text-primary dark:text-primary' : 'text-gray-600 dark:text-gray-400'
                                             )}
                                         />
                                         <span className={cn(
                                             'text-sm',
-                                            isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            isActive ? 'text-primary dark:text-primary font-medium' : 'text-gray-700 dark:text-gray-300'
                                         )}>
                                             {item.name}
                                         </span>
@@ -552,18 +551,18 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         href={option.link}
                                         className={cn(
                                             'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                            isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                                            isActive && 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary'
                                         )}
                                     >
                                         <IconComponent
                                             className={cn(
                                                 'w-4 h-4',
-                                                isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                                isActive ? 'text-primary dark:text-primary' : 'text-gray-600 dark:text-gray-400'
                                             )}
                                         />
                                         <span className={cn(
                                             'text-sm',
-                                            isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            isActive ? 'text-primary dark:text-primary font-medium' : 'text-gray-700 dark:text-gray-300'
                                         )}>
                                             {option.name}
                                         </span>
@@ -589,18 +588,18 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                         href={option.link}
                                         className={cn(
                                             'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                            isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                                            isActive && 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary'
                                         )}
                                     >
                                         <IconComponent
                                             className={cn(
                                                 'w-4 h-4',
-                                                isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                                isActive ? 'text-primary dark:text-primary' : 'text-gray-600 dark:text-gray-400'
                                             )}
                                         />
                                         <span className={cn(
                                             'text-sm',
-                                            isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            isActive ? 'text-primary dark:text-primary font-medium' : 'text-gray-700 dark:text-gray-300'
                                         )}>
                                             {option.name}
                                         </span>
@@ -623,18 +622,18 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                             href={option.link}
                                             className={cn(
                                                 'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
-                                                isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                                                isActive && 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary'
                                             )}
                                         >
                                             <IconComponent
                                                 className={cn(
                                                     'w-4 h-4',
-                                                    isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                                    isActive ? 'text-primary dark:text-primary' : 'text-gray-600 dark:text-gray-400'
                                                 )}
                                             />
                                             <span className={cn(
                                                 'text-sm',
-                                                isActive ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                isActive ? 'text-primary dark:text-primary font-medium' : 'text-gray-700 dark:text-gray-300'
                                             )}>
                                                 {option.name}
                                             </span>
@@ -645,10 +644,10 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                 <div className="space-y-0.5">
                                                     {['All', 'Unread', 'Starred'].map((status) => (
                                                         <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                             <span className={cn(
                                                                 "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
-                                                                status === 'Unread' ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
+                                                                status === 'Unread' ? "bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
                                                             )}>0</span>
                                                         </div>
                                                     ))}
@@ -661,7 +660,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                 <div className="space-y-0.5">
                                                     {['Direct', 'Groups'].map((status) => (
                                                         <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
                                                     ))}
@@ -679,7 +678,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                         <div key={status.label} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className={cn("w-1.5 h-1.5 rounded-full", status.color)} />
-                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status.label}</span>
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status.label}</span>
                                                             </div>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
@@ -693,7 +692,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                 <div className="space-y-0.5">
                                                     {['Workflows', 'Reminders'].map((status) => (
                                                         <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
                                                     ))}
@@ -708,11 +707,11 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Active</p>
                                                     <div className="space-y-0.5">
                                                         <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Today</span>
-                                                            <span className="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">Today</span>
+                                                            <span className="text-[10px] bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
                                                         <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">This Week</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">This Week</span>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
                                                     </div>
@@ -725,7 +724,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                         <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">Done</span>
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">Done</span>
                                                             </div>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
@@ -743,10 +742,10 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                         { label: 'Overdue', color: 'text-rose-500' }
                                                     ].map((status) => (
                                                         <div key={status.label} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className={cn("text-xs group-hover/metric:text-orange-500", status.color || "text-gray-600 dark:text-gray-400")}>{status.label}</span>
+                                                            <span className={cn("text-xs group-hover/metric:text-primary", status.color || "text-gray-600 dark:text-gray-400")}>{status.label}</span>
                                                             <span className={cn(
                                                                 "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
-                                                                status.badge ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
+                                                                status.badge ? "bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
                                                             )}>0</span>
                                                         </div>
                                                     ))}
@@ -759,7 +758,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                 <div className="space-y-0.5">
                                                     {['My Private Tasks', 'Drafts'].map((status) => (
                                                         <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
                                                     ))}
@@ -772,7 +771,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                 <div className="space-y-0.5">
                                                     {['Shared with Subaccounts', 'Internal Only'].map((status) => (
                                                         <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
                                                         </div>
                                                     ))}
@@ -785,10 +784,10 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                 <div className="space-y-0.5">
                                                     {['Assigned to Me', 'Assigned by Me'].map((status) => (
                                                         <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-orange-500">{status}</span>
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                             <span className={cn(
                                                                 "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
-                                                                status === 'Assigned to Me' ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
+                                                                status === 'Assigned to Me' ? "bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
                                                             )}>0</span>
                                                         </div>
                                                     ))}
@@ -805,10 +804,10 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                         { label: 'Overdue', color: 'text-rose-500' }
                                                     ].map((status) => (
                                                         <div key={status.label} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
-                                                            <span className={cn("text-xs group-hover/metric:text-orange-500", status.color || "text-gray-600 dark:text-gray-400")}>{status.label}</span>
+                                                            <span className={cn("text-xs group-hover/metric:text-primary", status.color || "text-gray-600 dark:text-gray-400")}>{status.label}</span>
                                                             <span className={cn(
                                                                 "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
-                                                                status.badge ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
+                                                                status.badge ? "bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
                                                             )}>0</span>
                                                         </div>
                                                     ))}

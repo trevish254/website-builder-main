@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Orbitron } from 'next/font/google'
 import './globals.css'
 import "@uploadthing/react/styles.css"
 import { SmoothScrollProvider } from "@/providers/smooth-scroll-provider"
 
 
 const font = Inter({ subsets: ['latin'] })
+const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron' })
 
 export const metadata: Metadata = {
   title: 'Chapabiz',
@@ -25,7 +26,7 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
     >
-      <body className={`${font.className} overflow-x-hidden`}>
+      <body className={`${font.className} ${orbitron.variable} overflow-x-hidden`}>
         <SmoothScrollProvider>
           {children}
         </SmoothScrollProvider>

@@ -36,7 +36,7 @@ const SubaccountLayoutClient = ({
 
     return (
         <SidebarProvider>
-            <div className="min-h-screen">
+            <div className="min-h-screen bg-white dark:bg-black">
                 <InfoBar
                     notifications={notifications}
                     role={(userDetails?.role || 'AGENCY_OWNER') as any}

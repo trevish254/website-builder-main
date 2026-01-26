@@ -15,22 +15,11 @@ const MainLayoutWrapper = ({ children }: Props) => {
     return (
         <div
             className={cn(
-                "transition-all duration-300 ease-out flex flex-col min-h-screen pt-16 bg-gradient-to-br from-orange-500 to-rose-600 relative",
-                isPanelCollapsed ? "pl-[60px]" : "pl-[60px] md:pl-[300px]"
+                "transition-all duration-300 ease-out flex flex-col min-h-screen pt-16 relative bg-white dark:bg-zinc-950",
+                isPanelCollapsed ? "pl-[76px]" : "pl-[76px] md:pl-[316px]"
             )}
         >
-            {/* Precision Concave Corner Filler - Fixed at intersection */}
-            <div
-                className={cn(
-                    "fixed top-16 w-[32px] h-[32px] z-[70] pointer-events-none transition-all duration-300 ease-out",
-                    isPanelCollapsed ? "left-[60px]" : "left-[60px] md:left-[300px]"
-                )}
-                style={{
-                    background: 'linear-gradient(to bottom right, #f97316, #e11d48)',
-                    WebkitMaskImage: 'radial-gradient(circle at 32px 32px, transparent 32px, black 32px)',
-                    maskImage: 'radial-gradient(circle at 32px 32px, transparent 32px, black 32px)'
-                }}
-            />
+            {/* Corner filler removed as it clashes with rounded edges */}
 
             {/* Scrollable content area */}
             <div className="flex-1 relative z-10 bg-gray-50 dark:bg-zinc-950">

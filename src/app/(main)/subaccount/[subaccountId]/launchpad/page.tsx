@@ -10,12 +10,12 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { supabase } from '@/lib/supabase'
-import { 
-  CheckCircleIcon, 
-  Smartphone, 
-  Building2, 
-  FileText, 
-  Shield, 
+import {
+  CheckCircleIcon,
+  Smartphone,
+  Building2,
+  FileText,
+  Shield,
   Upload,
   Zap,
   ArrowRight,
@@ -87,7 +87,7 @@ const LaunchPad = async ({ params, searchParams }: Props) => {
               <p className="text-lg text-muted-foreground mb-6">
                 Complete your setup to unlock the full potential of your business platform
               </p>
-              
+
               {/* Progress Bar */}
               <div className="max-w-md mx-auto">
                 <div className="flex justify-between items-center mb-2">
@@ -130,7 +130,7 @@ const LaunchPad = async ({ params, searchParams }: Props) => {
                       Install
                     </Button>
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -181,36 +181,7 @@ const LaunchPad = async ({ params, searchParams }: Props) => {
                 </CardContent>
               </Card>
 
-              {/* KRA Integration */}
-              <Card className={`border-0 shadow-lg transition-all duration-300 hover:shadow-xl ${integrations.kra.completed ? 'bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20' : 'bg-white/80 dark:bg-slate-800/80'} backdrop-blur-sm`}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                      <Building2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    {integrations.kra.completed ? (
-                      <CheckCircleIcon className="w-6 h-6 text-green-500" />
-                    ) : (
-                      <Badge variant="secondary">Optional</Badge>
-                    )}
-                  </div>
-                  <h3 className="font-semibold mb-2">{integrations.kra.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{integrations.kra.description}</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <FileText className="w-4 h-4 text-blue-500" />
-                      <span>Tax filing</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Shield className="w-4 h-4 text-blue-500" />
-                      <span>Compliance checks</span>
-                    </div>
-                  </div>
-                  <Button size="sm" className="w-full mt-4" variant={integrations.kra.completed ? "outline" : "default"}>
-                    {integrations.kra.completed ? "Manage" : "Setup KRA"}
-                  </Button>
-                </CardContent>
-              </Card>
+
 
               {/* Stripe Integration */}
               <Card className={`border-0 shadow-lg transition-all duration-300 hover:shadow-xl ${integrations.stripe.completed ? 'bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20' : 'bg-white/80 dark:bg-slate-800/80'} backdrop-blur-sm`}>

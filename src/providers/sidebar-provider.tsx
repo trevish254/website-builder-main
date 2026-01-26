@@ -53,7 +53,7 @@ const DEFAULT_PINNED = [
 const ALL_CATEGORIES = [
     'home', 'dashboard', 'inventory', 'clients', 'team',
     'messages', 'funnels', 'tasks', 'websites', 'docs',
-    'automation', 'finance', 'upgrade', 'kra', 'calendar'
+    'automation', 'finance', 'upgrade', 'calendar'
 ]
 
 export const SidebarProvider = ({
@@ -71,10 +71,11 @@ export const SidebarProvider = ({
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('sidebar_pinned')
             const initial = saved ? JSON.parse(saved) : DEFAULT_PINNED
-            // Hard dedupe and exclude 'upgrade'
-            let filtered = Array.from(new Set(initial)).filter(id => id !== 'upgrade')
+            // Hard dedupe, exclude 'upgrade', and ensure all IDs exist in ALL_CATEGORIES
+            let filtered = Array.from(new Set(initial))
+                .filter(id => id !== 'upgrade' && ALL_CATEGORIES.includes(id as any))
 
-            // Re-balance: Ensure we always have exactly 11 items in the dock pool
+            // Re-balance: Ensure we always have exactly the expected number items in the dock pool
             if (filtered.length < DEFAULT_PINNED.length) {
                 const missing = ALL_CATEGORIES.filter(id => !filtered.includes(id) && id !== 'upgrade')
                 filtered = [...filtered, ...missing].slice(0, DEFAULT_PINNED.length)

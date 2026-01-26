@@ -46,7 +46,7 @@ const DashboardsLayout = async ({ children }: Props) => {
 
     return (
         <SidebarProvider>
-            <div className="min-h-screen">
+            <div className="min-h-screen bg-white dark:bg-black">
                 <InfoBar
                     notifications={allNoti}
                     role={user.role}

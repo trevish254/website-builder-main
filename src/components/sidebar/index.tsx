@@ -268,15 +268,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
-          {
-            id: `sidebar-${id}-6`,
-            name: 'Government Services',
-            link: `/agency/${id}/government-services`,
-            icon: 'shield',
-            agencyId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
+
           {
             id: `sidebar-${id}-7`,
             name: 'Settings',
@@ -532,15 +524,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
-        {
-          id: `sidebar-${id}-gov-services`,
-          name: 'Government Services',
-          link: `/agency/${id}/government-services`,
-          icon: 'shield',
-          agencyId: id,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
+
         {
           id: `sidebar-${id}-7`,
           name: 'Settings',
@@ -690,21 +674,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         console.log('✅ Added Tasks to sidebar options')
       }
 
-      // Check if Government Services is missing from existing options
-      const hasGovernmentServices = sidebarOpt.some((option: any) => option.name === 'Government Services')
-      if (!hasGovernmentServices) {
-        console.log('🔧 Adding Government Services to existing sidebar options')
-        sidebarOpt.push({
-          id: `sidebar-${id}-gov-services`,
-          name: 'Government Services',
-          link: `/agency/${id}/government-services`,
-          icon: 'shield',
-          agencyId: id,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-        console.log('✅ Added Government Services to sidebar options')
-      }
+
 
       // Check if Client Docs is missing from existing options
       const hasClientDocs = sidebarOpt.some((option: any) => option.name === 'Client Docs')

@@ -89,7 +89,7 @@ const AccountSwitcher = ({ user, currentId, currentLogo, currentName }: Props) =
                     role="combobox"
                     aria-expanded={open}
                     className={cn(
-                        "flex items-center gap-4 pl-[5px] pr-4 h-16 hover:bg-white/30 dark:hover:bg-white/10 transition-all rounded-none justify-start overflow-hidden group border-r border-white/20 dark:border-white/10 md:border-r-0",
+                        "flex items-center gap-4 pl-[5px] pr-4 h-16 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all rounded-none justify-start overflow-hidden group border-r border-gray-200 dark:border-gray-800 md:border-r-0",
                         "w-[50px] md:w-[290px]"
                     )}
                 >

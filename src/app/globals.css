@@ -107,6 +107,13 @@
   .transform-3d {
     transform-style: preserve-3d;
   }
+
+  .font-futuristic {
+    font-family: var(--font-orbitron), sans-serif;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 800;
+  }
 }
 
 /* Global Rich Text Styles (Fallback for missing typography plugin) */

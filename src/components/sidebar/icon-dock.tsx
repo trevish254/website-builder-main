@@ -48,7 +48,6 @@ const ALL_MENU_CATEGORIES = [
     { id: 'automation', icon: 'settings', label: 'Automation', matchNames: ['Automations'] },
     { id: 'finance', icon: 'payment', label: 'Finance', matchNames: ['Finance'] },
     { id: 'upgrade', icon: 'rocket', label: 'Upgrade', matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing'] },
-    { id: 'kra', icon: 'government', label: 'KRA', matchNames: ['Government Services'] },
     { id: 'calendar', icon: 'calendar', label: 'Calendar', matchNames: ['Calendar'] }
 ]
 
@@ -91,7 +90,9 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
     // Filter and group options for the dock
     const getCategorizedOptions = (ids: string[]) => {
         return ids.map(id => {
-            const category = getCategory(id)!
+            const category = getCategory(id)
+            if (!category) return null
+
             const matchingOptions = sidebarOptions.filter(opt =>
                 category.matchNames.some(matchName => matchName.toLowerCase() === opt.name.toLowerCase())
             )
@@ -100,11 +101,13 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                 options: matchingOptions,
                 hasOptions: matchingOptions.length > 0
             }
-        }).filter(cat => {
-            if (cat.id === 'inventory' && type === 'agency') return false
-            if (cat.id === 'inventory' && type === 'subaccount') return true
-            return cat.hasOptions
         })
+            .filter((cat): cat is (ReturnType<typeof getCategory> & { options: any[], hasOptions: boolean }) => cat !== null)
+            .filter(cat => {
+                if (cat.id === 'inventory' && type === 'agency') return false
+                if (cat.id === 'inventory' && type === 'subaccount') return true
+                return cat.hasOptions
+            })
     }
 
     const categorizedPinned = useMemo(() => getCategorizedOptions(pinnedCategoryIds), [pinnedCategoryIds, sidebarOptions])
@@ -206,13 +209,13 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
         <div
             ref={dockRef}
             id="sidebar-icon-dock"
-            className="fixed left-0 top-16 h-[calc(100vh-64px)] w-[60px] bg-gradient-to-b from-orange-500 to-rose-600 flex flex-col items-center py-4 z-50 shadow-2xl transition-all duration-300"
+            className="fixed left-2 top-[68px] h-[calc(100vh-72px)] w-[60px] bg-white dark:bg-black flex flex-col items-center py-4 z-50 shadow-2xl transition-all duration-300 border border-gray-200 dark:border-gray-800 rounded-2xl"
         >
             {/* Sidebar Toggle */}
             <div className="w-full flex justify-center mb-4 mt-2">
                 <button
                     onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-                    className="h-6 w-6 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors hover:bg-white/20"
+                    className="h-6 w-6 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                     {isPanelCollapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
                 </button>
@@ -237,13 +240,13 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                         {isCategoryActive(homeCategory) && (
                             <motion.div
                                 layoutId="active-pill"
-                                className="absolute left-[-10px] w-1.5 h-6 bg-white rounded-r-full shadow-lg"
+                                className="absolute left-[-10px] w-1.5 h-6 bg-primary rounded-r-full shadow-lg"
                             />
                         )}
                         <div className={cn(
                             'w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 mb-1',
-                            isCategoryActive(homeCategory) ? 'bg-white shadow-xl' : 'group-hover:bg-white/20',
-                            activeCategory === homeCategory.id && !isCategoryActive(homeCategory) && 'bg-white/10'
+                            isCategoryActive(homeCategory) ? 'bg-primary shadow-xl' : 'group-hover:bg-gray-100 dark:group-hover:bg-gray-800',
+                            activeCategory === homeCategory.id && !isCategoryActive(homeCategory) && 'bg-gray-50 dark:bg-gray-900'
                         )}>
                             {(() => {
                                 const iconResult = icons.find(i => i.value === homeCategory.icon)
@@ -252,7 +255,7 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                                     <IconComponent
                                         className={cn(
                                             'w-4 h-4 transition-transform duration-200 group-hover:scale-110',
-                                            isCategoryActive(homeCategory) ? 'text-orange-600' : 'text-white'
+                                            isCategoryActive(homeCategory) ? 'text-primary-foreground' : 'text-gray-700 dark:text-gray-300'
                                         )}
                                     />
                                 )
@@ -260,7 +263,7 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                         </div>
                         <span className={cn(
                             'text-[7.5px] font-bold uppercase tracking-wider transition-colors duration-200 truncate max-w-full px-0.5',
-                            isCategoryActive(homeCategory) ? 'text-white' : 'text-white/60 group-hover:text-white'
+                            isCategoryActive(homeCategory) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'
                         )}>
                             {homeCategory.label}
                         </span>
@@ -304,26 +307,26 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                             {isActive && (
                                 <motion.div
                                     layoutId="active-pill"
-                                    className="absolute left-[-10px] w-1.5 h-6 bg-white rounded-r-full shadow-lg"
+                                    className="absolute left-[-10px] w-1.5 h-6 bg-primary rounded-r-full shadow-lg"
                                 />
                             )}
                             <div className={cn(
                                 'w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 mb-1',
-                                isActive ? 'bg-white shadow-xl' : 'group-hover:bg-white/20',
-                                activeCategory === category.id && !isActive && 'bg-white/10',
-                                shouldWiggle && 'bg-white/30 border-2 border-dashed border-white ring-4 ring-white/20'
+                                isActive ? 'bg-primary shadow-xl' : 'group-hover:bg-gray-100 dark:group-hover:bg-gray-800',
+                                activeCategory === category.id && !isActive && 'bg-gray-50 dark:bg-gray-900',
+                                shouldWiggle && 'bg-gray-200 dark:bg-gray-700 border-2 border-dashed border-primary ring-4 ring-primary/20'
                             )}>
                                 <IconComponent
                                     className={cn(
                                         'w-4 h-4 transition-transform duration-200 group-hover:scale-110',
-                                        isActive ? 'text-orange-600' : 'text-white'
+                                        isActive ? 'text-primary-foreground' : 'text-gray-700 dark:text-gray-300'
                                     )}
                                 />
                             </div>
                             <span className={cn(
                                 'text-[7.5px] font-bold uppercase tracking-wider transition-colors duration-200 truncate max-w-full px-0.5',
-                                isActive ? 'text-white' : 'text-white/60 group-hover:text-white',
-                                shouldWiggle && 'text-white scale-110'
+                                isActive ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white',
+                                shouldWiggle && 'text-gray-900 dark:text-white scale-110'
                             )}>
                                 {isTargeted ? "Drop Here" : isLeastUsedCandidate ? "Replace" : category.label}
                             </span>
@@ -338,14 +341,14 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                         onClick={() => setIsMoreOpen(!isMoreOpen)}
                         className={cn(
                             "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg z-50 relative mb-1",
-                            isMoreOpen ? "bg-white text-orange-600 rotate-45 scale-110" : "bg-white/20 text-white hover:bg-white/30"
+                            isMoreOpen ? "bg-primary text-primary-foreground rotate-45 scale-110" : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                         )}
                     >
                         <Plus size={16} />
                     </button>
                     <span className={cn(
                         'text-[7.5px] font-bold uppercase tracking-wider transition-opacity duration-300',
-                        isMoreOpen ? 'opacity-100 text-white' : 'text-white/60'
+                        isMoreOpen ? 'opacity-100 text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'
                     )}>
                         More
                     </span>
@@ -401,11 +404,11 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                                                     pinCategory(category.id)
                                                     setIsMoreOpen(false)
                                                 }}
-                                                className="w-12 h-12 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-center border border-white group-hover:scale-110 transition-transform cursor-pointer"
+                                                className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-center border border-gray-200 dark:border-gray-700 group-hover:scale-110 transition-transform cursor-pointer"
                                             >
-                                                <IconComponent className="text-orange-500 w-6 h-6" />
+                                                <IconComponent className="text-primary w-6 h-6" />
                                             </div>
-                                            <div className="absolute top-14 left-1/2 -translate-x-1/2 bg-white px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity font-bold shadow-lg text-orange-600">
+                                            <div className="absolute top-14 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity font-bold shadow-lg text-primary border border-gray-200 dark:border-gray-700">
                                                 {category.label}
                                             </div>
                                         </motion.div>
@@ -431,13 +434,13 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                             {isCategoryActive(upgradeCategory) && (
                                 <motion.div
                                     layoutId="active-pill"
-                                    className="absolute left-[-10px] w-1.5 h-6 bg-white rounded-r-full shadow-lg"
+                                    className="absolute left-[-10px] w-1.5 h-6 bg-primary rounded-r-full shadow-lg"
                                 />
                             )}
                             <div className={cn(
                                 'w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 mb-1',
-                                isCategoryActive(upgradeCategory) ? 'bg-white shadow-xl' : 'bg-white/10 hover:bg-white/20',
-                                activeCategory === 'upgrade' && !isCategoryActive(upgradeCategory) && 'bg-white/20'
+                                isCategoryActive(upgradeCategory) ? 'bg-primary shadow-xl' : 'bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800',
+                                activeCategory === 'upgrade' && !isCategoryActive(upgradeCategory) && 'bg-gray-100 dark:bg-gray-800'
                             )}>
                                 {(() => {
                                     const iconResult = icons.find(i => i.value === upgradeCategory.icon)
@@ -446,7 +449,7 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                                         <IconComponent
                                             className={cn(
                                                 'w-4 h-4 transition-transform duration-200 group-hover:scale-110',
-                                                isCategoryActive(upgradeCategory) ? 'text-orange-600' : 'text-white'
+                                                isCategoryActive(upgradeCategory) ? 'text-primary-foreground' : 'text-gray-700 dark:text-gray-300'
                                             )}
                                         />
                                     )
@@ -454,7 +457,7 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
                             </div>
                             <span className={cn(
                                 'text-[7.5px] font-bold uppercase tracking-wider transition-colors duration-200',
-                                isCategoryActive(upgradeCategory) ? 'text-white' : 'text-white/60 group-hover:text-white'
+                                isCategoryActive(upgradeCategory) ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'
                             )}>
                                 Upgrade
                             </span>
@@ -465,7 +468,7 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
             </div>
 
             {/* User Avatar */}
-            <div className="mt-auto pt-3 border-t border-white/20 w-full px-2">
+            <div className="mt-auto pt-3 border-t border-gray-200 dark:border-gray-800 w-full px-2">
                 <div className="w-10 h-10 mx-auto">
                     <UserButton user={user} />
                 </div>
