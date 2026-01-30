@@ -18,9 +18,9 @@ const Page = async ({
 
   let userDetails = await getAuthUserDetails()
 
-  // If invitation was accepted, redirect to that agency dashboard
+  // If invitation was accepted, redirect to that agency launchpad
   if (agencyId) {
-    return redirect(`/agency/${agencyId}`)
+    return redirect(`/agency/${agencyId}/launchpad`)
   }
 
   // If user doesn't exist in database, show agency creation form
@@ -48,24 +48,23 @@ const Page = async ({
     )
   }
 
-  // NEW: If user has accepted invitations, redirect to the first one
-  // This prioritizes invited agencies over the user's home agency
+  // NEW: If user has accepted invitations, redirect to the first one's launchpad
   if ((userDetails as any).InvitedAgencies?.length > 0) {
-    return redirect(`/agency/${(userDetails as any).InvitedAgencies[0].id}`)
+    return redirect(`/agency/${(userDetails as any).InvitedAgencies[0].id}/launchpad`)
   }
 
-  // Redirect to the user's agency
+  // Redirect to the user's agency launchpad
   if (userDetails.agencyId) {
-    return redirect(`/agency/${userDetails.agencyId}`)
+    return redirect(`/agency/${userDetails.agencyId}/launchpad`)
   }
 
-  // If user has subaccount permissions, redirect to the first one
+  // If user has subaccount permissions, redirect to the first one's launchpad
   if (userDetails.Permissions && userDetails.Permissions.length > 0) {
     const firstSubaccountWithAccess = userDetails.Permissions.find(
       (p: any) => p.access === true
     )
     if (firstSubaccountWithAccess) {
-      return redirect(`/subaccount/${firstSubaccountWithAccess.subAccountId}`)
+      return redirect(`/subaccount/${firstSubaccountWithAccess.subAccountId}/launchpad`)
     }
   }
 

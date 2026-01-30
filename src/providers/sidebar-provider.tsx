@@ -46,13 +46,13 @@ export const useSidebar = () => {
 }
 
 const DEFAULT_PINNED = [
-    'home', 'dashboard', 'inventory', 'clients', 'team',
-    'messages', 'funnels', 'tasks', 'websites', 'docs', 'automation'
+    'home', 'dashboard', 'inventory', 'clients', 'campaigns',
+    'messages', 'pipelines', 'media', 'tasks', 'websites', 'docs', 'automation'
 ]
 
 const ALL_CATEGORIES = [
     'home', 'dashboard', 'inventory', 'clients', 'team',
-    'messages', 'funnels', 'tasks', 'websites', 'docs',
+    'messages', 'pipelines', 'media', 'campaigns', 'tasks', 'websites', 'docs',
     'automation', 'finance', 'upgrade', 'calendar'
 ]
 

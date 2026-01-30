@@ -61,6 +61,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
+          /*
           {
             id: `sub-sidebar-${id}-2`,
             name: 'Funnels',
@@ -70,6 +71,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
+          */
           {
             id: `sub-sidebar-${id}-3`,
             name: 'Pipelines',
@@ -93,6 +95,15 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
             name: 'Media',
             link: `/subaccount/${id}/media`,
             icon: 'image',
+            subAccountId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sub-sidebar-${id}-campaigns`,
+            name: 'Campaigns',
+            link: `/subaccount/${id}/campaigns`,
+            icon: 'campaigns',
             subAccountId: id,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -375,6 +386,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
     }
 
     // Add Funnels option if not present
+    /*
     if (!sidebarOpt.find((opt) => opt.name === 'Funnels')) {
       sidebarOpt.push({
         id: `sidebar-${details?.id}-funnels`,
@@ -386,6 +398,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         updatedAt: new Date(),
       } as any)
     }
+    */
 
     // Add Pipelines option if not present
     if (!sidebarOpt.find((opt) => opt.name === 'Pipelines')) {
@@ -394,6 +407,32 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         name: 'Pipelines',
         icon: 'kanban',
         link: `/subaccount/${details?.id}/pipelines`,
+        subAccountId: details?.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+    }
+
+    // Add Media option if not present
+    if (!sidebarOpt.find((opt) => opt.name === 'Media')) {
+      sidebarOpt.push({
+        id: `sidebar-${details?.id}-media`,
+        name: 'Media',
+        icon: 'image',
+        link: `/subaccount/${details?.id}/media`,
+        subAccountId: details?.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+    }
+
+    // Add Campaigns option if not present
+    if (!sidebarOpt.find((opt) => opt.name === 'Campaigns')) {
+      sidebarOpt.push({
+        id: `sidebar-${details?.id}-campaigns`,
+        name: 'Campaigns',
+        icon: 'campaigns',
+        link: `/subaccount/${details?.id}/campaigns`,
         subAccountId: details?.id,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -709,6 +748,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
+        /*
         {
           id: `sub-sidebar-${id}-2`,
           name: 'Funnels',
@@ -718,6 +758,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
+        */
         {
           id: `sub-sidebar-${id}-3`,
           name: 'Pipelines',
@@ -741,6 +782,15 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           name: 'Media',
           link: `/subaccount/${id}/media`,
           icon: 'image',
+          subAccountId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `sub-sidebar-${id}-campaigns`,
+          name: 'Campaigns',
+          link: `/subaccount/${id}/campaigns`,
+          icon: 'campaigns',
           subAccountId: id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

@@ -48,7 +48,8 @@ const ALL_MENU_CATEGORIES = [
     { id: 'clients', label: 'Clients', matchNames: ['Assigned to me', 'Private', 'All Clients', 'Sub Accounts', 'Client Profiles', 'Engagement', 'Client Insights'] },
     { id: 'team', label: 'Teams', matchNames: ['All Members', 'Roles & Permissions', 'Availability', 'Workload', 'Performance', 'Activity Logs', 'Invites', 'Team', 'Contacts'] },
     { id: 'messages', label: 'Messages', matchNames: ['Inbox', 'Conversations', 'Internal', 'Subaccounts', 'Automated', 'Announcements', 'System', 'Messages'] },
-    { id: 'funnels', label: 'Funnels', matchNames: ['Funnels'] },
+    { id: 'pipelines', label: 'Pipelines', matchNames: ['Pipelines'] },
+    { id: 'media', label: 'Media', matchNames: ['Media'] },
     { id: 'tasks', label: 'Tasks', matchNames: ['All Tasks', 'Assigned to Me', 'Private', 'Status', 'Priority', 'Subaccounts', 'Activity', 'Tasks'] },
     { id: 'websites', label: 'Websites', matchNames: ['Websites'] },
     { id: 'docs', label: 'Docs', matchNames: ['All Docs', 'Shared', 'Assigned', 'Requests', 'Templates', 'Docs'] },
@@ -78,6 +79,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
     }).filter(cat => {
         if (cat.id === 'inventory' && type === 'agency') return false
         if (cat.id === 'inventory' && type === 'subaccount') return true
+        if (cat.id === 'clients' && type === 'subaccount') return false
         return cat.hasOptions
     })
 
@@ -608,6 +610,137 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                             })}
                         </div>
                     </div>
+                ) : displayCategory === 'campaigns' ? (
+                    <div className="space-y-3">
+                        <Link href={`/subaccount/${details?.id || 'id'}/campaigns?openAdd=true`} className="block">
+                            <Button
+                                className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                                size="sm"
+                            >
+                                <PlusCircleIcon className="w-4 h-4" />
+                                <span className="text-sm font-medium">Create Campaign</span>
+                            </Button>
+                        </Link>
+
+                        <div className="space-y-0.5">
+                            {[
+                                {
+                                    name: 'Campaign List', icon: List, link: `/subaccount/${details?.id || 'id'}/campaigns/list`,
+                                    subItems: ['Draft', 'Scheduled', 'Running', 'Completed']
+                                },
+                                {
+                                    name: 'Campaign Builder', icon: Settings, link: `/subaccount/${details?.id || 'id'}/campaigns/builder`,
+                                    subItems: [
+                                        { label: 'Audience Selector' },
+                                        {
+                                            label: 'Content Builder',
+                                            param: 'content-builder',
+                                            children: [
+                                                { label: 'Email Builder', link: `/subaccount/${details?.id || 'id'}/campaigns/builder/email-builder` },
+                                                { label: 'Form Builder', link: `/subaccount/${details?.id || 'id'}/campaigns/builder/form-builder` },
+                                                { label: 'Survey Builder', link: `/subaccount/${details?.id || 'id'}/campaigns/builder/survey-builder` }
+                                            ]
+                                        },
+                                        {
+                                            label: 'Channel Selector',
+                                            param: 'channel-selector',
+                                            children: ['Email', 'SMS', 'Voice']
+                                        },
+                                        { label: 'Schedule & Rules' }
+                                    ]
+                                },
+                                {
+                                    name: 'Marketing Tools', icon: Zap, link: `/subaccount/${details?.id || 'id'}/campaigns/tools`,
+                                    subItems: [
+                                        { label: 'Bulk SMS', link: `/subaccount/${details?.id || 'id'}/campaigns/tools/bulk-sms` },
+                                        { label: 'Bulk Voice', link: `/subaccount/${details?.id || 'id'}/campaigns/tools/bulk-voice` },
+                                        { label: 'Quick Broadcasts', link: `/subaccount/${details?.id || 'id'}/campaigns/tools/quick-broadcasts` }
+                                    ]
+                                },
+                                {
+                                    name: 'Analytics', icon: TrendingUp, link: `/subaccount/${details?.id || 'id'}/campaigns/analytics`,
+                                    subItems: ['Sent', 'Delivered', 'Failed', 'Opened', 'Clicked']
+                                }
+                            ].map((item) => {
+                                const isActive = pathname.startsWith(item.link)
+                                return (
+                                    <div key={item.name} className="flex flex-col">
+                                        <Link
+                                            href={item.link}
+                                            className={cn(
+                                                'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                                isActive && 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary'
+                                            )}
+                                        >
+                                            <item.icon
+                                                className={cn(
+                                                    'w-4 h-4',
+                                                    isActive ? 'text-primary dark:text-primary' : 'text-gray-600 dark:text-gray-400'
+                                                )}
+                                            />
+                                            <span className={cn(
+                                                'text-sm',
+                                                isActive ? 'text-primary dark:text-primary font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            )}>
+                                                {item.name}
+                                            </span>
+                                        </Link>
+
+                                        {/* Sub Items */}
+                                        <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                            <div className="space-y-0.5">
+                                                {item.subItems.map((sub: any) => {
+                                                    const label = typeof sub === 'string' ? sub : sub.label
+                                                    const hasChildren = typeof sub === 'object' && sub.children
+
+                                                    return (
+                                                        <div key={label} className="flex flex-col">
+                                                            <div className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                                <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">
+                                                                    {label}
+                                                                </span>
+                                                                {['Draft', 'Running', 'Scheduled', 'Completed'].includes(label) && (
+                                                                    <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                                )}
+                                                            </div>
+                                                            {hasChildren && (
+                                                                <div className="ml-2 mt-0.5 space-y-0.5 border-l border-gray-100 dark:border-gray-800 pl-2 mb-1">
+                                                                    {sub.children.map((child: any) => {
+                                                                        const childLabel = typeof child === 'string' ? child : child.label
+                                                                        const childLink = typeof child === 'object' ? child.link : undefined
+
+                                                                        if (childLink) {
+                                                                            return (
+                                                                                <Link key={childLabel} href={childLink} className="flex items-center px-1 -ml-1 py-0.5 hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded cursor-pointer transition-colors">
+                                                                                    <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mr-2" />
+                                                                                    <span className="text-[10px] text-gray-500 dark:text-gray-500">
+                                                                                        {childLabel}
+                                                                                    </span>
+                                                                                </Link>
+                                                                            )
+                                                                        }
+
+                                                                        return (
+                                                                            <div key={childLabel} className="flex items-center px-1 -ml-1 py-0.5 hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded cursor-pointer transition-colors">
+                                                                                <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mr-2" />
+                                                                                <span className="text-[10px] text-gray-500 dark:text-gray-500">
+                                                                                    {childLabel}
+                                                                                </span>
+                                                                            </div>
+                                                                        )
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
                 ) : (
                     <div className="space-y-0.5">
                         {filteredOptions.length > 0 ? (
@@ -909,7 +1042,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                     </PopoverContent>
                 </Popover>
             </div>
-        </div>
+        </div >
     )
 }
 

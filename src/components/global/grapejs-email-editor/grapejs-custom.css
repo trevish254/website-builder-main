@@ -1,0 +1,767 @@
+/* GrapeJS Custom Styles - Improved Visibility */
+
+/* ===== GENERAL OVERRIDES ===== */
+.gjs-one-bg {
+    background-color: hsl(var(--background)) !important;
+}
+
+.gjs-two-color,
+.gjs-four-color {
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-three-bg {
+    background-color: hsl(var(--muted)) !important;
+}
+
+/* ===== STYLE MANAGER REDESIGN (FUNNEL BUILDER CLONE) ===== */
+.gjs-style-manager-container {
+    background-color: #030712 !important;
+    color: #f9fafb !important;
+    font-family: inherit !important;
+}
+
+/* Hide the ugly "Selected" header */
+.gjs-sm-header {
+    display: none !important;
+}
+
+.gjs-style-manager-container .gjs-sm-sector {
+    border-bottom: 1px solid #111827 !important;
+    background: transparent;
+}
+
+.gjs-style-manager-container .gjs-sm-sector-title {
+    font-weight: 500 !important;
+    font-size: 0.8rem !important;
+    padding: 10px 12px !important;
+    color: #f9fafb !important;
+    background: transparent !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.gjs-style-manager-container .gjs-sm-sector-title:hover {
+    background: #111827 !important;
+}
+
+.gjs-style-manager-container .gjs-sm-properties {
+    padding: 8px 8px 12px 8px !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+}
+
+.gjs-style-manager-container .gjs-sm-property {
+    margin-bottom: 10px;
+    padding: 0;
+    float: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.gjs-style-manager-container .gjs-sm-label {
+    font-size: 0.7rem !important;
+    font-weight: 500 !important;
+    color: #9ca3af !important;
+    margin-bottom: 4px !important;
+    display: block !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Inputs & Selects */
+.gjs-style-manager-container .gjs-field {
+    background-color: #0f172a !important;
+    /* Slightly lighter than container bg */
+    border: 1px solid #334155 !important;
+    border-radius: 6px !important;
+    padding: 0 !important;
+    height: 34px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.gjs-style-manager-container input,
+.gjs-style-manager-container select {
+    background: transparent !important;
+    color: #f9fafb !important;
+    padding: 2px 4px !important;
+    font-size: 0.8rem !important;
+    border: none !important;
+    outline: none !important;
+    flex: 1.8 !important;
+    /* Give value more space (approx 65%) */
+    min-width: 0 !important;
+    height: 100% !important;
+    cursor: ew-resize !important;
+    text-align: center !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+}
+
+/* Ensure values are visible and centered */
+.gjs-style-manager-container .gjs-field input {
+    padding: 0 4px !important;
+    text-align: center !important;
+}
+
+.gjs-style-manager-container .gjs-field:hover {
+    border-color: #475569 !important;
+}
+
+.gjs-style-manager-container .gjs-field:focus-within {
+    border-color: #3b82f6 !important;
+    background-color: #1e293b !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Units dropdown next to numbers - Balanced but compact */
+.gjs-style-manager-container .gjs-field-units {
+    border-left: 1px solid #334155 !important;
+    padding: 0 !important;
+    color: #64748b !important;
+    font-size: 0.65rem !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    background-color: #0f172a !important;
+    /* Solid color to mask overflow */
+    min-width: 32px !important;
+    /* Guarantee unit visibility */
+    flex: 1 !important;
+    /* Unit takes remaining space */
+    overflow: hidden !important;
+    position: relative !important;
+    z-index: 2 !important;
+    /* Stay above the input text */
+}
+
+.gjs-style-manager-container .gjs-field-units::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to right, transparent, #0f172a);
+    pointer-events: none;
+}
+
+.gjs-style-manager-container .gjs-field-units select {
+    padding: 0 !important;
+    cursor: pointer !important;
+    font-size: 0.65rem !important;
+    width: 100% !important;
+    appearance: none !important;
+    text-align: center !important;
+    background: transparent !important;
+    border: none !important;
+    height: 100% !important;
+}
+
+/* 2x2 Grid for Margins/Paddings/Coordinates */
+.gjs-style-manager-container .gjs-sm-property-composite {
+    margin-bottom: 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.gjs-style-manager-container .gjs-sm-property-composite>.gjs-sm-label {
+    font-size: 0.8rem !important;
+    color: #f9fafb !important;
+    margin-bottom: 12px !important;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #1f2937;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* SYSTEMATIC 2x2 GRID FOR COMPOSITE PROPERTIES (MARGIN, PADDING, COORDINATES) */
+/* Targeted Float-based approach for maximum reliability in GrapesJS */
+
+/* 1. Make the container of the properties a grid/flex container */
+.gjs-sm-property.gjs-sm-composite .gjs-sm-properties,
+.gjs-sm-property-composite .gjs-sm-properties,
+.gjs-sm-property[data-property="margin"] .gjs-sm-properties,
+.gjs-sm-property[data-property="padding"] .gjs-sm-properties,
+.gjs-sm-property[data-property="coordinates"] .gjs-sm-properties,
+.gjs-sm-property[data-property="border-radius-corners"] .gjs-sm-properties,
+.gjs-sm-property[data-property="background"] .gjs-sm-properties {
+    display: block !important;
+    position: relative !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    clear: both !important;
+}
+
+/* 2. Make each sub-property 50% width and float them */
+.gjs-sm-property.gjs-sm-composite .gjs-sm-property,
+.gjs-sm-property-composite .gjs-sm-property,
+.gjs-sm-property[data-property="margin"] .gjs-sm-property,
+.gjs-sm-property[data-property="padding"] .gjs-sm-property,
+.gjs-sm-property[data-property="coordinates"] .gjs-sm-property,
+.gjs-sm-property[data-property="border-radius-corners"] .gjs-sm-property {
+    width: 50% !important;
+    float: left !important;
+    box-sizing: border-box !important;
+    padding: 5px !important;
+    display: block !important;
+}
+
+/* Background Layers Custom Component Wrapper */
+.background-layers-wrapper {
+    width: 100% !important;
+    padding: 0 !important;
+    min-height: 40px !important;
+    display: block !important;
+}
+
+/* Hide default label for background custom layers to use our component's internal header */
+.gjs-sm-property[data-property="advanced-smart-bg"]>.gjs-sm-label {
+    display: none !important;
+}
+
+/* Ensure the field container takes full width and has no default border/styling */
+.gjs-sm-property[data-property="advanced-smart-bg"] .gjs-sm-field {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.gjs-sm-property[data-property="advanced-smart-bg"] {
+    border-bottom: 1px solid #333 !important;
+    padding: 10px 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    flex-basis: 100% !important;
+}
+
+.smart-bg-wrapper {
+    width: 100% !important;
+    display: block !important;
+    min-height: 20px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.background-layers-wrapper .react-colorful {
+    border-radius: 6px !important;
+}
+
+/* 3. Handle the labels within these 50% boxes */
+.gjs-sm-property.gjs-sm-composite .gjs-sm-label,
+.gjs-sm-property-composite .gjs-sm-label {
+    font-size: 0.65rem !important;
+    text-transform: capitalize !important;
+    color: #94a3b8 !important;
+    cursor: ew-resize !important;
+    /* Scrub cue */
+}
+
+/* 4. Clear the floats after the property list */
+.gjs-sm-property.gjs-sm-composite .gjs-sm-properties::after,
+.gjs-sm-property-composite .gjs-sm-properties::after {
+    content: "" !important;
+    display: table !important;
+    clear: both !important;
+}
+
+/* Prevent double borders when field contains radio items */
+.gjs-style-manager-container .gjs-field:has(.gjs-radio-items) {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Fallback for browsers that don't support :has */
+.gjs-style-manager-container .gjs-sm-property-radio .gjs-field {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Specific input inside range/slider fields */
+.gjs-style-manager-container .gjs-field-range input[type="number"],
+.gjs-style-manager-container .gjs-field-range .gjs-field,
+.gjs-style-manager-container .gjs-sm-property-slider .gjs-field,
+.gjs-style-manager-container .gjs-sm-property-range .gjs-field {
+    width: 65px !important;
+    /* Increased to show numbers! */
+    min-width: 65px !important;
+    flex: 0 0 65px !important;
+    border-radius: 4px !important;
+    background-color: #0f172a !important;
+    border: 1px solid #334155 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.gjs-style-manager-container .gjs-field-range input[type="number"] {
+    text-align: center !important;
+    padding: 2px !important;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 !important;
+}
+
+/* Ensure the range slider is visible and perfectly centered */
+.gjs-style-manager-container .gjs-field-range input[type="range"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 50px !important;
+    flex: 1 !important;
+    height: 20px !important;
+    /* Give it enough height for the handle to center */
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Chrome/Safari centering fix */
+.gjs-style-manager-container input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px !important;
+}
+
+.gjs-style-manager-container input[type="range"]::-webkit-slider-thumb {
+    margin-top: -5px !important;
+    /* Center 14px thumb on 4px track: (4-14)/2 = -5 */
+}
+
+/* Firefox centering fix */
+.gjs-style-manager-container input[type="range"]::-moz-range-track {
+    height: 4px !important;
+}
+
+/* Segmented Controls (Justify/Align/Direction/Float/Position) */
+.gjs-style-manager-container .gjs-radio-items {
+    display: flex !important;
+    width: 100% !important;
+    border: 1px solid #334155 !important;
+    /* Matches other field borders */
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    background-color: #0f172a !important;
+    height: 34px !important;
+    /* Matches other field heights */
+    box-sizing: border-box !important;
+}
+
+.gjs-style-manager-container .gjs-radio-item {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-right: 1px solid #334155 !important;
+    background: transparent !important;
+    cursor: pointer !important;
+    padding: 0 4px !important;
+    transition: all 0.2s;
+    font-size: 0.75rem !important;
+    color: #94a3b8 !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+}
+
+.gjs-style-manager-container .gjs-radio-item:last-child {
+    border-right: none !important;
+}
+
+.gjs-style-manager-container .gjs-radio-item.gjs-radio-item-active {
+    background-color: #1e293b !important;
+    color: #f9fafb !important;
+    font-weight: 500 !important;
+}
+
+.gjs-style-manager-container .gjs-radio-item:hover:not(.gjs-radio-item-active) {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Sliders (Opacity, Radius, etc.) */
+.gjs-style-manager-container .gjs-field-range {
+    background: transparent !important;
+    padding: 0 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px;
+    height: 34px !important;
+    /* Standard height */
+}
+
+.gjs-style-manager-container input[type="range"] {
+    flex: 1 !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    height: 34px !important;
+    /* Height of the hit area */
+    background: transparent !important;
+    /* Track moved to runnable-track */
+    cursor: pointer !important;
+    border: none !important;
+    outline: none !important;
+    margin: 0 !important;
+}
+
+/* Chrome/Safari Track */
+.gjs-style-manager-container input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px !important;
+    background: #1e293b !important;
+    border-radius: 10px !important;
+    border: none !important;
+}
+
+/* Chrome/Safari Thumb */
+.gjs-style-manager-container input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 14px !important;
+    height: 14px !important;
+    background: #3b82f6 !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5) !important;
+    transition: all 0.2s ease !important;
+    margin-top: -5px !important;
+    /* Centers 14px thumb on 4px track */
+}
+
+/* Firefox Track */
+.gjs-style-manager-container input[type="range"]::-moz-range-track {
+    height: 4px !important;
+    background: #1e293b !important;
+    border-radius: 10px !important;
+    border: none !important;
+}
+
+/* Firefox Thumb */
+.gjs-style-manager-container input[type="range"]::-moz-range-thumb {
+    width: 14px !important;
+    height: 14px !important;
+    background: #3b82f6 !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5) !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+}
+
+/* Remove background/border from parent when it contains a slider */
+.gjs-style-manager-container .gjs-field:has(input[type="range"]) {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Fallback for browsers that don't support :has */
+.gjs-style-manager-container .gjs-sm-property-range .gjs-field {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+.gjs-style-manager-container .gjs-sm-sector-caret {
+    transition: transform 0.2s;
+}
+
+.gjs-style-manager-container .gjs-sm-sector-open .gjs-sm-sector-caret {
+    transform: rotate(180deg);
+}
+
+/* ===== LAYER MANAGER ===== */
+.gjs-layer-manager-container {
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer {
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: hsl(var(--foreground)) !important;
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+.gjs-layer-manager-container .gjs-layer:hover {
+    background: hsl(var(--accent)) !important;
+    border-color: hsl(var(--border));
+}
+
+.gjs-layer-manager-container .gjs-layer.gjs-selected {
+    background: hsl(var(--primary) / 0.15) !important;
+    border-color: hsl(var(--primary)) !important;
+    border-left: 3px solid hsl(var(--primary)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer-title {
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer-count {
+    color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer-vis {
+    color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-layer-manager-container .gjs-layer-caret {
+    color: hsl(var(--muted-foreground)) !important;
+}
+
+/* ===== TRAIT MANAGER ===== */
+.gjs-trait-manager-container {
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-trait-manager-container .gjs-trt-trait {
+    margin-bottom: 12px;
+}
+
+.gjs-trait-manager-container .gjs-label-wrp {
+    margin-bottom: 4px;
+}
+
+.gjs-trait-manager-container .gjs-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: hsl(var(--foreground)) !important;
+}
+
+.gjs-trait-manager-container input,
+.gjs-trait-manager-container select,
+.gjs-trait-manager-container textarea {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 4px;
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    font-size: 0.8125rem;
+}
+
+.gjs-trait-manager-container input:focus,
+.gjs-trait-manager-container select:focus,
+.gjs-trait-manager-container textarea:focus {
+    outline: none !important;
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2) !important;
+}
+
+.gjs-trait-manager-container .gjs-trt-trait__wrp-input {
+    background: hsl(var(--background)) !important;
+}
+
+/* ===== BUTTONS ===== */
+.gjs-btn-prim {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border: none !important;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 0.8125rem;
+}
+
+.gjs-btn-prim:hover {
+    opacity: 0.9;
+}
+
+/* ===== COMPOSITE FIELDS ===== */
+.gjs-style-manager-container .gjs-sm-composite {
+    background: hsl(var(--muted) / 0.3) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.gjs-style-manager-container .gjs-sm-composite .gjs-sm-property {
+    margin-bottom: 6px;
+}
+
+/* ===== STACK FIELDS ===== */
+.gjs-style-manager-container .gjs-sm-stack {
+    background: hsl(var(--muted) / 0.3) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 6px;
+}
+
+/* ===== BLOCKS CONTAINER ===== */
+.gjs-blocks-container {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Aggressively target the real container and all its path elements */
+.gjs-blocks-container *,
+.gjs-blocks-container div,
+.gjs-blocks-container [class*="gjs-"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    justify-content: flex-start !important;
+}
+
+/* Define the two-column layout on the direct parent of blocks */
+.gjs-blocks-container [class*="gjs-blocks-c"],
+.gjs-blocks-container>div {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    padding: 12px !important;
+    gap: 12px !important;
+    justify-content: flex-start !important;
+    align-content: flex-start !important;
+}
+
+/* Hide internal headers and empty placeholders */
+.gjs-block-category,
+.gjs-blocks-container .gjs-title,
+.gjs-blocks-container .gjs-blocks-category,
+.gjs-blocks-container .gjs-blocks-header,
+.gjs-blocks-container [class*="header"],
+.gjs-blocks-container>div:empty {
+    display: none !important;
+}
+
+.gjs-blocks-container .gjs-block {
+    width: calc(50% - 6px) !important;
+    flex: 0 0 calc(50% - 6px) !important;
+    min-height: 110px !important;
+    padding: 16px 4px !important;
+    /* Minimal horizontal padding inside block */
+    margin: 0 !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 12px !important;
+    background: hsl(var(--card)) !important;
+    cursor: move !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 12px !important;
+}
+
+.gjs-blocks-container .gjs-block:hover {
+    background: hsl(var(--accent)) !important;
+    border-color: hsl(var(--primary)) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+}
+
+.gjs-blocks-container .gjs-block__media {
+    width: 64px !important;
+    /* Larger icon container */
+    height: 64px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: hsl(var(--primary) / 0.1) !important;
+    border-radius: 12px !important;
+}
+
+.gjs-blocks-container .gjs-block__media svg,
+.gjs-blocks-container .gjs-block__media i {
+    color: hsl(var(--primary)) !important;
+    font-size: 36px !important;
+    /* Larger icon */
+    width: 36px !important;
+    height: 36px !important;
+}
+
+.gjs-blocks-container .gjs-block__label {
+    color: hsl(var(--foreground)) !important;
+    font-weight: 600 !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.2 !important;
+    width: 100% !important;
+    padding: 0 4px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* ===== CANVAS CENTERING & DEVICE FRAMES ===== */
+/* Center the canvas in edit mode */
+.gjs-cv-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+    position: relative !important;
+    overflow: hidden !important;
+    background-color: #0b0d11 !important;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px) !important;
+    background-size: 24px 24px !important;
+}
+
+/* Frame container - Fully Centered Floating Layout */
+.gjs-cv-canvas__frames {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    /* Center vertically to fill the void */
+    overflow: visible !important;
+    transform-origin: center center !important;
+    padding: 20px !important;
+    /* Minimal padding all around */
+}
+
+/* Device frame styling */
+.gjs-frame-wrapper {
+    margin: 0 auto !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
+    background: white !important;
+    transition: width 0.3s ease, height 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+/* Unified Frame Styling */
+.gjs-frame-wrapper {
+    display: block !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 20px 50px rgba(0, 0, 0, 0.2) !important;
+    background: white !important;
+    position: relative !important;
+    transition: all 0.2s cubic-bezier(0.24, 0.22, 0.015, 1.56) !important;
+    transform-origin: center center !important;
+    /* Scale from center */
+    z-index: 10 !important;
+    min-height: 500px !important;
+}

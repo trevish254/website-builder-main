@@ -24,7 +24,7 @@ const SubaccountLayoutClient = ({
 }: Props) => {
     const pathname = usePathname()
     // Check for both legacy grapejs route and new editor route
-    const isGrapeJsEditor = pathname.includes('/editor') || pathname.includes('/grapejs')
+    const isGrapeJsEditor = pathname.includes('/editor') || pathname.includes('/grapejs') || pathname.includes('/email-builder/')
 
     if (isGrapeJsEditor) {
         return <div className="h-screen w-full relative overflow-hidden">{children}</div>

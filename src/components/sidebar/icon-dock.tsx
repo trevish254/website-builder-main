@@ -38,10 +38,12 @@ const ALL_MENU_CATEGORIES = [
     { id: 'home', icon: 'home', label: 'Home', matchNames: ['Overview', 'Launchpad'] },
     { id: 'dashboard', icon: 'chart', label: 'Dashboard', matchNames: ['Dashboards'] },
     { id: 'inventory', icon: 'package', label: 'Inventory', matchNames: ['product Dashboard', 'Inventory', 'Orders', 'Order', 'Customer Details', 'Revenue Analytics'] },
-    { id: 'clients', icon: 'person', label: 'Clients', matchNames: ['Assigned to me', 'Private', 'All Clients', 'Sub Accounts', 'Client Profiles', 'Engagement', 'Client Insights'] },
-    { id: 'team', icon: 'shield', label: 'Teams', matchNames: ['All Members', 'Roles & Permissions', 'Availability', 'Workload', 'Performance', 'Activity Logs', 'Invites', 'Team', 'Contacts'] },
+    { id: 'clients', icon: 'person', label: 'Clients', matchNames: ['Assigned to me', 'Private', 'All Clients', 'Sub Accounts', 'Client Profiles', 'Engagement', 'Client Insights', 'Contacts'] },
+    { id: 'team', icon: 'shield', label: 'Teams', matchNames: ['All Members', 'Roles & Permissions', 'Availability', 'Workload', 'Performance', 'Activity Logs', 'Invites', 'Team'] },
     { id: 'messages', icon: 'messages', label: 'Messages', matchNames: ['Inbox', 'Conversations', 'Internal', 'Subaccounts', 'Automated', 'Announcements', 'System', 'Messages'] },
-    { id: 'funnels', icon: 'pipelines', label: 'Funnels', matchNames: ['Funnels'] },
+    { id: 'pipelines', icon: 'pipelines', label: 'Pipelines', matchNames: ['Pipelines'] },
+    { id: 'media', icon: 'image', label: 'Media', matchNames: ['Media'] },
+    { id: 'campaigns', icon: 'campaigns', label: 'Campaigns', matchNames: ['Campaigns'] },
     { id: 'tasks', icon: 'pipelines', label: 'Tasks', matchNames: ['All Tasks', 'Assigned to Me', 'Private', 'Status', 'Priority', 'Subaccounts', 'Activity', 'Tasks'] },
     { id: 'websites', icon: 'globe', label: 'Websites', matchNames: ['Websites'] },
     { id: 'docs', icon: 'document', label: 'Docs', matchNames: ['All Docs', 'Shared', 'Assigned', 'Requests', 'Templates', 'Docs'] },
@@ -106,6 +108,8 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
             .filter(cat => {
                 if (cat.id === 'inventory' && type === 'agency') return false
                 if (cat.id === 'inventory' && type === 'subaccount') return true
+                // Hide Clients for subaccounts
+                if (cat.id === 'clients' && type === 'subaccount') return false
                 return cat.hasOptions
             })
     }
@@ -117,6 +121,22 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
         if (cat.id === 'upgrade' || cat.id === 'home') return false
         return true // Already filtered by hasOptions inside getCategorizedOptions
     })
+
+    // Force Campaigns into visible list for subaccount if not present
+    if (type === 'subaccount') {
+        const campaignsInPinned = visiblePinnedCategories.find(c => c.id === 'campaigns')
+        if (!campaignsInPinned) {
+            const campaignsCat = getCategory('campaigns')
+            if (campaignsCat) {
+                // Mock options for display if needed, though getCategory handles structure
+                visiblePinnedCategories.splice(4, 0, { // Insert at specific position or push
+                    ...campaignsCat,
+                    options: [], // Options populated by FixedSubmenuPanel anyway based on active cat
+                    hasOptions: true
+                })
+            }
+        }
+    }
 
     const visiblePinnedIds = [
         'home',
@@ -141,6 +161,8 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
             .filter(cat => {
                 if (cat.id === 'inventory' && type === 'agency') return false
                 if (cat.id === 'inventory' && type === 'subaccount') return true
+                if (cat.id === 'clients' && type === 'subaccount') return false
+                if (cat.id === 'campaigns' && type === 'subaccount') return false // Don't show in More if forced in Dock
                 return cat.hasOptions
             })
     }, [pinnedCategoryIds, sidebarOptions, type])

@@ -1,0 +1,74 @@
+/* Minimal Email Editor Overrides - Relying on grapejs-custom.css for the rest */
+
+#gjs {
+    background-color: transparent !important;
+}
+
+/* Canvas & Background */
+.gjs-cv-canvas {
+    background-color: #0b0d11 !important;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0) !important;
+    background-size: 24px 24px !important;
+}
+
+/* Ensure the email frame looks like a floating piece of paper */
+.gjs-frame-wrapper {
+    margin: 0 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+    background: white !important;
+    position: relative !important;
+    transition: all 0.3s cubic-bezier(0.24, 0.22, 0.015, 1.56) !important;
+    transform-origin: center center !important;
+    overflow: hidden !important;
+}
+
+.gjs-frame {
+    background-color: white !important;
+}
+
+/* Hide default GrapesJS UI from preset */
+.gjs-pn-commands,
+.gjs-pn-options,
+.gjs-pn-views-container,
+.gjs-pn-views {
+    display: none !important;
+}
+
+/* Custom Block Media Icons */
+.gjs-block__media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 8px;
+    color: #3182ce;
+    margin-bottom: 8px;
+}
+
+/* Canvas Selection/Hover colors */
+.gjs-cv-canvas .gjs-highlighter,
+.gjs-cv-canvas .gjs-highlighter-sel {
+    outline: 2px solid #3182ce !important;
+    outline-offset: -2px !important;
+}
+
+/* Custom Scrollbar for Style Panels */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
