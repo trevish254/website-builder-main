@@ -18,9 +18,10 @@ type Props = {
     subAccountId?: string
     teamMembers: { id: string; name: string; avatarUrl: string }[]
     allLanes: (TaskLaneType & { Task: Task[] })[]
+    teams?: any[]
 }
 
-const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes }: Props) => {
+const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes, teams = [] }: Props) => {
     const { setOpen } = useModal()
 
     const handleAddTask = () => {
@@ -34,6 +35,7 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes }
                     laneId={lane.id}
                     subAccountUsers={teamMembers}
                     lanes={allLanes}
+                    teams={teams}
                 />
             </CustomModal>
         )

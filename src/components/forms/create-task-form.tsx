@@ -41,6 +41,7 @@ interface CreateTaskFormProps {
     laneId: string
     subAccountUsers?: { id: string; name: string; avatarUrl: string }[]
     lanes?: TaskLane[]
+    teams?: any[]
 }
 
 const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
@@ -48,6 +49,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
     laneId,
     subAccountUsers = [],
     lanes = [],
+    teams = [],
 }) => {
     const { setClose } = useModal()
     const router = useRouter()
@@ -64,6 +66,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
             assignees: [], // TODO: Load existing assignees
             laneId: laneId,
             priority: defaultData?.priority || 'Medium',
+            teamId: (defaultData as any)?.teamId || '',
         },
     })
 
@@ -77,6 +80,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
                 assignees: [], // TODO: Load existing assignees
                 laneId: laneId,
                 priority: defaultData.priority || 'Medium',
+                teamId: (defaultData as any)?.teamId || '',
             })
             setTaskImage(defaultData.coverImage || '')
         }
@@ -400,7 +404,45 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
                                             </FormItem>
                                         )}
                                     />
+                                    <FormField
+                                        disabled={isLoading}
+                                        control={form.control}
+                                        name="teamId"
+                                        render={({ field }) => (
+                                            <FormItem className="space-y-2">
+                                                <div className="flex items-center gap-2 text-neutral-500">
+                                                    <Users className="w-4 h-4" />
+                                                    <FormLabel className="text-xs font-semibold">Team Assignment</FormLabel>
+                                                </div>
+                                                <Select
+                                                    onValueChange={field.onChange}
+                                                    defaultValue={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 h-10 shadow-sm">
+                                                            <SelectValue placeholder="Select team" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">No Team</SelectItem>
+                                                        {teams.map((team) => (
+                                                            <SelectItem key={team.id} value={team.id}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div
+                                                                        className="w-2 h-2 rounded-full"
+                                                                        style={{ backgroundColor: team.color || '#3b82f6' }}
+                                                                    />
+                                                                    {team.name}
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
                                 </div>
+
                             </div>
 
                             <div className="pt-6 space-y-3">

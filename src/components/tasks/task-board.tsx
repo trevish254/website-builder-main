@@ -20,9 +20,10 @@ type Props = {
     agencyId?: string
     subAccountId?: string
     teamMembers?: { id: string; name: string; avatarUrl: string }[]
+    teams?: any[]
 }
 
-const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: Props) => {
+const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [], teams = [] }: Props) => {
     const [allLanes, setAllLanes] = useState(lanes)
     const { setOpen } = useModal()
     const router = useRouter()
@@ -132,7 +133,12 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: P
                 subheading="Add a new task to your board."
                 className="max-w-[750px] w-full"
             >
-                <CreateTaskForm laneId={defaultLaneId} subAccountUsers={teamMembers} lanes={allLanes} />
+                <CreateTaskForm
+                    laneId={defaultLaneId}
+                    subAccountUsers={teamMembers}
+                    lanes={allLanes}
+                    teams={teams}
+                />
             </CustomModal>
         )
     }
@@ -211,8 +217,8 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [] }: P
                                     index={index}
                                     agencyId={agencyId}
                                     subAccountId={subAccountId}
-                                    teamMembers={teamMembers}
                                     allLanes={allLanes}
+                                    teams={teams}
                                 />
                             ))}
                             {provided.placeholder}

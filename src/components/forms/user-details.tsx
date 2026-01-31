@@ -8,6 +8,9 @@ import { SubAccount, User } from '@prisma/client'
 import React, { useEffect, useState } from 'react'
 import { useToast } from '../ui/use-toast'
 import { useRouter } from 'next/navigation'
+import { Shield, ShieldAlert, ShieldCheck, Lock, Unlock } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Badge } from '../ui/badge'
 import {
   changeUserPermissions,
   getAuthUserDetails,
@@ -15,6 +18,13 @@ import {
   saveActivityLogsNotification,
   updateUser,
 } from '@/lib/queries'
+import {
+  ROLE_HIERARCHY,
+  PERMISSION_DOMAINS,
+  canManageRole,
+  isAboveCeiling,
+  hasDomainAccess,
+} from '@/lib/permissions'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -55,9 +65,10 @@ type Props = {
   type: 'agency' | 'subaccount'
   userData?: Partial<User>
   subAccounts?: SubAccount[]
+  onUpdate?: () => void
 }
 
-const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
+const UserDetails = ({ id, type, subAccounts, userData, onUpdate }: Props) => {
   const [subAccountPermissions, setSubAccountsPermissions] =
     useState<UserWithPermissionsAndSubAccounts | null>(null)
 
@@ -80,6 +91,12 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
       fetchDetails()
     }
   }, [data])
+
+  const currentUser = authUserData || data.user
+  const currentUserRole = currentUser?.role as any || 'SUBACCOUNT_USER'
+  const isEditingSelf = userData?.id === currentUser?.id || data?.user?.id === currentUser?.id
+  const isOwner = currentUserRole === 'AGENCY_OWNER'
+  const isAdmin = currentUserRole === 'AGENCY_ADMIN'
 
   const userDataSchema = z.object({
     name: z.string().min(1),
@@ -148,6 +165,7 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
     }
 
     if (response) {
+      if (onUpdate) onUpdate()
       toast({
         title: 'Success',
         description: 'The request was successfull',
@@ -173,6 +191,30 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
 
   const onSubmit = async (values: z.infer<typeof userDataSchema>) => {
     if (!id) return
+
+    // Protection: Prevent self-downgrade
+    if (isEditingSelf && values.role !== currentUserRole) {
+      toast({
+        variant: 'destructive',
+        title: 'Action Denied',
+        description: 'You cannot change your own role. Please contact another owner to transfer ownership.',
+      })
+      return
+    }
+
+    // Protection: Prevent non-owners from assigning roles above their ceiling
+    if (!isOwner && ROLE_HIERARCHY[values.role] >= ROLE_HIERARCHY[currentUserRole]) {
+      // Allow same role only if specifically allowed, but generally ceiling rule is strict
+      if (values.role !== currentUserRole) {
+        toast({
+          variant: 'destructive',
+          title: 'Ceiling Violation',
+          description: 'You cannot assign a role equal to or higher than your own.',
+        })
+        return
+      }
+    }
+
     if (userData || data?.user) {
       const updatedUser = await updateUser({ ...values, id: userData?.id || data?.user?.id })
       authUserData?.Agency?.SubAccount.filter((subacc) =>
@@ -188,6 +230,7 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
       })
 
       if (updatedUser) {
+        if (onUpdate) onUpdate()
         toast({
           title: 'Success',
           description: 'Update User Information',
@@ -306,21 +349,32 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="AGENCY_ADMING">
-                        Agency Admin
-                      </SelectItem>
-                      {(data?.user?.role === 'AGENCY_OWNER' ||
-                        userData?.role === 'AGENCY_OWNER') && (
-                          <SelectItem value="AGENCY_OWNER">
-                            Agency Owner
+                      {/* Ceiling Rule: Only show roles below current user, or OWNER can see all but only for others */}
+                      {Object.keys(ROLE_HIERARCHY).map((role) => {
+                        const r = role as any
+                        const targetLevel = ROLE_HIERARCHY[r]
+                        const currentLevel = ROLE_HIERARCHY[currentUserRole]
+
+                        // Don't show roles above current user's ceiling
+                        if (currentLevel < targetLevel && currentUserRole !== 'AGENCY_OWNER') return null
+
+                        // Only Owner can assign ADMIN or OWNER
+                        if (r === 'AGENCY_OWNER' && currentUserRole !== 'AGENCY_OWNER') return null
+                        if (r === 'AGENCY_ADMIN' && currentUserRole !== 'AGENCY_OWNER') return null
+
+                        const labels: any = {
+                          AGENCY_OWNER: 'Agency Owner (Root)',
+                          AGENCY_ADMIN: 'Agency Admin (Operational)',
+                          SUBACCOUNT_USER: 'Sub Account User (Execution)',
+                          SUBACCOUNT_GUEST: 'Sub Account Guest (External)',
+                        }
+
+                        return (
+                          <SelectItem key={r} value={r}>
+                            {labels[r]}
                           </SelectItem>
-                        )}
-                      <SelectItem value="SUBACCOUNT_USER">
-                        Sub Account User
-                      </SelectItem>
-                      <SelectItem value="SUBACCOUNT_GUEST">
-                        Sub Account Guest
-                      </SelectItem>
+                        )
+                      })}
                     </SelectContent>
                   </Select>
                   <p className="text-muted-foreground">{roleState}</p>
@@ -334,32 +388,87 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
             >
               {form.formState.isSubmitting ? <Loading /> : 'Save User Details'}
             </Button>
-            {(authUserData?.role === 'AGENCY_OWNER' ||
-              authUserData?.role === 'AGENCY_ADMIN') && (
-                <div>
-                  <Separator className="my-4" />
-                  <FormLabel> User Permissions</FormLabel>
-                  <FormDescription className="mb-4">
-                    You can give Sub Account access to team member by turning on
-                    access control for each Sub Account. This is only visible to
-                    agency owners
+            {/* Permission Domains Section */}
+            {(isOwner || isAdmin) && (
+              <div className="space-y-6">
+                <Separator className="my-6" />
+                <div className="space-y-1">
+                  <FormLabel className="text-lg font-bold">Permission Domains</FormLabel>
+                  <FormDescription>
+                    These domains define the granular access level for this user based on their role.
                   </FormDescription>
-                  <div className="flex flex-col gap-4">
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {PERMISSION_DOMAINS.map((domain) => {
+                    const targetRole = form.getValues('role') as any
+                    const hasAccess = hasDomainAccess(targetRole, domain.id)
+                    const isLocked = isAboveCeiling(currentUserRole, targetRole) || domain.minRole === 'AGENCY_OWNER'
+
+                    return (
+                      <div
+                        key={domain.id}
+                        className={cn(
+                          "flex flex-col gap-2 rounded-xl border p-4 transition-all",
+                          hasAccess ? "bg-primary/5 border-primary/20" : "bg-muted/50 opacity-60"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "p-2 rounded-lg",
+                              hasAccess ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                            )}>
+                              {/* Icon placeholder or dynamic lucide icon would go here */}
+                              <Shield className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm">{domain.name}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">{domain.description}</p>
+                            </div>
+                          </div>
+                          <Badge variant={hasAccess ? "default" : "secondary"} className="text-[10px] uppercase font-bold">
+                            {hasAccess ? "Unlocked" : "Locked"}
+                          </Badge>
+                        </div>
+
+                        {hasAccess && (
+                          <div className="mt-2 text-[11px] text-muted-foreground italic">
+                            Core permissions in this domain are active.
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="pt-4">
+                  <FormLabel>Sub-Account Access</FormLabel>
+                  <FormDescription className="mb-4">
+                    Specifically grant or revoke access to individual sub-accounts.
+                  </FormDescription>
+                  <div className="flex flex-col gap-3">
                     {subAccounts?.map((subAccount) => {
                       const subAccountPermissionsDetails =
                         subAccountPermissions?.Permissions.find(
                           (p) => p.subAccountId === subAccount.id
                         )
+                      const targetRole = form.getValues('role') as any
+                      const canModifyAccess = isOwner || (isAdmin && targetRole !== 'AGENCY_ADMIN')
+
                       return (
                         <div
                           key={subAccount.id}
-                          className="flex items-center justify-between rounded-lg border p-4"
+                          className="flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm"
                         >
-                          <div>
-                            <p>{subAccount.name}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                              {subAccount.name[0]}
+                            </div>
+                            <p className="font-medium">{subAccount.name}</p>
                           </div>
                           <Switch
-                            disabled={loadingPermissions}
+                            disabled={loadingPermissions || !canModifyAccess}
                             checked={subAccountPermissionsDetails?.access}
                             onCheckedChange={(permission) => {
                               onChangePermission(
@@ -374,7 +483,8 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
                     })}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>

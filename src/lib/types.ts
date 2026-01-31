@@ -224,7 +224,9 @@ export const CreateTaskFormSchema = z.object({
   assignees: z.array(z.string()).optional(), // New field for multiple assignees
   laneId: z.string().min(1),
   priority: z.string().optional(),
+  teamId: z.string().optional(),
 })
+
 
 export const ProductFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -263,3 +265,11 @@ export const ProductVariantSchema = z.object({
   }),
   stock: z.number().int().min(0).default(0),
 })
+
+export const TeamFormSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+})
+

@@ -3863,5 +3863,206 @@ export const returnOrder = async (orderId: string, reason?: string) => {
     throw new Error('Only delivered orders can be transitioned to return.')
   }
 
+
   return updateOrderStatus(orderId, 'Return Initiated', reason || 'Customer requested a return')
+}
+
+// ============================================
+// AGENCY TEAMS QUERIES
+// ============================================
+
+export const getAgencyTeams = async (agencyId: string) => {
+  const { data, error } = await supabaseAdmin
+    .from('AgencyTeam')
+    .select(`
+      *,
+      AgencyTeamMember (
+        *,
+        User (
+          id,
+          name,
+          email,
+          avatarUrl
+        )
+      ),
+      Task (
+        *,
+        TaskLane (name)
+      )
+    `)
+    .eq('agencyId', agencyId)
+    .order('createdAt', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching agency teams:', error)
+    return []
+  }
+
+  return data
+}
+
+export const upsertAgencyTeam = async (team: any) => {
+  const isServiceKeyPresent = !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY)
+  console.log('🔑 Service Key Present:', isServiceKeyPresent)
+
+  if (!supabaseAdmin) {
+    console.error('❌ supabaseAdmin is not initialized!')
+    return { data: null, error: 'Supabase Admin not initialized' }
+  }
+
+  console.log('🚀 upsertAgencyTeam called with:', JSON.stringify(team, null, 2))
+
+  const { data, error } = await supabaseAdmin
+    .from('AgencyTeam')
+    .upsert({
+      ...team,
+      updatedAt: new Date().toISOString(),
+    } as AnyRecord)
+    .select()
+
+  if (error) {
+    console.error('❌ Error upserting agency team:', error)
+    console.error('🔍 Error details:', JSON.stringify(error, null, 2))
+    return { data: null, error: error.message }
+  }
+
+  if (!data || data.length === 0) {
+    return { data: null, error: 'No data returned from upsert' }
+  }
+
+  return { data: data[0], error: null }
+}
+
+export const deleteAgencyTeam = async (teamId: string) => {
+  const { error } = await supabaseAdmin
+    .from('AgencyTeam')
+    .delete()
+    .eq('id', teamId)
+
+  if (error) {
+    console.error('Error deleting agency team:', error)
+    return false
+  }
+
+  return true
+}
+
+export const addTeamMember = async (teamId: string, userId: string, isLeader: boolean = false) => {
+  const { data, error } = await supabaseAdmin
+    .from('AgencyTeamMember')
+    .upsert(
+      {
+        teamId,
+        userId,
+        isLeader,
+        updatedAt: new Date().toISOString(),
+      } as AnyRecord,
+      { onConflict: 'teamId,userId' }
+    )
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error adding team member:', error)
+    return null
+  }
+
+  return data
+}
+
+export const removeTeamMember = async (teamId: string, userId: string) => {
+  const { error } = await supabaseAdmin
+    .from('AgencyTeamMember')
+    .delete()
+    .eq('teamId', teamId)
+    .eq('userId', userId)
+
+  if (error) {
+    console.error('Error removing team member:', error)
+    return false
+  }
+
+  return true
+}
+
+export const createTeamChat = async (teamId: string, name: string, userIds: string[], agencyId: string) => {
+  try {
+    // Check if a team chat already exists for this team name
+    const { data: existing } = await supabaseAdmin
+      .from('Conversation')
+      .select('id')
+      .eq('title', name)
+      .eq('agencyId', agencyId)
+      .eq('type', 'group')
+      .maybeSingle()
+
+    if (existing) return existing
+
+    const { data: conversation, error: convError } = await supabaseAdmin
+      .from('Conversation')
+      .insert({
+        id: v4(),
+        type: 'group',
+        title: name,
+        agencyId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as AnyRecord)
+      .select()
+      .single()
+
+    if (convError) throw convError
+
+    const participants = userIds.map((userId) => ({
+      id: v4(),
+      conversationId: conversation.id,
+      userId,
+      role: 'member',
+      joinedAt: new Date().toISOString(),
+    }))
+
+    const { error: partError } = await supabaseAdmin
+      .from('ConversationParticipant')
+      .insert(participants as AnyRecord[])
+
+    if (partError) throw partError
+
+    // Optionally link team to conversation if needed, 
+    // but for now we just return the conversation
+    return conversation
+  } catch (error) {
+    console.error('Error creating team chat:', error)
+    return null
+  }
+}
+
+export const toggleTeamLeader = async (teamId: string, userId: string, isLeader: boolean) => {
+  const { data, error } = await supabaseAdmin
+    .from('AgencyTeamMember')
+    .update({ isLeader } as AnyRecord)
+    .eq('teamId', teamId)
+    .eq('userId', userId)
+    .select()
+
+  if (error) {
+    console.error('Error toggling team leader:', error)
+    return null
+  }
+
+  return data
+}
+
+export const getSubAccountAgencyId = async (subAccountId: string) => {
+  const { data, error } = await supabase
+    .from('SubAccount')
+    .select('agencyId')
+    .eq('id', subAccountId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching subaccount agencyId:', error)
+    return null
+  }
+
+  return data?.agencyId
 }

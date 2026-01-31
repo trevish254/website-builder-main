@@ -42,7 +42,10 @@ const CustomModal = ({ children, defaultOpen, subheading, title, className }: Pr
           <DialogTitle className="text-3xl font-extrabold tracking-tight">{title}</DialogTitle>
           <DialogDescription className="text-neutral-500 dark:text-neutral-400">{subheading}</DialogDescription>
         </DialogHeader>
-        <div className="overflow-hidden">
+        <div
+          className="overflow-y-auto max-h-[calc(90vh-10rem)] md:max-h-[calc(85vh-10rem)] pr-2 custom-scrollbar"
+          data-lenis-prevent
+        >
           {children}
         </div>
       </DialogContent>

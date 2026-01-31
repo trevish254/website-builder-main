@@ -1,7 +1,7 @@
 import React from 'react'
 import TaskBoard from '@/components/tasks/task-board'
 import { TaskBoard as TaskBoardType, TaskLane, Task } from '@/lib/database.types'
-import { getSubAccountTeamMembers, getTaskBoardDetails } from '@/lib/queries'
+import { getSubAccountTeamMembers, getTaskBoardDetails, getAgencyTeams, getSubAccountAgencyId } from '@/lib/queries'
 
 type Props = {
     params: { subaccountId: string }
@@ -10,6 +10,8 @@ type Props = {
 const TasksPage = async ({ params }: Props) => {
     const boardDetails = await getTaskBoardDetails(params.subaccountId)
     const teamMembers = await getSubAccountTeamMembers(params.subaccountId)
+    const agencyId = await getSubAccountAgencyId(params.subaccountId)
+    const teams = agencyId ? await getAgencyTeams(agencyId) : []
 
     if (!boardDetails) {
         return <div className="flex items-center justify-center w-full h-full">Error loading board</div>
@@ -22,9 +24,11 @@ const TasksPage = async ({ params }: Props) => {
                 lanes={boardDetails.TaskLane}
                 subAccountId={params.subaccountId}
                 teamMembers={teamMembers || []}
+                teams={teams}
             />
         </div>
     )
 }
+
 
 export default TasksPage

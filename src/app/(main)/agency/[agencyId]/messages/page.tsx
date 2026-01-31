@@ -35,6 +35,7 @@ import { NotificationSettingsDialog } from '@/components/global/chat/notificatio
 import { showMessageNotification, playNotificationSound, isInConversation, getNotificationPermission } from '@/lib/notifications'
 import VoiceCallOverlay from '@/components/global/chat/voice-call-overlay'
 import { useVoiceCall } from '@/hooks/use-voice-call'
+import { useSearchParams, useRouter } from 'next/navigation'
 
 type Props = {
   params: { agencyId: string }
@@ -82,6 +83,15 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const urlConvId = searchParams.get('conversationId')
+
+  useEffect(() => {
+    if (urlConvId) {
+      setSelectedConversationId(urlConvId)
+    }
+  }, [urlConvId])
   const [activeTab, setActiveTab] = useState<'all' | 'team' | 'groups' | 'video'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [newMessage, setNewMessage] = useState('')
