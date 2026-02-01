@@ -4,12 +4,24 @@ import React from 'react'
 import { Draggable, Droppable } from 'react-beautiful-dnd'
 import { Task, TaskLane as TaskLaneType } from '@/lib/database.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { MoreVertical, Plus } from 'lucide-react'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { MoreVertical, Plus, Trash, Edit, CheckCircle } from 'lucide-react'
 import TaskCard from './task-card'
 import { Button } from '@/components/ui/button'
 import { useModal } from '@/providers/modal-provider'
 import CustomModal from '../global/custom-modal'
 import CreateTaskForm from '../forms/create-task-form'
+import CreateLaneForm from '../forms/create-lane-form'
+import { deleteTaskLane } from '@/lib/actions/tasks'
+import { toast } from '../ui/use-toast'
+import { useRouter } from 'next/navigation'
 
 type Props = {
     lane: TaskLaneType & { Task: Task[] }
@@ -23,6 +35,7 @@ type Props = {
 
 const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes, teams = [] }: Props) => {
     const { setOpen } = useModal()
+    const router = useRouter()
 
     const handleAddTask = () => {
         setOpen(
@@ -48,10 +61,10 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes, 
                     {...provided.draggableProps}
                     ref={provided.innerRef}
                     className={`
-                        h-full min-w-[320px] max-w-[320px] flex flex-col 
-                        rounded-2xl p-4
-                        bg-neutral-100/90 dark:bg-neutral-900/90
-                        border border-white/20 dark:border-neutral-800/20
+                        h-full min-h-0 max-h-full min-w-[220px] max-w-[220px] flex flex-col 
+                        rounded-2xl p-2
+                        bg-neutral-100/50 dark:bg-neutral-900/50
+                        border border-neutral-200 dark:border-neutral-800
                         shadow-sm
                         ${snapshot.isDragging
                             ? 'opacity-50 z-[100]'
@@ -60,7 +73,7 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes, 
                 >
                     <div
                         {...provided.dragHandleProps}
-                        className="flex items-center justify-between mb-4 px-1 cursor-grab active:cursor-grabbing group"
+                        className="flex items-center justify-between mb-2 px-1 cursor-grab active:cursor-grabbing group shrink-0"
                     >
                         <div className="flex items-center gap-3">
                             <span className="font-bold text-sm tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-blue-600 transition-colors">
@@ -79,9 +92,57 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes, 
                             >
                                 <Plus className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
-                                <MoreVertical className="w-4 h-4" />
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                                        <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={() =>
+                                            setOpen(
+                                                <CustomModal
+                                                    title="Edit Section Details"
+                                                    subheading="Edit the name and color of your section."
+                                                >
+                                                    <CreateLaneForm
+                                                        boardId={lane.boardId}
+                                                        defaultData={lane}
+                                                    />
+                                                </CustomModal>
+                                            )
+                                        }
+                                    >
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        className="text-red-600 cursor-pointer hover:!text-red-600 hover:!bg-red-100 dark:hover:!bg-red-900/30"
+                                        onClick={async () => {
+                                            const response = await deleteTaskLane(lane.id)
+                                            if (response.error) {
+                                                toast({
+                                                    variant: 'destructive',
+                                                    title: 'Error',
+                                                    description: response.error,
+                                                })
+                                            } else {
+                                                toast({
+                                                    title: 'Success',
+                                                    description: 'Section deleted successfully',
+                                                })
+                                                router.refresh()
+                                            }
+                                        }}
+                                    >
+                                        <Trash className="w-4 h-4 mr-2" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
 
@@ -91,7 +152,7 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes, 
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
                                 className={`
-                                    flex-1 flex flex-col gap-3 overflow-y-auto pb-4 px-1
+                                    flex-1 flex flex-col gap-2 overflow-y-auto pb-2 px-1
                                     transition-all duration-300 rounded-xl mt-2
                                     ${snapshot.isDraggingOver
                                         ? 'bg-blue-500/[0.08] dark:bg-blue-500/[0.12] ring-2 ring-blue-500/20 ring-inset'
@@ -104,6 +165,8 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes, 
                                         task={task}
                                         index={index}
                                         subAccountUsers={teamMembers}
+                                        lanes={allLanes}
+                                        teams={teams}
                                     />
                                 ))}
                                 {provided.placeholder}

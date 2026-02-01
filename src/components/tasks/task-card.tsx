@@ -6,16 +6,37 @@ import { Task } from '@/lib/database.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, User as UserIcon } from 'lucide-react'
+
+import { Calendar, User as UserIcon, MessageSquare, Paperclip, MoreVertical, Edit, Trash, CheckCircle } from 'lucide-react'
 import { format } from 'date-fns'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+import { useModal } from '@/providers/modal-provider'
+import { useRouter } from 'next/navigation'
+import CustomModal from '../global/custom-modal'
+import CreateTaskForm from '../forms/create-task-form'
+import { deleteTask } from '@/lib/actions/tasks'
+import { toast } from '../ui/use-toast'
+import { TaskBoard, TaskLane } from '@/lib/database.types'
 
 type Props = {
     task: Task & { TaskAssignee?: { userId: string, User?: { avatarUrl: string, name: string } }[] }
     index: number
+
     subAccountUsers?: { id: string; name: string; avatarUrl: string }[]
+    lanes?: TaskLane[]
+    teams?: any[]
 }
 
-const TaskCard = ({ task, index, subAccountUsers }: Props) => {
+const TaskCard = ({ task, index, subAccountUsers, lanes, teams }: Props) => {
+    const { setOpen } = useModal()
+    const router = useRouter()
     const assignee = subAccountUsers?.find(u => u.id === task.assignedUserId)
 
     const getPriorityColor = (priority?: string | null) => {
@@ -34,21 +55,93 @@ const TaskCard = ({ task, index, subAccountUsers }: Props) => {
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     ref={provided.innerRef}
-                    className="mb-2" // Add margin bottom to separate cards
+                    className=""
                 >
                     <Card
                         className={`
                             group/card cursor-grab active:cursor-grabbing 
-                            border-white/20 dark:border-neutral-800/20 shadow-sm 
-                            bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-xl overflow-hidden
+                            border border-neutral-200 dark:border-neutral-800 shadow-sm 
+                            bg-white dark:bg-zinc-900 rounded-xl overflow-hidden
+                            ${task.coverImage ? 'aspect-square flex flex-col' : ''}
                             ${snapshot.isDragging
                                 ? 'shadow-2xl ring-2 ring-blue-500/40 opacity-100 z-[100] !transition-none'
                                 : 'transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 hover:border-blue-500/30'
                             }
                         `}
                     >
+
+                        {/* Hover Actions */}
+                        <div className="absolute top-2 right-2 z-20 hidden group-hover/card:flex items-center gap-1 opacity-100 transition-opacity">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 bg-white/50 hover:bg-white dark:bg-black/50 dark:hover:bg-black/80 backdrop-blur-sm rounded-full"
+                            >
+                                <CheckCircle className="w-3 h-3 text-muted-foreground hover:text-green-500" />
+                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 bg-white/50 hover:bg-white dark:bg-black/50 dark:hover:bg-black/80 backdrop-blur-sm rounded-full"
+                                    >
+                                        <MoreVertical className="w-3 h-3 text-muted-foreground" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={() =>
+                                            setOpen(
+                                                <CustomModal
+                                                    title="Edit Task Details"
+                                                    subheading="Edit your task title, description and more."
+                                                    className="max-w-[750px] w-full"
+                                                >
+                                                    <CreateTaskForm
+                                                        laneId={task.laneId}
+                                                        subAccountUsers={subAccountUsers}
+                                                        lanes={lanes || []}
+                                                        teams={teams || []}
+                                                        defaultData={task}
+                                                    />
+                                                </CustomModal>
+                                            )
+                                        }
+                                    >
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        className="text-red-600 cursor-pointer hover:!text-red-600 hover:!bg-red-100 dark:hover:!bg-red-900/30"
+                                        onClick={async () => {
+                                            const response = await deleteTask(task.id)
+                                            if (response.error) {
+                                                toast({
+                                                    variant: 'destructive',
+                                                    title: 'Error',
+                                                    description: response.error,
+                                                })
+                                            } else {
+                                                toast({
+                                                    title: 'Success',
+                                                    description: 'Task deleted successfully',
+                                                })
+                                                router.refresh()
+                                            }
+                                        }}
+                                    >
+                                        <Trash className="w-4 h-4 mr-2" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+
                         {task.coverImage && (
-                            <div className="w-full h-32 relative">
+                            <div className="w-full flex-1 relative min-h-0">
                                 <img
                                     src={task.coverImage}
                                     alt="Task Cover"
@@ -56,27 +149,27 @@ const TaskCard = ({ task, index, subAccountUsers }: Props) => {
                                 />
                             </div>
                         )}
-                        <CardContent className="p-4 flex flex-col gap-3">
+                        <CardContent className="p-3 flex flex-col gap-2 shrink-0 h-fit">
                             {/* Header: Assignee & Date */}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     {task.TaskAssignee && task.TaskAssignee.length > 0 ? (
                                         <div className="flex -space-x-2">
                                             {task.TaskAssignee.slice(0, 3).map((assignee) => (
-                                                <Avatar key={assignee.userId} className="w-8 h-8 border-2 border-white dark:border-neutral-900">
+                                                <Avatar key={assignee.userId} className="w-6 h-6 border-2 border-white dark:border-neutral-900">
                                                     <AvatarImage src={assignee.User?.avatarUrl} />
                                                     <AvatarFallback>{assignee.User?.name?.charAt(0)}</AvatarFallback>
                                                 </Avatar>
                                             ))}
                                         </div>
                                     ) : assignee ? (
-                                        <Avatar className="w-8 h-8">
+                                        <Avatar className="w-6 h-6">
                                             <AvatarImage src={assignee.avatarUrl} />
                                             <AvatarFallback>{assignee.name.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center">
-                                            <UserIcon className="w-4 h-4 text-muted-foreground" />
+                                        <div className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center">
+                                            <UserIcon className="w-3 h-3 text-muted-foreground" />
                                         </div>
                                     )}
                                     <div className="flex flex-col">
@@ -123,23 +216,16 @@ const TaskCard = ({ task, index, subAccountUsers }: Props) => {
                                     ))}
                                 </div>
 
-                                {task.TaskAssignee && task.TaskAssignee.length > 0 ? (
-                                    <div className="flex -space-x-2">
-                                        {task.TaskAssignee.map((assignee) => (
-                                            <Avatar key={assignee.userId} className="w-6 h-6 border-2 border-white dark:border-neutral-900">
-                                                <AvatarImage src={assignee.User?.avatarUrl} />
-                                                <AvatarFallback className="text-[10px]">{assignee.User?.name?.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                        ))}
+                                <div className="flex items-center gap-3 text-muted-foreground">
+                                    <div className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+                                        <MessageSquare className="w-3 h-3" />
+                                        <span className="text-[10px] font-medium">0</span>
                                     </div>
-                                ) : assignee && (
-                                    <div className="flex -space-x-2">
-                                        <Avatar className="w-6 h-6 border-2 border-white dark:border-neutral-900">
-                                            <AvatarImage src={assignee.avatarUrl} />
-                                            <AvatarFallback className="text-[10px]">{assignee.name.charAt(0)}</AvatarFallback>
-                                        </Avatar>
+                                    <div className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+                                        <Paperclip className="w-3 h-3" />
+                                        <span className="text-[10px] font-medium">0</span>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

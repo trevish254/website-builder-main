@@ -51,7 +51,7 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
         }
     }
 
-    const handleAddCard = async (type: string) => {
+    const handleAddCard = async (type: string, config: any = {}) => {
         // Find best position (next available slot)
         const width = 4
         const height = 4
@@ -97,7 +97,7 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
             positionY: y,
             width,
             height,
-            config: {},
+            config: config,
         })
 
         if (newCard) {
@@ -119,7 +119,7 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-muted/40 dark:bg-background">
+        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-[#09090b]">
             <AddCardModal
                 isOpen={isAddCardOpen}
                 onClose={() => setIsAddCardOpen(false)}
@@ -127,7 +127,7 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
             />
 
             {/* Header */}
-            <div className="border-b px-6 py-4 flex items-center justify-between bg-card/50 backdrop-blur-sm sticky top-16 z-50">
+            <div className="border-b px-6 py-4 flex items-center justify-between bg-white/50 dark:bg-[#09090b]/50 backdrop-blur-md sticky top-16 z-50">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.push('/dashboards')}>
                         <ArrowLeft className="w-4 h-4" />

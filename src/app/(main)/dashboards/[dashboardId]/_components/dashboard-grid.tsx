@@ -1,9 +1,13 @@
-import { useEffect, useRef } from 'react'
-import { GridStack } from 'gridstack'
-import 'gridstack/dist/gridstack.min.css'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+'use client'
+
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { Responsive, WidthProvider } from 'react-grid-layout/legacy'
+import 'react-grid-layout/css/styles.css'
+import 'react-resizable/css/styles.css'
+
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { X, GripHorizontal, MoreVertical, Copy, Edit, Trash2 } from 'lucide-react'
+import { MoreVertical, Copy, Edit, Trash2, ChevronUp, ChevronDown, GripHorizontal } from 'lucide-react'
 import { updateDashboardCard, deleteDashboardCard, createDashboardCard } from '@/lib/dashboard-queries'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -23,6 +27,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
+const ResponsiveGridLayout = WidthProvider(Responsive)
+
 type Props = {
     cards: any[]
     setCards: (cards: any) => void
@@ -31,267 +37,300 @@ type Props = {
 }
 
 export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId }: Props) {
-    const gridRef = useRef<GridStack | null>(null)
-    const refs = useRef<{ [key: string]: HTMLDivElement | null }>({})
+    const [isDragging, setIsDragging] = useState(false)
+    const [activeScrollZone, setActiveScrollZone] = useState<'top' | 'bottom' | null>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const [containerWidth, setContainerWidth] = useState(1200)
 
     useEffect(() => {
-        // Initialize GridStack
-        if (!gridRef.current) {
-            gridRef.current = GridStack.init({
-                column: 12,
-                cellHeight: 100,
-                margin: 0, // We control spacing via CSS override below
-                float: false, // Enable gravity - cards float up to fill gaps
-                disableOneColumnMode: false, // Allow stacking on mobile
-                animate: true,
-                staticGrid: !isEditMode, // Initial state
-                alwaysShowResizeHandle: false, // Allow resize handle to be shown on hover via CSS?
-                // Actually gridstack handles hover for resize handles well if we just enable it.
-                resizable: {
-                    handles: 'e, se, s, sw, w',
-                    autoHide: true,
-                    scroll: true // Enable native scroll
-                } as any,
-                draggable: {
-                    handle: '.drag-handle',
-                    scroll: true // Enable native scroll
-                } as any
-            } as any)
-
-            // Bind Events
-            // --- Decoupled Scroll Manager (Plan K: Stable Hybrid) ---
-            class ScrollManager {
-                private rafId: number | null = null;
-                private isActive = false;
-                private mouseY = 0;
-                private readonly edgeThreshold = 100;
-                private readonly baseSpeed = 25;
-
-                constructor() {
-                    this.loop = this.loop.bind(this);
-                    this.handleMouseMove = this.handleMouseMove.bind(this);
-                }
-
-                public start() {
-                    if (this.isActive) return;
-                    this.isActive = true;
-                    document.addEventListener('mousemove', this.handleMouseMove, { passive: true });
-                    document.addEventListener('touchmove', this.handleMouseMove as any, { passive: true });
-                    this.rafId = requestAnimationFrame(this.loop);
-                }
-
-                public stop() {
-                    this.isActive = false;
-                    if (this.rafId) {
-                        cancelAnimationFrame(this.rafId);
-                        this.rafId = null;
-                    }
-                    document.removeEventListener('mousemove', this.handleMouseMove);
-                    document.removeEventListener('touchmove', this.handleMouseMove as any);
-                }
-
-                private handleMouseMove(e: MouseEvent | TouchEvent) {
-                    if ('touches' in e) {
-                        this.mouseY = e.touches[0].clientY;
-                    } else {
-                        this.mouseY = (e as MouseEvent).clientY;
-                    }
-                }
-
-                private loop() {
-                    if (!this.isActive) return;
-
-                    const viewportHeight = window.innerHeight;
-                    const relativeY = this.mouseY;
-
-                    let scrollAmount = 0;
-
-                    // Detect Proximity
-                    if (relativeY > viewportHeight - this.edgeThreshold) {
-                        // Bottom Edge
-                        const intensity = (relativeY - (viewportHeight - this.edgeThreshold)) / this.edgeThreshold;
-                        scrollAmount = Math.min(intensity * this.baseSpeed, this.baseSpeed);
-                    } else if (relativeY < this.edgeThreshold) {
-                        // Top Edge
-                        const intensity = (this.edgeThreshold - relativeY) / this.edgeThreshold;
-                        scrollAmount = -Math.min(intensity * this.baseSpeed, this.baseSpeed);
-                    }
-
-                    // Apply Scroll (Window)
-                    if (scrollAmount !== 0) {
-                        window.scrollBy({ top: scrollAmount, behavior: 'instant' });
-                    }
-
-                    if (this.isActive) {
-                        this.rafId = requestAnimationFrame(this.loop);
-                    }
-                }
+        if (!containerRef.current) return
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                setContainerWidth(entry.contentRect.width)
             }
+        })
+        observer.observe(containerRef.current)
+        return () => observer.disconnect()
+    }, [])
+    const scrollState = useRef({
+        isActive: false,
+        direction: 'bottom' as 'top' | 'bottom',
+        speed: 0,
+        lastMouseX: 0,
+        lastMouseY: 500,
+        scrollYAtLastMove: 0, // NEW: Anchor for projection math
+        rafId: null as number | null
+    })
 
-            const scrollManager = new ScrollManager();
+    // CRITICAL REFS for High-Fidelity Interaction:
+    const lastLayoutRef = useRef<any[]>([])
+    const layoutSnapShot = useRef<any[]>([]) // Captures the 'Home' positions before a drag/resize
+    const isInteracting = useRef(false)
 
-            // Bind Events
-            gridRef.current.on('dragstart resizestart', (event: Event, el: HTMLElement) => {
-                if (gridRef.current) {
-                    // 1. Pre-Expand Grid (The "Infinite" Illusion)
-                    const currentMaxRow = gridRef.current.engine.getRow();
-                    const expansionBuffer = 50;
-                    const newMinRow = currentMaxRow + expansionBuffer;
+    // Map database cards to RGL layout
+    const generatedLayout = useMemo(() => {
+        return cards.map(card => ({
+            i: card.id,
+            x: card.positionX || 0,
+            y: card.positionY || 0,
+            w: card.width || 4,
+            h: card.height || 4,
+        }))
+    }, [cards])
 
-                    gridRef.current.opts.minRow = newMinRow;
+    // Generate layouts for all breakpoints to prevent overlap on resize
+    const layouts = useMemo(() => ({
+        lg: generatedLayout,
+        md: generatedLayout,
+        sm: generatedLayout,
+        xs: generatedLayout,
+        xxs: generatedLayout
+    }), [generatedLayout])
 
-                    // 2. Start Scroll Loop (Plan K)
-                    scrollManager.start();
-                }
-            });
+    // DYNAMIC COMPACTION: 
+    // Desktop/Tablet (> 768px): No gravity (allow gaps)
+    // Mobile/Small Tablet (< 768px): Vertical gravity (stack neatly)
+    const currentCompactType = useMemo(() => {
+        return containerWidth > 768 ? null : 'vertical'
+    }, [containerWidth])
 
-            gridRef.current.on('dragstop resizestop', (event: Event, el: HTMLElement) => {
-                // Stop Scroll Loop
-                scrollManager.stop();
-            });
-
-            // Handle layout changes (drag/resize)
-            gridRef.current.on('change', async (event: Event, items: any[]) => {
-                if (!items) return
-
-                // Sync changes to server
-                for (const item of items) {
-                    await updateDashboardCard(item.id, {
-                        positionX: item.x,
-                        positionY: item.y,
-                        width: item.w,
-                        height: item.h,
-                    })
-                }
-            })
-
-
-
-
-
-
-
-
-
-
-
-            // separate mouse tracker that runs always when dragging
-            const updateMousePosition = (e: MouseEvent | TouchEvent | DragEvent) => {
-                let clientY = 0;
-                if ('touches' in e) {
-                    clientY = e.touches[0]?.clientY || 0;
-                } else {
-                    clientY = (e as MouseEvent).clientY;
-                }
-                scrollState.current.mouseY = clientY;
-
-                // Calculate speed immediately
-                const viewportHeight = window.innerHeight
-                const edgeThreshold = 150 // Larger threshold for easier activation
-                const maxSpeed = 35 // Slightly faster max speed
-
-                if (clientY < edgeThreshold) {
-                    // Scroll Up
-                    const intensity = (edgeThreshold - clientY) / edgeThreshold
-                    scrollState.current.speed = -Math.max(2, Math.round(intensity * maxSpeed))
-                } else if (clientY > viewportHeight - edgeThreshold) {
-                    // Scroll Down
-                    const intensity = (clientY - (viewportHeight - edgeThreshold)) / edgeThreshold
-                    scrollState.current.speed = Math.max(2, Math.round(intensity * maxSpeed))
-                } else {
-                    scrollState.current.speed = 0
-                }
-            }
-
-
-
-            // Bind to grid events to start/stop the loop
-            // Bind to grid events to start/stop the loop
-            // Bind to grid events to start/stop the loop
-
-
-
+    const stopScrolling = useCallback(() => {
+        scrollState.current.isActive = false
+        if (scrollState.current.rafId) {
+            cancelAnimationFrame(scrollState.current.rafId)
+            scrollState.current.rafId = null
         }
     }, [])
 
-    // Sync Edit Mode (now represents ownership/access)
+    const scrollLoop = useCallback(() => {
+        if (!scrollState.current.isActive) return
+
+        const speed = scrollState.current.speed
+        window.scrollBy(0, speed)
+
+        // Force scroll update for library internal offsets
+        window.dispatchEvent(new Event('scroll'))
+
+        // Jitter to wake up high-frequency event listeners
+        const jitter = Math.random() > 0.5 ? 0.02 : -0.02
+
+        // PROJECTION MATH:
+        // virtualY = currentPhysicalY + (howMuchWeHaveScrolledSinceWeLastMovedTheMouse)
+        const currentScrollY = window.scrollY
+        const scrollDelta = currentScrollY - scrollState.current.scrollYAtLastMove
+
+        const eventOptions: any = {
+            clientX: scrollState.current.lastMouseX + jitter,
+            clientY: scrollState.current.lastMouseY + scrollDelta + jitter,
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            buttons: 1,
+            which: 1,
+            button: 0
+        }
+
+        const mouseEv = new MouseEvent('mousemove', eventOptions)
+            ; (mouseEv as any)._isSynthetic = true
+
+        // Dispatch to all layers where RGL/Draggable might be listening
+        window.dispatchEvent(mouseEv)
+        document.dispatchEvent(mouseEv)
+        document.body.dispatchEvent(mouseEv)
+
+        scrollState.current.rafId = requestAnimationFrame(scrollLoop)
+    }, [])
+
+    const startScrolling = useCallback((direction: 'top' | 'bottom', speed: number) => {
+        scrollState.current.direction = direction
+        scrollState.current.speed = speed
+
+        if (!scrollState.current.isActive) {
+            scrollState.current.isActive = true
+            scrollState.current.rafId = requestAnimationFrame(scrollLoop)
+        }
+    }, [scrollLoop])
+
+    const handleMove = useCallback((e: any) => {
+        if (!e) return
+
+        // Robust check for synthetic events to prevent recursion
+        const isSynth = e?._isSynthetic || e?.nativeEvent?._isSynthetic || (e?.nativeEvent as any)?._isSynthetic
+        if (isSynth) return
+
+        // Robust coordinate extraction 
+        const clientX = e.clientX ?? e.nativeEvent?.clientX ?? e.touches?.[0]?.clientX
+        const clientY = e.clientY ?? e.nativeEvent?.clientY ?? e.touches?.[0]?.clientY
+
+        if (clientX === undefined || clientY === undefined) return
+
+        // REAL MOVE: Update tracking and reset the projection anchor
+        scrollState.current.lastMouseX = clientX
+        scrollState.current.lastMouseY = clientY
+        scrollState.current.scrollYAtLastMove = window.scrollY
+
+        if (!isDragging) {
+            stopScrolling()
+            return
+        }
+
+        const { innerHeight } = window
+        const threshold = 140
+        const maxSpeed = 45
+
+        if (clientY < threshold && window.scrollY > 10) {
+            const intensity = (threshold - clientY) / threshold
+            const speed = -Math.max(10, Math.min(intensity * maxSpeed, maxSpeed))
+            setActiveScrollZone('top')
+            startScrolling('top', speed)
+        } else if (clientY > innerHeight - threshold) {
+            const intensity = (clientY - (innerHeight - threshold)) / threshold
+            const speed = Math.max(10, Math.min(intensity * maxSpeed, maxSpeed))
+            setActiveScrollZone('bottom')
+            startScrolling('bottom', speed)
+        } else {
+            setActiveScrollZone(null)
+            stopScrolling()
+        }
+    }, [isDragging, startScrolling, stopScrolling])
+
     useEffect(() => {
-        if (gridRef.current) {
-            gridRef.current.setStatic(!isEditMode)
-            if (isEditMode) {
-                gridRef.current.enableMove(true)
-                gridRef.current.enableResize(true)
-            } else {
-                gridRef.current.enableMove(false)
-                gridRef.current.enableResize(false)
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMove, { capture: true })
+            window.addEventListener('touchmove', handleMove, { capture: true })
+        } else {
+            // CRITICAL: Stop the loop and reset the projecter the instant dragging ends
+            stopScrolling()
+            setActiveScrollZone(null)
+            scrollState.current.accumulatedScroll = 0
+            window.removeEventListener('mousemove', handleMove, { capture: true })
+            window.removeEventListener('touchmove', handleMove, { capture: true })
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMove, { capture: true })
+            window.removeEventListener('touchmove', handleMove, { capture: true })
+        }
+    }, [isDragging, handleMove, stopScrolling])
+
+    const performLiquidSync = useCallback((newLayout: any[], activeItem: any) => {
+        if (!layoutSnapShot.current.length || !activeItem) return newLayout
+
+        const processed = [...newLayout]
+        const collider = activeItem
+
+        // Pass 1: Restoration & Initial Collision Detection
+        for (let i = 0; i < processed.length; i++) {
+            const item = processed[i]
+            if (item.i === collider.i) continue
+
+            const home = layoutSnapShot.current.find(h => h.i === item.i)
+            if (!home) continue
+
+            // Check if the collider is currently sitting on the ITEM'S HOME
+            const homeIsBlockedByActive = (
+                collider.x < home.x + home.w &&
+                collider.x + collider.w > home.x &&
+                collider.y < home.y + home.h &&
+                collider.y + collider.h > home.y
+            )
+
+            if (!homeIsBlockedByActive) {
+                // Return to base if the active item isn't in the way
+                item.x = home.x
+                item.y = home.y
             }
         }
-    }, [isEditMode])
 
-    // Sync Cards (Adding/Removing)
-    useEffect(() => {
-        if (!gridRef.current) return
+        // Pass 2: SOLID PHYSICS (Pushing)
+        // We run multiple passes to handle 'Cascading' pushes (A pushes B, B pushes C)
+        for (let pass = 0; pass < 2; pass++) {
+            for (let i = 0; i < processed.length; i++) {
+                const item = processed[i]
+                if (item.i === collider.i) continue
 
-        const grid = gridRef.current
+                const isOverlapping = (
+                    collider.x < item.x + item.w &&
+                    collider.x + collider.w > item.x &&
+                    collider.y < item.y + item.h &&
+                    collider.y + collider.h > item.y
+                )
 
-        // Check for new cards to add
-        // We defer this slightly to ensure DOM is ready
-        setTimeout(() => {
-            cards.forEach(card => {
-                // Check if grid knows about it
-                const existingNode = grid.engine.nodes.find(n => n.id === card.id)
-                if (!existingNode) {
-                    // React has rendered the element, upgrade it to a widget
-                    const el = document.getElementById(card.id)
-                    if (el) {
-                        grid.makeWidget(el)
-                    }
-                }
-            })
-        }, 0)
-
-        // Check for removed cards
-        grid.engine.nodes.forEach(node => {
-            if (!cards.find(c => c.id === node.id)) {
-                if (node.el && !document.contains(node.el)) {
-                    grid.removeWidget(node.el, false)
-                } else if (node.el) {
-                    grid.removeWidget(node.el)
+                if (isOverlapping) {
+                    // "BUMP" DOWN: Shift the covered item down to clear the active item
+                    item.y = Math.ceil(collider.y + collider.h)
                 }
             }
-        })
+        }
 
-    }, [cards])
+        return processed
+    }, [])
+
+    const onLayoutChange = (newLayout: any[]) => {
+        lastLayoutRef.current = newLayout
+
+        const updatedCards = cards.map(card => {
+            const layoutItem = newLayout.find(l => l.i === card.id)
+            if (layoutItem) {
+                return {
+                    ...card,
+                    positionX: layoutItem.x,
+                    positionY: layoutItem.y,
+                    width: layoutItem.w,
+                    height: layoutItem.h
+                }
+            }
+            return card
+        })
+        setCards(updatedCards)
+    }
+
+    const syncLayoutToDb = async (finalLayout: any[]) => {
+        if (!finalLayout) return
+
+        const updates = finalLayout.map(item => {
+            const original = cards.find(c => c.id === item.i)
+            if (original && (
+                original.positionX !== item.x ||
+                original.positionY !== item.y ||
+                original.width !== item.w ||
+                original.height !== item.h
+            )) {
+                return updateDashboardCard(item.i, {
+                    positionX: item.x,
+                    positionY: item.y,
+                    width: item.w,
+                    height: item.h,
+                })
+            }
+            return null
+        }).filter(Boolean)
+
+        if (updates.length > 0) {
+            try {
+                await Promise.all(updates)
+            } catch (err) {
+                console.error("Layout sync failed:", err)
+                toast.error("Failed to save layout changes")
+            }
+        }
+    }
 
     const handleDelete = async (cardId: string) => {
         if (!confirm('Are you sure?')) return
         const res = await deleteDashboardCard(cardId)
         if (res.success) {
-            // Pre-cleanup: Tell GridStack to forget this node but NOT remove from DOM
-            const grid = gridRef.current
-            if (grid) {
-                const node = grid.engine.nodes.find(n => n.id === cardId)
-                if (node && node.el) {
-                    grid.removeWidget(node.el, false)
-                }
-            }
-
             setCards((prev: any[]) => prev.filter(c => c.id !== cardId))
             toast.success('Card deleted')
         }
     }
 
     const handleDuplicate = async (card: any) => {
-        // Create duplicate
-        // Find best position (simple scan or offset)
-        // For simplicity, let's offset by y+1 or let gridstack handle collision if we set autoPosition (but we are setting explicit x/y)
-        // Let's just create it at 0,max_y+1 to be safe for now, or use the smarter logic from dashboard-client if we move it here.
-        // Or just let gridstack float it.
         const newCard = await createDashboardCard({
             dashboardId,
             cardType: card.cardType,
             positionX: card.positionX,
-            positionY: card.positionY + card.height, // Place below original
+            positionY: card.positionY + card.height,
             width: card.width,
             height: card.height,
             config: card.config,
@@ -305,61 +344,15 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
 
     const renderCardContent = (card: any) => {
         switch (card.cardType) {
-            case 'count':
-                return <CountCard
-                    title={card.config.title || 'Metric'}
-                    metric={card.config.metric}
-                    icon={card.config.icon}
-                />
-            case 'graph':
-                return <GraphCard
-                    title={card.config.title || 'Chart'}
-                    chartType={card.config.chartType}
-                    dataSource={card.config.dataSource}
-                />
-            case 'list':
-                return <ListCard
-                    title={card.config.title || 'List'}
-                    dataSource={card.config.dataSource}
-                    limit={card.config.limit}
-                />
-            case 'notes':
-                return <NotesCard
-                    cardId={card.id}
-                    title={card.config.title || 'Notes'}
-                    content={card.config.content}
-                />
-            case 'discussion':
-                return <DiscussionCard
-                    cardId={card.id}
-                    title={card.config.title || 'Discussion'}
-                    config={card.config}
-                />
-            case 'income':
-                return <IncomeCard
-                    title={card.config.title || 'Income'}
-                    amount={card.config.amount || 0}
-                    currency={card.config.currency || '$'}
-                    year={card.config.year || new Date().getFullYear()}
-                />
-            case 'potential-income':
-                return <IncomeCard
-                    title={card.config.title || 'Potential Income'}
-                    amount={card.config.amount || 0}
-                    currency={card.config.currency || '$'}
-                    year={card.config.year || new Date().getFullYear()}
-                />
-            case 'active-clients':
-                return <ActiveClientsCard
-                    title={card.config.title || 'Active Clients'}
-                    count={card.config.count || 0}
-                />
-            case 'agency-goal':
-                return <AgencyGoalCard
-                    title={card.config.title || 'Agency Goal'}
-                    current={card.config.current || 0}
-                    goal={card.config.goal || 20}
-                />
+            case 'count': return <CountCard {...card.config} />
+            case 'graph': return <GraphCard {...card.config} />
+            case 'list': return <ListCard {...card.config} />
+            case 'notes': return <NotesCard cardId={card.id} {...card.config} />
+            case 'discussion': return <DiscussionCard cardId={card.id} config={card.config} />
+            case 'income': return <IncomeCard {...card.config} />
+            case 'potential-income': return <IncomeCard {...card.config} />
+            case 'active-clients': return <ActiveClientsCard {...card.config} />
+            case 'agency-goal': return <AgencyGoalCard {...card.config} />
             default:
                 return (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border border-dashed text-xs select-none">
@@ -370,78 +363,197 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
     }
 
     return (
-        <>
+        <div ref={containerRef} className="relative min-h-screen pb-[100vh] transition-all duration-300 bg-slate-50 dark:bg-[#09090b]">
             <style dangerouslySetInnerHTML={{
                 __html: `
-                .grid-stack-item-content {
-                    padding: 20px 10px !important;
+                .react-grid-placeholder {
+                    background: rgba(148, 163, 184, 0.1) !important;
+                    border-radius: 12px !important;
+                    border: 2px dashed rgba(148, 163, 184, 0.3) !important;
+                    opacity: 0.5 !important;
+                    z-index: 2 !important;
                 }
+                .react-grid-item.react-draggable-dragging {
+                    z-index: 1000 !important;
+                    transition: none !important;
+                }
+                .react-resizable-handle {
+                    z-index: 100 !important;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                }
+                .react-grid-item:hover .react-resizable-handle {
+                    opacity: 1;
+                }
+                .react-resizable-handle-s {
+                    bottom: 0px;
+                    left: 20px;
+                    right: 20px;
+                    height: 8px;
+                    cursor: ns-resize;
+                    background: transparent;
+                }
+                .react-resizable-handle-e {
+                    top: 20px;
+                    bottom: 20px;
+                    right: 0px;
+                    width: 8px;
+                    cursor: ew-resize;
+                    background: transparent;
+                }
+                .react-resizable-handle-w {
+                    top: 20px;
+                    bottom: 20px;
+                    left: 0px;
+                    width: 8px;
+                    cursor: ew-resize;
+                    background: transparent;
+                }
+                .react-resizable-handle-se, .react-resizable-handle-sw {
+                    width: 12px;
+                    height: 12px;
+                    background: rgba(148, 163, 184, 0.4);
+                    border-radius: 50%;
+                    bottom: 4px;
+                }
+                .react-resizable-handle-se { right: 4px; cursor: nwse-resize; }
+                .react-resizable-handle-sw { left: 4px; cursor: nesw-resize; }
+                
+                /* Visual indicator dots for edges */
+                .react-resizable-handle-s::after,
+                .react-resizable-handle-e::after,
+                .react-resizable-handle-w::after {
+                    content: '';
+                    position: absolute;
+                    background: rgba(148, 163, 184, 0.4);
+                    border-radius: 4px;
+                }
+                .react-resizable-handle-s::after { bottom: 2px; left: 50%; width: 30px; height: 3px; transform: translateX(-50%); }
+                .react-resizable-handle-e::after { right: 2px; top: 50%; height: 30px; width: 3px; transform: translateY(-50%); }
+                .react-resizable-handle-w::after { left: 2px; top: 50%; height: 30px; width: 3px; transform: translateY(-50%); }
             `}} />
-            <div className="grid-stack relative min-h-[500px] pb-[50vh]">
-                {/* We manually map cards to grid-stack-items. 
-                 Gridstack will attach to these on init. 
-             */}
-                {cards.map(card => (
-                    <div
-                        key={card.id}
-                        id={card.id}
-                        className="grid-stack-item group"
-                        gs-id={card.id}
-                        gs-x={card.positionX}
-                        gs-y={card.positionY}
-                        gs-w={card.width}
-                        gs-h={card.height}
-                    >
-                        <div className="grid-stack-item-content h-full w-full">
-                            <Card className="h-full w-full flex flex-col relative overflow-hidden transition-all hover:ring-2 hover:ring-primary/20 bg-white dark:bg-secondary/20 shadow-sm">
-                                {/* Hover Controls */}
-                                <div className={cn(
-                                    "absolute top-2 right-2 z-50 flex items-center gap-1 transition-opacity duration-200 opacity-0 group-hover:opacity-100",
-                                    !isEditMode && "hidden"
-                                )}>
-                                    <div className="drag-handle cursor-grab p-1.5 hover:bg-muted rounded text-muted-foreground bg-background/80 backdrop-blur-sm shadow-sm ring-1 ring-border">
-                                        <GripHorizontal className="w-4 h-4" />
-                                    </div>
 
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                variant="secondary"
-                                                size="icon"
-                                                className="h-7 w-7 shadow-sm ring-1 ring-border bg-background/80 backdrop-blur-sm"
-                                            >
-                                                <MoreVertical className="w-4 h-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem disabled>
-                                                <Edit className="w-4 h-4 mr-2" />
-                                                Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleDuplicate(card)}>
-                                                <Copy className="w-4 h-4 mr-2" />
-                                                Duplicate
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                onClick={() => handleDelete(card.id)}
-                                                className="text-destructive"
-                                            >
-                                                <Trash2 className="w-4 h-4 mr-2" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-
-                                <CardContent className="h-full w-full p-4 overflow-hidden pt-4">
-                                    {renderCardContent(card)}
-                                </CardContent>
-                            </Card>
+            {/* Hot Zones Visuals */}
+            {isDragging && (
+                <>
+                    <div className={cn(
+                        "fixed top-0 left-0 right-0 h-[140px] z-[9999] bg-gradient-to-b from-slate-400/10 to-transparent transition-all flex items-start justify-center pt-8 pointer-events-none duration-300",
+                        activeScrollZone === 'top' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full'
+                    )}>
+                        <div className="p-3 rounded-full bg-white/90 dark:bg-zinc-800/90 shadow-[0_0_30px_rgba(148,163,184,0.3)] border border-slate-500/20 animate-bounce backdrop-blur-md">
+                            <ChevronUp className="w-10 h-10 text-slate-600 dark:text-slate-400" />
                         </div>
                     </div>
+                    <div className={cn(
+                        "fixed bottom-0 left-0 right-0 h-[140px] z-[9999] bg-gradient-to-t from-slate-400/10 to-transparent transition-all flex items-end justify-center pb-8 pointer-events-none duration-300",
+                        activeScrollZone === 'bottom' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'
+                    )}>
+                        <div className="p-3 rounded-full bg-white/90 dark:bg-zinc-800/90 shadow-[0_0_30px_rgba(148,163,184,0.3)] border border-slate-500/20 animate-bounce backdrop-blur-md">
+                            <ChevronDown className="w-10 h-10 text-slate-600 dark:text-slate-400" />
+                        </div>
+                    </div>
+                </>
+            )}
+
+            <ResponsiveGridLayout
+                className="layout"
+                layouts={layouts}
+                breakpoints={{ lg: 1200, md: 800, sm: 600, xs: 480, xxs: 0 }}
+                cols={{ lg: 12, md: 12, sm: 12, xs: 4, xxs: 1 }}
+                rowHeight={100}
+                width={containerWidth}
+                margin={[16, 16]}
+                isDraggable={isEditMode}
+                isResizable={isEditMode}
+                draggableHandle=".drag-handle"
+                compactType={currentCompactType}
+                preventCollision={false}
+                autoSize={true}
+                measureBeforeMount={true}
+                resizeHandles={['s', 'e', 'w', 'se', 'sw']}
+                onLayoutChange={onLayoutChange}
+                onDragStart={(l) => {
+                    setIsDragging(true)
+                    isInteracting.current = true
+                    layoutSnapShot.current = JSON.parse(JSON.stringify(l))
+                }}
+                onDrag={(l, old, newItem, pl, e) => {
+                    handleMove(e)
+                    if (currentCompactType === null) {
+                        const liquid = performLiquidSync(l, newItem)
+                        onLayoutChange(liquid)
+                    }
+                }}
+                onDragStop={(l) => {
+                    setIsDragging(false)
+                    isInteracting.current = false
+                    stopScrolling()
+                    syncLayoutToDb(l || lastLayoutRef.current)
+                    layoutSnapShot.current = []
+                }}
+                onResizeStart={(l) => {
+                    setIsDragging(true)
+                    isInteracting.current = true
+                    layoutSnapShot.current = JSON.parse(JSON.stringify(l))
+                }}
+                onResize={(l, old, newItem, pl, e) => {
+                    handleMove(e)
+                    if (currentCompactType === null) {
+                        const liquid = performLiquidSync(l, newItem)
+                        onLayoutChange(liquid)
+                    }
+                }}
+                onResizeStop={(l) => {
+                    setIsDragging(false)
+                    isInteracting.current = false
+                    stopScrolling()
+                    syncLayoutToDb(l || lastLayoutRef.current)
+                    layoutSnapShot.current = []
+                }}
+            >
+                {cards.map(card => (
+                    <div key={card.id} className={cn(
+                        "transition-shadow duration-200",
+                        isDragging ? "opacity-90" : "opacity-100"
+                    )}>
+                        <Card className={cn(
+                            "h-full w-full flex flex-col relative group overflow-hidden bg-white dark:bg-zinc-900/50 shadow-sm border border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700/50 transition-all duration-300",
+                            isDragging && "shadow-2xl ring-2 ring-primary/20 scale-[1.01] border-primary/30"
+                        )}>
+                            {isEditMode && (
+                                <>
+                                    <div className="absolute top-0 left-0 right-0 h-12 z-[51] drag-handle cursor-grab active:cursor-grabbing group-hover:bg-black/[0.02] transition-colors" />
+                                    <div className="absolute top-0 left-0 right-0 p-2 z-50 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                        <div className="p-1 px-2 flex items-center gap-1.5 text-muted-foreground bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm rounded-md">
+                                            <GripHorizontal className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-medium uppercase tracking-wider">Move</span>
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm border shadow-sm pointer-events-auto">
+                                                    <MoreVertical className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleDuplicate(card)}>
+                                                    <Copy className="w-4 h-4 mr-2" /> Duplicate
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={() => handleDelete(card.id)} className="text-destructive">
+                                                    <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </>
+                            )}
+                            <CardContent className="h-full w-full p-4 overflow-hidden">
+                                {renderCardContent(card)}
+                            </CardContent>
+                        </Card>
+                    </div>
                 ))}
-            </div>
-        </>
+            </ResponsiveGridLayout>
+        </div>
     )
 }

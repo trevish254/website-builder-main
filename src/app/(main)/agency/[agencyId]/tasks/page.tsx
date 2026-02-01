@@ -18,7 +18,7 @@ const TasksPage = async ({ params }: Props) => {
     }
 
     return (
-        <div className="h-full">
+        <div className="h-[calc(100vh-96px)] flex-1 flex flex-col relative overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
             <TaskBoard
                 board={boardDetails}
                 lanes={boardDetails.TaskLane}

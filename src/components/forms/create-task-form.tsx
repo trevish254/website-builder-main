@@ -37,7 +37,7 @@ import { v4 } from 'uuid'
 import FileUpload from '../global/file-upload'
 
 interface CreateTaskFormProps {
-    defaultData?: Task
+    defaultData?: Task & { TaskAssignee?: { userId: string }[] }
     laneId: string
     subAccountUsers?: { id: string; name: string; avatarUrl: string }[]
     lanes?: TaskLane[]
@@ -63,7 +63,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
             description: defaultData?.description || '',
             dueDate: defaultData?.dueDate ? new Date(defaultData.dueDate) : undefined,
             assignedUserId: defaultData?.assignedUserId || '',
-            assignees: [], // TODO: Load existing assignees
+            assignees: defaultData?.TaskAssignee ? defaultData.TaskAssignee.map(t => t.userId) : [],
             laneId: laneId,
             priority: defaultData?.priority || 'Medium',
             teamId: (defaultData as any)?.teamId || '',
@@ -77,7 +77,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
                 description: defaultData.description || '',
                 dueDate: defaultData.dueDate ? new Date(defaultData.dueDate) : undefined,
                 assignedUserId: defaultData.assignedUserId || '',
-                assignees: [], // TODO: Load existing assignees
+                assignees: defaultData.TaskAssignee ? defaultData.TaskAssignee.map(t => t.userId) : [],
                 laneId: laneId,
                 priority: defaultData.priority || 'Medium',
                 teamId: (defaultData as any)?.teamId || '',
@@ -317,6 +317,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
                                                                                     src={user.avatarUrl}
                                                                                     className="w-5 h-5 rounded-full border-2 border-white dark:border-neutral-900"
                                                                                     alt=""
+                                                                                    style={{ objectFit: 'cover' }}
                                                                                 />
                                                                             ) : null
                                                                         })
@@ -362,7 +363,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
                                                                         {field.value?.includes(user.id) && <CheckCircle2 className="h-3 w-3" />}
                                                                     </div>
                                                                     <div className="flex items-center gap-3">
-                                                                        <img src={user.avatarUrl} className="w-6 h-6 rounded-full" alt="" />
+                                                                        <img src={user.avatarUrl} className="w-6 h-6 rounded-full" alt="" style={{ objectFit: 'cover' }} />
                                                                         <span className="font-medium">{user.name}</span>
                                                                     </div>
                                                                 </div>
@@ -451,7 +452,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({
                                     disabled={isLoading}
                                     type="submit"
                                 >
-                                    {form.formState.isSubmitting ? <Loading /> : 'Create Task'}
+                                    {form.formState.isSubmitting ? <Loading /> : (defaultData ? 'Save Task' : 'Create Task')}
                                 </Button>
                                 <Button
                                     variant="ghost"
