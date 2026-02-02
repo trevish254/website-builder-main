@@ -1319,9 +1319,9 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
       {/* Inbox List - Always visible on desktop (md+), hidden on mobile when a chat is open */}
       <div className={cn(
-        "h-full border-r border-gray-200 dark:border-gray-800 shrink-0",
-        "md:flex md:w-[340px] lg:w-[400px]",
-        selectedConversationId ? "hidden md:flex" : "flex w-full"
+        "h-full border-r border-zinc-100 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-950",
+        "md:flex md:w-[380px] lg:w-[440px]",
+        selectedConversationId ? "hidden md:flex" : "flex w-full md:flex"
       )}>
         <ChatSidebar
           inboxItems={inboxItems}
@@ -1353,9 +1353,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
       {/* Chat Area - Always visible on desktop (md+), hidden on mobile when no chat is open */}
       <div className={cn(
-        "h-full flex-1 min-w-0",
-        "md:flex",
-        selectedConversationId ? "flex" : "hidden"
+        "h-full flex-1 min-w-0 md:flex",
+        selectedConversationId ? "flex" : "hidden md:flex"
       )}>
         <ChatWindow
           selectedMsg={selectedMsg}

@@ -154,42 +154,52 @@ const ChatSidebar = ({
         <div className="flex flex-col h-full bg-white dark:bg-background overflow-hidden">
 
             {/* Header */}
-            <div className="p-3 pb-1">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Message</h2>
+            <div className="px-5 py-6 flex flex-col gap-5 border-b border-gray-100 dark:border-gray-800/50">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
+                            Messages
+                        </h2>
+                        <div className="flex items-center gap-2 mt-1">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-[11px] text-gray-500 font-medium">
+                                {onlineAgencyUsers.length} people online
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         {notificationSettings}
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400"
+                            className="h-9 w-9 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:scale-105 transition-all"
                             onClick={onNewGroup}
                         >
-                            <Users className="h-3.5 w-3.5" />
+                            <Users className="h-4 w-4" />
                         </Button>
                         <Button
-                            variant="ghost"
+                            variant="secondary"
                             size="icon"
-                            className="h-7 w-7 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400"
+                            className="h-9 w-9 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-105 transition-all"
                             onClick={onNewMessage}
                         >
-                            <Edit className="h-3.5 w-3.5" />
+                            <Edit className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
 
-                <div className="relative mb-2">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                <div className="relative group">
+                    <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                     <Input
-                        placeholder="Search here..."
+                        placeholder="Search conversations..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="pl-9 h-8 bg-gray-50 dark:bg-gray-900 border-none text-sm"
+                        className="pl-10 h-11 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-primary transition-all shadow-sm"
                     />
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs border border-gray-200 rounded px-1">
-                        ⌘/
+                    <div className="absolute right-3.5 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5">
+                        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-black px-1.5 font-mono text-[10px] font-bold text-gray-400 opacity-100 sm:flex">
+                            <span className="text-xs">⌘</span>K
+                        </kbd>
                     </div>
                 </div>
             </div>
@@ -272,15 +282,18 @@ const ChatSidebar = ({
                                 key={message.id}
                                 onClick={() => onSelectConversation(message.id)}
                                 className={`
-                                    group relative p-2 rounded-lg cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-900 border-l-2
-                                    ${selectedConversationId === message.id ? 'bg-gray-50 dark:bg-gray-900 border-l-blue-500' : 'border-l-transparent'}
-                                    ${selectedIds.has(message.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}
+                                    group relative p-4 rounded-xl cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border-l-2
+                                    ${selectedConversationId === message.id
+                                        ? 'bg-zinc-50 dark:bg-zinc-900/50 border-l-primary shadow-sm'
+                                        : 'border-l-transparent'
+                                    }
+                                    ${selectedIds.has(message.id) ? 'bg-primary/5 dark:bg-primary/10' : ''}
                                 `}
                             >
-                                <div className="flex items-start gap-2 pr-1">
+                                <div className="flex items-start gap-3">
                                     <div
                                         className={cn(
-                                            "mt-2 mr-1 transition-all",
+                                            "mt-2 shrink-0 transition-all",
                                             selectedIds.has(message.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                                         )}
                                         onClick={(e) => toggleSelect(message.id, e)}
@@ -288,17 +301,17 @@ const ChatSidebar = ({
                                         <div className={cn(
                                             "h-4 w-4 rounded border flex items-center justify-center transition-colors",
                                             selectedIds.has(message.id)
-                                                ? "bg-blue-500 border-blue-500 text-white"
-                                                : "border-gray-300 dark:border-gray-700"
+                                                ? "bg-primary border-primary text-white"
+                                                : "border-zinc-300 dark:border-zinc-700"
                                         )}>
                                             {selectedIds.has(message.id) && <Check className="h-2.5 w-2.5" />}
                                         </div>
                                     </div>
 
-                                    <div className="relative">
-                                        <Avatar className="h-8 w-8">
+                                    <div className="relative shrink-0">
+                                        <Avatar className="h-11 w-11 shadow-sm border border-zinc-100 dark:border-zinc-800">
                                             <AvatarImage src={message.type === 'group' ? (message.iconUrl || '') : (message.avatar || message.participantInfo?.avatarUrl || '')} />
-                                            <AvatarFallback>
+                                            <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold text-xs">
                                                 {message.type === 'video'
                                                     ? 'V'
                                                     : message.type === 'group'
@@ -306,51 +319,42 @@ const ChatSidebar = ({
                                                         : message.participantInfo?.name?.charAt(0) || message.title?.charAt(0) || 'U'}
                                             </AvatarFallback>
                                         </Avatar>
-                                        {/* Dynamically check if participant is online */}
                                         {(message.type !== 'group' && message.participantInfo?.id && onlineUsers.has(message.participantInfo.id)) && (
-                                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-background rounded-full animate-pulse shadow-sm"></span>
+                                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-zinc-950 rounded-full shadow-sm"></span>
                                         )}
                                     </div>
-                                    <div className="flex-1 min-w-0">
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
                                         <div className="flex items-center justify-between mb-0.5">
-                                            <span className={`font-semibold text-sm truncate ${message.unread ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
+                                            <span className={`font-bold text-[14px] truncate transition-colors ${message.unread ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200'}`}>
                                                 {message.type === 'group' ? message.title : (message.participantInfo?.name || message.title)}
                                             </span>
-                                            <span className="text-[10px] text-gray-400 whitespace-nowrap ml-1.5 min-w-[50px] text-right">
+                                            <span className="text-[10px] font-medium text-zinc-400 whitespace-nowrap ml-1.5 shrink-0">
                                                 {message.timestamp}
                                             </span>
                                         </div>
-                                        <div className="flex items-center justify-between gap-1.5">
-                                            <p className={`text-xs truncate flex-1 ${message.unreadCount && message.unreadCount > 0 ? 'font-bold text-gray-900 dark:text-gray-100' : 'text-zinc-500'}`}>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className={`text-[12.5px] truncate flex-1 leading-tight ${message.unreadCount && message.unreadCount > 0 ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-500'}`}>
                                                 {typingStates[message.id]?.size > 0 ? (
-                                                    <span className="text-blue-600 dark:text-blue-400 italic animate-pulse">typing...</span>
+                                                    <span className="text-primary italic animate-pulse">typing...</span>
                                                 ) : (
                                                     message.preview || 'No messages yet'
                                                 )}
                                             </p>
-                                            <div className="flex items-center gap-1.5 shrink-0">
+                                            <div className="flex items-center gap-2 shrink-0">
                                                 {Boolean(message.unreadCount && message.unreadCount > 0) && (
-                                                    <Badge className="h-5 min-w-[20px] px-1.5 flex items-center justify-center bg-rose-500 hover:bg-rose-600 text-white border-none rounded-full text-[10px] font-bold shadow-sm">
+                                                    <Badge className="h-5 min-w-[20px] px-1.5 flex items-center justify-center bg-primary hover:bg-primary/90 text-white border-none rounded-full text-[10px] font-extrabold shadow-lg shadow-primary/20">
                                                         {message.unreadCount! > 99 ? '99+' : message.unreadCount}
                                                     </Badge>
                                                 )}
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-6 w-6 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 transition-all"
-                                                    onClick={(e) => handleDeleteSingle(message.id, e)}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
                                             </div>
                                         </div>
                                     </div>
-                                    {message.unread && !message.unreadCount && (
-                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                            <div className="h-2 w-2 bg-red-500 rounded-full"></div>
-                                        </div>
-                                    )}
                                 </div>
+                                {message.unread && !message.unreadCount && (
+                                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                                        <div className="h-2.5 w-2.5 bg-primary rounded-full shadow-lg shadow-primary/20 animate-pulse"></div>
+                                    </div>
+                                )}
                             </div>
                         ))
                     )}
