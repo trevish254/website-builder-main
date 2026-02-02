@@ -7,7 +7,7 @@ import 'react-resizable/css/styles.css'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { MoreVertical, Copy, Edit, Trash2, ChevronUp, ChevronDown, GripHorizontal } from 'lucide-react'
+import { MoreVertical, Copy, Edit, Trash2, ChevronUp, ChevronDown, GripVertical, EyeOff } from 'lucide-react'
 import { updateDashboardCard, deleteDashboardCard, createDashboardCard } from '@/lib/dashboard-queries'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,11 @@ import DiscussionCard from '@/components/dashboard/cards/discussion-card'
 import IncomeCard from '@/components/dashboard/cards/income-card'
 import ActiveClientsCard from '@/components/dashboard/cards/active-clients-card'
 import AgencyGoalCard from '@/components/dashboard/cards/agency-goal-card'
+import HeatmapCard from '@/components/dashboard/cards/heatmap-card'
+import PressureCard from '@/components/dashboard/cards/pressure-card'
+import RiskCard from '@/components/dashboard/cards/risk-card'
+import ScoreCard from '@/components/dashboard/cards/score-card'
+import SummaryCard from '@/components/dashboard/cards/summary-card'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -88,11 +93,9 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
     }), [generatedLayout])
 
     // DYNAMIC COMPACTION: 
-    // Desktop/Tablet (> 768px): No gravity (allow gaps)
-    // Mobile/Small Tablet (< 768px): Vertical gravity (stack neatly)
-    const currentCompactType = useMemo(() => {
-        return containerWidth > 768 ? null : 'vertical'
-    }, [containerWidth])
+    // Always use null (no compaction) to prevent automatic rearrangement
+    // This gives users full control over card placement
+    const currentCompactType = null
 
     const stopScrolling = useCallback(() => {
         scrollState.current.isActive = false
@@ -343,16 +346,22 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
     }
 
     const renderCardContent = (card: any) => {
+        const config = card.config || {}
         switch (card.cardType) {
-            case 'count': return <CountCard {...card.config} />
-            case 'graph': return <GraphCard {...card.config} />
-            case 'list': return <ListCard {...card.config} />
-            case 'notes': return <NotesCard cardId={card.id} {...card.config} />
-            case 'discussion': return <DiscussionCard cardId={card.id} config={card.config} />
-            case 'income': return <IncomeCard {...card.config} />
-            case 'potential-income': return <IncomeCard {...card.config} />
-            case 'active-clients': return <ActiveClientsCard {...card.config} />
-            case 'agency-goal': return <AgencyGoalCard {...card.config} />
+            case 'count': return <CountCard {...config} />
+            case 'graph': return <GraphCard {...config} />
+            case 'list': return <ListCard {...config} />
+            case 'notes': return <NotesCard cardId={card.id} {...config} />
+            case 'discussion': return <DiscussionCard cardId={card.id} config={config} />
+            case 'income': return <IncomeCard {...config} />
+            case 'potential-income': return <IncomeCard {...config} />
+            case 'active-clients': return <ActiveClientsCard {...config} />
+            case 'agency-goal': return <AgencyGoalCard {...config} />
+            case 'heatmap': return <HeatmapCard {...config} />
+            case 'pressure': return <PressureCard {...config} />
+            case 'risk': return <RiskCard {...config} />
+            case 'score': return <ScoreCard {...config} />
+            case 'summary': return <SummaryCard {...config} />
             default:
                 return (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border border-dashed text-xs select-none">
@@ -367,15 +376,28 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .react-grid-placeholder {
-                    background: rgba(148, 163, 184, 0.1) !important;
-                    border-radius: 12px !important;
-                    border: 2px dashed rgba(148, 163, 184, 0.3) !important;
-                    opacity: 0.5 !important;
+                    background: rgba(59, 130, 246, 0.15) !important;
+                    border-radius: 16px !important;
+                    border: 3px dashed rgba(59, 130, 246, 0.5) !important;
+                    opacity: 1 !important;
                     z-index: 2 !important;
+                    transition: all 0.2s ease !important;
+                    animation: pulse-placeholder 1.5s ease-in-out infinite;
+                }
+                @keyframes pulse-placeholder {
+                    0%, 100% { opacity: 0.6; }
+                    50% { opacity: 1; }
+                }
+                .react-grid-item {
+                    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
                 }
                 .react-grid-item.react-draggable-dragging {
                     z-index: 1000 !important;
                     transition: none !important;
+                    opacity: 0.9 !important;
+                }
+                .react-grid-item.react-grid-placeholder {
+                    background: rgba(59, 130, 246, 0.15) !important;
                 }
                 .react-resizable-handle {
                     z-index: 100 !important;
@@ -467,7 +489,7 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
                 isResizable={isEditMode}
                 draggableHandle=".drag-handle"
                 compactType={currentCompactType}
-                preventCollision={false}
+                preventCollision={true}
                 autoSize={true}
                 measureBeforeMount={true}
                 resizeHandles={['s', 'e', 'w', 'se', 'sw']}
@@ -479,10 +501,8 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
                 }}
                 onDrag={(l, old, newItem, pl, e) => {
                     handleMove(e)
-                    if (currentCompactType === null) {
-                        const liquid = performLiquidSync(l, newItem)
-                        onLayoutChange(liquid)
-                    }
+                    // Let react-grid-layout handle collision prevention
+                    // Don't apply custom liquid sync during drag
                 }}
                 onDragStop={(l) => {
                     setIsDragging(false)
@@ -498,10 +518,8 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
                 }}
                 onResize={(l, old, newItem, pl, e) => {
                     handleMove(e)
-                    if (currentCompactType === null) {
-                        const liquid = performLiquidSync(l, newItem)
-                        onLayoutChange(liquid)
-                    }
+                    // Let react-grid-layout handle collision prevention
+                    // Don't apply custom liquid sync during resize
                 }}
                 onResizeStop={(l) => {
                     setIsDragging(false)
@@ -521,31 +539,36 @@ export default function DashboardGrid({ cards, setCards, isEditMode, dashboardId
                             isDragging && "shadow-2xl ring-2 ring-primary/20 scale-[1.01] border-primary/30"
                         )}>
                             {isEditMode && (
-                                <>
-                                    <div className="absolute top-0 left-0 right-0 h-12 z-[51] drag-handle cursor-grab active:cursor-grabbing group-hover:bg-black/[0.02] transition-colors" />
-                                    <div className="absolute top-0 left-0 right-0 p-2 z-50 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                        <div className="p-1 px-2 flex items-center gap-1.5 text-muted-foreground bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm rounded-md">
-                                            <GripHorizontal className="w-3.5 h-3.5" />
-                                            <span className="text-[10px] font-medium uppercase tracking-wider">Move</span>
-                                        </div>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm border shadow-sm pointer-events-auto">
-                                                    <MoreVertical className="w-4 h-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleDuplicate(card)}>
-                                                    <Copy className="w-4 h-4 mr-2" /> Duplicate
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onClick={() => handleDelete(card.id)} className="text-destructive">
-                                                    <Trash2 className="w-4 h-4 mr-2" /> Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                <div className="absolute top-0 left-0 right-0 p-2 z-[51] flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                    {/* Left: Move Handle */}
+                                    <div className="drag-handle p-1.5 cursor-grab active:cursor-grabbing bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm rounded-md pointer-events-auto hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
+                                        <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
                                     </div>
-                                </>
+
+                                    {/* Right: Actions */}
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm border shadow-sm pointer-events-auto">
+                                                <MoreVertical className="w-4 h-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-40">
+                                            <DropdownMenuItem onClick={() => handleDuplicate(card)}>
+                                                <Copy className="w-3.5 h-3.5 mr-2" /> Duplicate
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => {
+                                                setCards((prev: any[]) => prev.filter(c => c.id !== card.id))
+                                                toast.success('Card hidden from view')
+                                            }}>
+                                                <EyeOff className="w-3.5 h-3.5 mr-2" /> Hide Card
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => handleDelete(card.id)} className="text-destructive">
+                                                <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             )}
                             <CardContent className="h-full w-full p-4 overflow-hidden">
                                 {renderCardContent(card)}

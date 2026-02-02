@@ -56,11 +56,11 @@ type Props = {
 const CATEGORIES = [
     { id: 'featured', label: 'Featured', icon: Star, color: 'text-amber-500', bg: 'bg-amber-500/10', tremor: 'amber' },
     { id: 'performance', label: 'Performance', icon: BarChart3, color: 'text-blue-500', bg: 'bg-blue-500/10', tremor: 'blue' },
-    { id: 'team', label: 'Team & Workload', icon: Users2, color: 'text-indigo-500', bg: 'bg-indigo-500/10', tremor: 'indigo' },
+    { id: 'team', label: 'Team & Workload', icon: Users2, color: 'text-purple-500', bg: 'bg-purple-500/10', tremor: 'purple' },
     { id: 'growth', label: 'Growth & Traffic', icon: LineChart, color: 'text-yellow-500', bg: 'bg-yellow-500/10', tremor: 'yellow' },
     { id: 'financial', label: 'Financial', icon: Wallet, color: 'text-emerald-500', bg: 'bg-emerald-500/10', tremor: 'emerald' },
     { id: 'operations', label: 'Operations', icon: Zap, color: 'text-orange-500', bg: 'bg-orange-500/10', tremor: 'orange' },
-    { id: 'insights', label: 'Insights', icon: Brain, color: 'text-purple-500', bg: 'bg-purple-500/10', tremor: 'purple' },
+    { id: 'insights', label: 'Insights', icon: Brain, color: 'text-violet-500', bg: 'bg-violet-500/10', tremor: 'violet' },
     { id: 'utility', label: 'Utility', icon: Wrench, color: 'text-slate-500', bg: 'bg-slate-500/10', tremor: 'slate' },
 ]
 
@@ -71,15 +71,15 @@ const CARD_TYPES = [
         title: 'Sales Trends',
         description: 'Track volume and growth of sales transactions over time.',
         categories: ['performance', 'featured'],
-        config: { title: 'Sales Trends', chartType: 'line', dataSource: 'sales' },
-        color: 'bg-indigo-500/10',
+        config: { title: 'Sales Trends', chartType: 'line', dataSource: 'sales', color: 'blue' },
+        color: 'bg-blue-500/10',
     },
     {
         type: 'graph',
         title: 'Revenue Distribution',
         description: 'Detailed view of income across multiple channels.',
         categories: ['performance', 'financial', 'featured'],
-        config: { title: 'Revenue', chartType: 'area', dataSource: 'revenue' },
+        config: { title: 'Revenue', chartType: 'area', dataSource: 'revenue', color: 'blue' },
         color: 'bg-blue-500/10',
     },
     {
@@ -87,16 +87,16 @@ const CARD_TYPES = [
         title: 'Server Latency',
         description: 'Real-time monitoring of API response times and infrastructure health.',
         categories: ['performance', 'operations'],
-        config: { title: 'Systems Health' },
-        color: 'bg-slate-500/10',
+        config: { title: 'Systems Health', color: 'blue' },
+        color: 'bg-blue-500/10',
     },
     {
         type: 'graph',
         title: 'Conversion Rate',
         description: 'Percentage of visitors who complete a desired goal.',
         categories: ['performance', 'growth'],
-        config: { title: 'Conversion Rate', chartType: 'bar', dataSource: 'conversion' },
-        color: 'bg-emerald-500/10',
+        config: { title: 'Conversion Rate', chartType: 'bar', dataSource: 'conversion', color: 'blue' },
+        color: 'bg-blue-500/10',
     },
 
     // GROWTH & TRAFFIC
@@ -105,7 +105,7 @@ const CARD_TYPES = [
         title: 'Website Visitors',
         description: 'Aggregate view of unique visitors and page sessions over time.',
         categories: ['growth', 'featured'],
-        config: { title: 'Visitor Volume', chartType: 'area', dataSource: 'websiteVisitors' },
+        config: { title: 'Visitor Volume', chartType: 'area', dataSource: 'websiteVisitors', color: 'yellow' },
         color: 'bg-yellow-500/10',
     },
     {
@@ -113,7 +113,7 @@ const CARD_TYPES = [
         title: 'Lead Sources',
         description: 'Breakdown of where your acquisition is coming from.',
         categories: ['growth'],
-        config: { title: 'Channel Mix', chartType: 'donut', dataSource: 'leadSources' },
+        config: { title: 'Channel Mix', chartType: 'donut', dataSource: 'leadSources', color: 'yellow' },
         color: 'bg-yellow-500/10',
     },
     {
@@ -121,7 +121,7 @@ const CARD_TYPES = [
         title: 'Funnel Steps',
         description: 'Conversion drop-off analysis from impression to sale.',
         categories: ['growth', 'featured'],
-        config: { title: 'Acquisition Funnel', chartType: 'funnel', dataSource: 'funnel' },
+        config: { title: 'Acquisition Funnel', chartType: 'funnel', dataSource: 'funnel', color: 'yellow' },
         color: 'bg-yellow-500/10',
     },
     {
@@ -129,7 +129,7 @@ const CARD_TYPES = [
         title: 'Traffic Trend',
         description: 'Daily traffic fluctuations and peak activity windows.',
         categories: ['growth'],
-        config: { title: 'Traffic Pulse', chartType: 'line', dataSource: 'trafficTrend' },
+        config: { title: 'Traffic Pulse', chartType: 'line', dataSource: 'trafficTrend', color: 'yellow' },
         color: 'bg-yellow-500/10',
     },
     {
@@ -137,7 +137,7 @@ const CARD_TYPES = [
         title: 'Signup Growth',
         description: 'Net new user signups and account creations per month.',
         categories: ['growth'],
-        config: { title: 'New Accounts', chartType: 'area', dataSource: 'sales' },
+        config: { title: 'New Accounts', chartType: 'area', dataSource: 'sales', color: 'yellow' },
         color: 'bg-yellow-500/10',
     },
 
@@ -147,7 +147,7 @@ const CARD_TYPES = [
         title: 'Revenue vs Expenses',
         description: 'Comparative breakdown of gross income against operational costs.',
         categories: ['financial', 'featured'],
-        config: { title: 'P&L Comparison', chartType: 'bar', dataSource: 'revVsExp' },
+        config: { title: 'P&L Comparison', chartType: 'bar', dataSource: 'revVsExp', color: 'emerald' },
         color: 'bg-emerald-500/10',
     },
     {
@@ -155,7 +155,7 @@ const CARD_TYPES = [
         title: 'Cashflow Trend',
         description: 'Monthly movement of net liquid assets through the business.',
         categories: ['financial', 'featured'],
-        config: { title: 'Cashflow Pulse', chartType: 'line', dataSource: 'cashflow' },
+        config: { title: 'Cashflow Pulse', chartType: 'line', dataSource: 'cashflow', color: 'emerald' },
         color: 'bg-emerald-500/10',
     },
     {
@@ -163,7 +163,7 @@ const CARD_TYPES = [
         title: 'Profit Split',
         description: 'Contribution breakdown from services, products, and subscriptions.',
         categories: ['financial'],
-        config: { title: 'Revenue Share', chartType: 'donut', dataSource: 'profitSplit' },
+        config: { title: 'Revenue Share', chartType: 'donut', dataSource: 'profitSplit', color: 'emerald' },
         color: 'bg-emerald-500/10',
     },
     {
@@ -171,7 +171,7 @@ const CARD_TYPES = [
         title: 'Client Value',
         description: 'Top-tier accounts ranked by their periodic billing volume.',
         categories: ['financial'],
-        config: { title: 'Client LTV', chartType: 'bar', dataSource: 'clientValue' },
+        config: { title: 'Client LTV', chartType: 'bar', dataSource: 'clientValue', color: 'emerald' },
         color: 'bg-emerald-500/10',
     },
     {
@@ -179,7 +179,7 @@ const CARD_TYPES = [
         title: 'Net Profit KPI',
         description: 'High-level real-time tracker for bottom-line earnings.',
         categories: ['financial'],
-        config: { title: 'Net Profit' },
+        config: { title: 'Net Profit', amount: 84200, color: 'emerald' },
         color: 'bg-emerald-500/10',
     },
 
@@ -189,39 +189,39 @@ const CARD_TYPES = [
         title: 'Tasks per User',
         description: 'Individual task counts assigned to each active team member.',
         categories: ['team', 'featured'],
-        config: { title: 'User Task Load', chartType: 'bar', dataSource: 'teamWorkload' },
-        color: 'bg-indigo-500/10',
+        config: { title: 'User Task Load', chartType: 'bar', dataSource: 'teamWorkload', color: 'purple' },
+        color: 'bg-purple-500/10',
     },
     {
         type: 'graph',
         title: 'Status Distribution',
         description: 'High-level breakdown of tasks across workflow stages.',
         categories: ['team'],
-        config: { title: 'Workflow Balance', chartType: 'donut', dataSource: 'taskStatus' },
-        color: 'bg-blue-500/10',
+        config: { title: 'Workflow Balance', chartType: 'donut', dataSource: 'taskStatus', color: 'purple' },
+        color: 'bg-purple-500/10',
     },
     {
         type: 'heatmap',
         title: 'Workload Density',
         description: 'Interactive heatmap showing team activity levels over the last 30 days.',
         categories: ['team', 'featured'],
-        config: { title: 'Workload Heatmap' },
-        color: 'bg-emerald-500/10',
+        config: { title: 'Workload Heatmap', color: 'purple' },
+        color: 'bg-purple-500/10',
     },
     {
         type: 'pressure',
         title: 'Deadline Pressure',
         description: 'Tracking tasks nearing due dates and potential bottlenecks.',
         categories: ['team'],
-        config: { title: 'Priority Hotspots' },
-        color: 'bg-rose-500/10',
+        config: { title: 'Priority Hotspots', color: 'purple' },
+        color: 'bg-purple-500/10',
     },
     {
         type: 'graph',
         title: 'Productivity Trend',
         description: 'Team-wide task completion velocity over the current sprint.',
         categories: ['team'],
-        config: { title: 'Velocity Trend', chartType: 'area', dataSource: 'productivity' },
+        config: { title: 'Velocity Trend', chartType: 'area', dataSource: 'productivity', color: 'purple' },
         color: 'bg-purple-500/10',
     },
 
@@ -231,7 +231,7 @@ const CARD_TYPES = [
         title: 'Pipeline Stages',
         description: 'Visual breakdown of leads moving through your business pipeline.',
         categories: ['operations', 'featured'],
-        config: { title: 'Pipeline Funnel', chartType: 'funnel', dataSource: 'pipelineStages' },
+        config: { title: 'Pipeline Funnel', chartType: 'funnel', dataSource: 'pipelineStages', color: 'orange' },
         color: 'bg-orange-500/10',
     },
     {
@@ -239,7 +239,7 @@ const CARD_TYPES = [
         title: 'Deal Stages',
         description: 'Comparative volume of active deals across horizontal stages.',
         categories: ['operations'],
-        config: { title: 'Deal Velocity', chartType: 'horizontal-bar', dataSource: 'dealStages' },
+        config: { title: 'Deal Velocity', chartType: 'horizontal-bar', dataSource: 'dealStages', color: 'orange' },
         color: 'bg-orange-500/10',
     },
     {
@@ -247,7 +247,7 @@ const CARD_TYPES = [
         title: 'Order Status',
         description: 'Fulfillment tracking from processing to successful delivery.',
         categories: ['operations', 'featured'],
-        config: { title: 'Order Flow', chartType: 'donut', dataSource: 'orderStatus' },
+        config: { title: 'Order Flow', chartType: 'donut', dataSource: 'orderStatus', color: 'orange' },
         color: 'bg-orange-500/10',
     },
     {
@@ -255,7 +255,7 @@ const CARD_TYPES = [
         title: 'Inventory Movement',
         description: 'Inflow and outflow of product stock over the last period.',
         categories: ['operations'],
-        config: { title: 'Stock Liquidity', chartType: 'stacked-bar', dataSource: 'inventoryMovement' },
+        config: { title: 'Stock Liquidity', chartType: 'stacked-bar', dataSource: 'inventoryMovement', color: 'orange' },
         color: 'bg-orange-500/10',
     },
     {
@@ -263,7 +263,7 @@ const CARD_TYPES = [
         title: 'Workflow Distribution',
         description: 'Internal process allocation across different department queues.',
         categories: ['operations'],
-        config: { title: 'Workflow Balance', chartType: 'donut', dataSource: 'orderStatus' },
+        config: { title: 'Workflow Balance', chartType: 'donut', dataSource: 'orderStatus', color: 'orange' },
         color: 'bg-orange-500/10',
     },
     {
@@ -281,40 +281,40 @@ const CARD_TYPES = [
         title: 'Predictive Forecast',
         description: 'AI-calculated revenue and growth projections for the next quarter.',
         categories: ['insights', 'featured'],
-        config: { title: 'Revenue Forecast', chartType: 'line', dataSource: 'forecast' },
-        color: 'bg-purple-500/10',
+        config: { title: 'Revenue Forecast', chartType: 'line', dataSource: 'forecast', color: 'violet' },
+        color: 'bg-violet-500/10',
     },
     {
         type: 'risk',
         title: 'Risk Hub',
         description: 'Real-time identification of operational and financial churn risks.',
         categories: ['insights'],
-        config: { title: 'Churn Risk' },
-        color: 'bg-purple-500/10',
+        config: { title: 'Churn Risk', color: 'violet' },
+        color: 'bg-violet-500/10',
     },
     {
         type: 'score',
         title: 'Efficiency Score',
         description: 'Aggregate performance rating based on team and operational data.',
         categories: ['insights', 'featured'],
-        config: { title: 'Performance Index' },
-        color: 'bg-purple-500/10',
+        config: { title: 'Performance Index', color: 'violet' },
+        color: 'bg-violet-500/10',
     },
     {
         type: 'summary',
         title: 'Smart Summary',
         description: 'GPT-powered natural language overview of your weekly business performance.',
         categories: ['insights'],
-        config: { title: 'Briefing' },
-        color: 'bg-purple-500/10',
+        config: { title: 'Briefing', color: 'violet' },
+        color: 'bg-violet-500/10',
     },
     {
         type: 'graph',
         title: 'Anomaly Detection',
         description: 'Identify unusual patterns or spikes in your business metrics.',
         categories: ['insights'],
-        config: { title: 'Metric Deviations', chartType: 'scatter', dataSource: 'anomalies' },
-        color: 'bg-purple-500/10',
+        config: { title: 'Metric Deviations', chartType: 'scatter', dataSource: 'anomalies', color: 'violet' },
+        color: 'bg-violet-500/10',
     },
 
     // UTILITY CATEGORY
@@ -473,7 +473,7 @@ const renderPreview = (card: any, tremorColor: string = 'blue') => {
             return (
                 <div className="p-3 h-full flex flex-col justify-center gap-2">
                     <div className="flex items-center gap-2 mb-1">
-                        <Sparkles className="w-3 h-3 text-purple-500" />
+                        <Sparkles className="w-3 h-3 text-violet-500" />
                         <span className="text-[10px] font-bold text-foreground">AI Intelligence</span>
                     </div>
                     <div className="space-y-1.5 min-w-0">

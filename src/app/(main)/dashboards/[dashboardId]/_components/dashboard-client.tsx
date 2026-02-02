@@ -10,13 +10,26 @@ import {
     Plus,
     Save,
     Trash2,
-    Layout
+    Layout,
+    Search,
+    RefreshCw,
+    Eye,
+    Edit3,
+    Filter,
 } from 'lucide-react'
 import { updateDashboard, createDashboardCard, populateDashboardWithDefaults } from '@/lib/dashboard-queries'
 import { toast } from 'sonner'
 import DashboardGrid from './dashboard-grid'
 import { Input } from '@/components/ui/input'
 import AddCardModal from './add-card-modal'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 
 type Props = {
     dashboard: any
@@ -30,6 +43,9 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
     const [title, setTitle] = useState(dashboard.name)
     const [cards, setCards] = useState(dashboard.DashboardCard || [])
     const [isAddCardOpen, setIsAddCardOpen] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [isEditMode, setIsEditMode] = useState(isOwner)
+    const [isLiveRefreshing, setIsLiveRefreshing] = useState(false)
 
     // Sync cards when server updates (e.g. after populate)
     useEffect(() => {
@@ -110,13 +126,26 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
         const res = await populateDashboardWithDefaults(dashboard.id)
         if (res.success) {
             toast.success('Default cards added')
-            // Refresh local state - hard reload is easiest to get all new cards cleanly
             router.refresh()
-            // We could also re-fetch cards, but router.refresh() handles the server component data
         } else {
             toast.error('Failed to populate defaults')
         }
     }
+
+    const handleRefresh = async () => {
+        setIsLiveRefreshing(true)
+        router.refresh()
+        setTimeout(() => {
+            setIsLiveRefreshing(false)
+            toast.success('Dashboard data synchronized')
+        }, 800)
+    }
+
+    const filteredCards = cards.filter((card: any) => {
+        const query = searchQuery.toLowerCase()
+        const cardTitle = (card.config?.title || card.cardType).toLowerCase()
+        return cardTitle.includes(query)
+    })
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-[#09090b]">
@@ -152,20 +181,79 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
                     )}
                 </div>
 
+                <div className="flex items-center gap-4 flex-1 max-w-xl mx-8">
+                    <div className="relative w-full group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <Input
+                            placeholder="Search widgets, metrics, or insights..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 bg-slate-100/50 dark:bg-zinc-800/50 border-none focus-visible:ring-1 focus-visible:ring-primary/50"
+                        />
+                    </div>
+                </div>
+
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleRefresh}
+                        className={cn("text-muted-foreground", isLiveRefreshing && "animate-spin text-primary")}
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                    </Button>
+
+                    <div className="h-4 w-[1px] bg-border mx-1" />
+
                     {isOwner && (
                         <>
-                            <Button onClick={() => setIsAddCardOpen(true)}>
+                            <div className="flex items-center p-1 bg-slate-100 dark:bg-zinc-800 rounded-lg mr-2">
+                                <Button
+                                    variant={!isEditMode ? "secondary" : "ghost"}
+                                    size="sm"
+                                    onClick={() => setIsEditMode(false)}
+                                    className="h-7 px-3 text-[11px] font-bold uppercase tracking-wider"
+                                >
+                                    <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                    View
+                                </Button>
+                                <Button
+                                    variant={isEditMode ? "secondary" : "ghost"}
+                                    size="sm"
+                                    onClick={() => setIsEditMode(true)}
+                                    className="h-7 px-3 text-[11px] font-bold uppercase tracking-wider"
+                                >
+                                    <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                                    Edit
+                                </Button>
+                            </div>
+
+                            <Button onClick={() => setIsAddCardOpen(true)} className="shadow-lg shadow-primary/20">
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Card
                             </Button>
 
-                            <Button variant="outline" size="icon">
-                                <Share2 className="w-4 h-4" />
-                            </Button>
-                            <Button variant="outline" size="icon">
-                                <Settings className="w-4 h-4" />
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="icon">
+                                        <Settings className="w-4 h-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Management</div>
+                                    <DropdownMenuItem onClick={() => setIsAddCardOpen(true)}>
+                                        <Plus className="w-4 h-4 mr-2" /> Add New Widget
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handlePopulateDefaults}>
+                                        <Layout className="w-4 h-4 mr-2" /> Restore Defaults
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Sharing</div>
+                                    <DropdownMenuItem>
+                                        <Share2 className="w-4 h-4 mr-2" /> Share Dashboard
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </>
                     )}
                 </div>
@@ -173,32 +261,44 @@ export default function DashboardClient({ dashboard, userId, isOwner }: Props) {
 
             {/* Grid Area */}
             <div className="p-6">
-                {cards.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+                {filteredCards.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20">
                         <div className="p-4 rounded-full bg-muted">
-                            <Layout className="w-8 h-8 text-muted-foreground" />
+                            <Search className="w-8 h-8 text-muted-foreground" />
                         </div>
                         <div className="space-y-2">
-                            <h3 className="text-xl font-bold">This dashboard is empty</h3>
+                            <h3 className="text-xl font-bold">
+                                {searchQuery ? "No matching widgets found" : "This dashboard is empty"}
+                            </h3>
                             <p className="text-muted-foreground max-w-sm">
-                                Add your first card to start visualizing your data.
+                                {searchQuery
+                                    ? `We couldn't find any widgets matching "${searchQuery}". Try a different term or clear the search.`
+                                    : "Add your first card to start visualizing your data."
+                                }
                             </p>
+                            {searchQuery && (
+                                <Button variant="link" onClick={() => setSearchQuery('')}>
+                                    Clear Search
+                                </Button>
+                            )}
                         </div>
-                        <div className="flex gap-4">
-                            <Button onClick={() => handleAddCard('count')}>
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add Card
-                            </Button>
-                            <Button variant="outline" onClick={handlePopulateDefaults}>
-                                Populate with Demo Data
-                            </Button>
-                        </div>
+                        {!searchQuery && (
+                            <div className="flex gap-4">
+                                <Button onClick={() => handleAddCard('count')}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add Card
+                                </Button>
+                                <Button variant="outline" onClick={handlePopulateDefaults}>
+                                    Populate with Demo Data
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <DashboardGrid
-                        cards={cards}
+                        cards={filteredCards}
                         setCards={setCards}
-                        isEditMode={isOwner}
+                        isEditMode={isEditMode}
                         dashboardId={dashboard.id}
                     />
                 )}

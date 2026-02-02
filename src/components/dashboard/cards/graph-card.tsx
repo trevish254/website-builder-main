@@ -133,7 +133,7 @@ const dataSets: Record<string, any[]> = {
     ]
 }
 
-export default function GraphCard({ title, chartType = 'area', dataSource = 'revenue', color, className }: Props) {
+export default function GraphCard({ title, chartType = 'area', dataSource = 'revenue', color = 'blue', className }: Props) {
     const data = dataSets[dataSource] || dataSets.revenue
 
     // Determine category based on data structure
@@ -141,25 +141,49 @@ export default function GraphCard({ title, chartType = 'area', dataSource = 'rev
         ? []
         : data[0] ? Object.keys(data[0]).filter(k => k !== 'date' && k !== 'name') : []
 
-    const currentColors = color ? [color] : ['blue']
-    const multiColors = [color || 'blue', 'slate-400', 'indigo-400', 'cyan-400']
+    const currentColors = [color]
+    const multiColors = [color, 'slate-400', 'indigo-400', 'cyan-400']
 
     return (
         <div className="h-full w-full flex flex-col group/graph">
             <div className="flex items-center justify-between mb-2">
                 <div>
-                    <h3 className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground/80 leading-none mb-1">{title}</h3>
-                    <p className="text-[8px] text-muted-foreground/50 font-medium">Smart Insights</p>
+                    <h3 className={cn(
+                        "text-[10px] font-bold uppercase tracking-tight leading-none mb-1",
+                        color === 'emerald' && "text-emerald-500",
+                        color === 'blue' && "text-blue-500",
+                        color === 'purple' && "text-purple-500",
+                        color === 'orange' && "text-orange-500",
+                        color === 'yellow' && "text-yellow-500",
+                        color === 'violet' && "text-violet-500",
+                    )}>{title}</h3>
+                    <p className="text-[8px] text-muted-foreground/50 font-medium">Business Metric</p>
                 </div>
                 {dataSource === 'forecast' || dataSource === 'anomalies' ? (
-                    <div className="flex items-center gap-1 text-purple-500 bg-purple-500/10 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                    <div className={cn(
+                        "flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold",
+                        color === 'emerald' && "bg-emerald-500/10 text-emerald-500",
+                        color === 'blue' && "bg-blue-500/10 text-blue-500",
+                        color === 'purple' && "bg-purple-500/10 text-purple-500",
+                        color === 'orange' && "bg-orange-500/10 text-orange-500",
+                        color === 'yellow' && "bg-yellow-500/10 text-yellow-500",
+                        color === 'violet' && "bg-violet-500/10 text-violet-500",
+                    )}>
                         <Brain className="w-2.5 h-2.5 animate-pulse" />
                         AI Calculated
                     </div>
                 ) : (
-                    <div className="flex items-center gap-1 text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                    <div className={cn(
+                        "flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold",
+                        color === 'emerald' && "bg-emerald-500/10 text-emerald-500",
+                        color === 'blue' && "bg-blue-500/10 text-blue-500",
+                        color === 'purple' && "bg-purple-500/10 text-purple-500",
+                        color === 'orange' && "bg-orange-500/10 text-orange-500",
+                        color === 'yellow' && "bg-yellow-500/10 text-yellow-500",
+                        color === 'violet' && "bg-violet-500/10 text-violet-500",
+                    )}>
                         <Activity className="w-2.5 h-2.5" />
-                        Live
+                        Live Feed
                     </div>
                 )}
             </div>
