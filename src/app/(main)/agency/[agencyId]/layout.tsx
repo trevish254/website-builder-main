@@ -10,6 +10,7 @@ import {
 import { getUser } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import React from 'react'
+import { createClient } from '@/lib/supabase/server'
 
 type Props = {
   children: React.ReactNode
@@ -21,6 +22,7 @@ import MainLayoutWrapper from '@/components/sidebar/main-layout-wrapper'
 import CollabInvitationListener from './client-docs/_components/invitation-listener'
 
 const AgencyLayout = async ({ children, params }: Props) => {
+  const supabase = createClient()
   const user = await getUser()
   if (!user) return redirect('/agency/sign-in')
 

@@ -515,8 +515,8 @@ function CollaboratorCursor({ collaborator, containerId }: { collaborator: any, 
         <div
             className="absolute transition-all duration-300 z-50 flex items-center pointer-events-none group"
             style={{
-                top: `${position.top}px`,
-                left: `${position.left}px`
+                top: `${position.top - 3}px`,
+                left: `${position.left - 3}px`
             }}
         >
             {/* Visual Cursor */}

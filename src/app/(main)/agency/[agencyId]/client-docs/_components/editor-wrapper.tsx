@@ -218,7 +218,7 @@ const EditorWrapper = forwardRef<EditorHandle, Props>(({ data, onChange, readOnl
                             onChange?.(savedData)
 
                             // Broadcast change to other users
-                            if (window.collaborationChannel) {
+                            if (window.collaborationChannel && !(window as any).isRemoteUpdate) {
                                 window.collaborationChannel.send({
                                     type: 'broadcast',
                                     event: 'doc-update',
@@ -237,33 +237,39 @@ const EditorWrapper = forwardRef<EditorHandle, Props>(({ data, onChange, readOnl
                         if (window.collaborationChannel) {
                             window.collaborationChannel.on('broadcast', { event: 'doc-update' }, async ({ payload }) => {
                                 if (payload.senderId !== window.currentUserId) {
-                                    // Debounce updates slightly to avoid rapid-fire processing
-                                    const currentData = await editor.save()
-                                    const newBlocks = payload.data.blocks
-                                    const currentBlocks = currentData.blocks
+                                    // Set flag to prevent echo
+                                    (window as any).isRemoteUpdate = true
 
-                                    // Check if lengths match
-                                    if (newBlocks.length === currentBlocks.length) {
-                                        for (let i = 0; i < newBlocks.length; i++) {
-                                            const newBlock = newBlocks[i]
-                                            const currentBlock = currentBlocks[i]
+                                    try {
+                                        const currentData = await editor.save()
+                                        const newBlocks = payload.data.blocks
+                                        const currentBlocks = currentData.blocks
 
-                                            if (JSON.stringify(newBlock.data) !== JSON.stringify(currentBlock.data)) {
-                                                // STRICTLY use Block IDs. editor.blocks.update(id, data) requires an ID string.
-                                                // Passing an index will cause "Block with id 'X' not found" errors.
+                                        // Check if lengths match
+                                        if (newBlocks.length === currentBlocks.length) {
+                                            for (let i = 0; i < newBlocks.length; i++) {
+                                                const newBlock = newBlocks[i]
+                                                const currentBlock = currentBlocks[i]
 
-                                                if (newBlock.id && currentBlock.id && newBlock.id === currentBlock.id) {
-                                                    editor.blocks.update(newBlock.id, newBlock.data)
-                                                } else {
-                                                    // Structural mismatch despite length match (e.g. replaced block)
-                                                    // Fallback to full render to be safe
-                                                    editor.render(payload.data)
-                                                    return
+                                                if (JSON.stringify(newBlock.data) !== JSON.stringify(currentBlock.data)) {
+                                                    if (newBlock.id && newBlock.id === currentBlock.id) {
+                                                        // Update transparently
+                                                        editor.blocks.update(newBlock.id, newBlock.data)
+                                                    } else {
+                                                        // Fallback
+                                                        editor.render(payload.data)
+                                                        break
+                                                    }
                                                 }
                                             }
+                                        } else {
+                                            editor.render(payload.data)
                                         }
-                                    } else {
-                                        editor.render(payload.data)
+                                    } finally {
+                                        // Reset flag after a short delay to allow internal events to fire and be ignored
+                                        setTimeout(() => {
+                                            (window as any).isRemoteUpdate = false
+                                        }, 50)
                                     }
                                 }
                             })
