@@ -314,7 +314,7 @@ const MessageBubble = ({
                             )}
 
                             {content && !isVoiceNoteOnly && !isAttachmentOnly && (
-                                <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words px-0.5">
+                                <p className="text-[13.5px] font-normal leading-relaxed whitespace-pre-wrap break-words px-0.5">
                                     {content}
                                 </p>
                             )}

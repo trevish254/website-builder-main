@@ -803,6 +803,24 @@ const AgencyMessagesPage = ({ params }: Props) => {
       })
 
       if (response) {
+        // Optimistic update: Add message immediately for sender
+        const optimisticMessage: ChatMessage = {
+          id: response.id,
+          sender: 'me',
+          text: newMessage,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          senderName: userName,
+          senderAvatar: userAvatar,
+          isRead: false,
+          attachments: [],
+          replyTo: replyingTo ? {
+            text: replyingTo.text,
+            senderName: replyingTo.senderName
+          } : undefined,
+          createdAt: new Date().toISOString()
+        }
+
+        setChatMessages(prev => [...prev, optimisticMessage])
         setNewMessage('')
         setReplyingTo(null)
 
@@ -1301,8 +1319,9 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
       {/* Inbox List - Always visible on desktop (md+), hidden on mobile when a chat is open */}
       <div className={cn(
-        "h-full border-r border-gray-200 dark:border-gray-800 shrink-0 md:!flex md:w-[320px] lg:w-[380px]",
-        selectedConversationId ? "hidden" : "flex w-full"
+        "h-full border-r border-gray-200 dark:border-gray-800 shrink-0",
+        "md:flex md:w-[340px] lg:w-[400px]",
+        selectedConversationId ? "hidden md:flex" : "flex w-full"
       )}>
         <ChatSidebar
           inboxItems={inboxItems}
