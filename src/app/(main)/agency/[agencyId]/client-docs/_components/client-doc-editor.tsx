@@ -354,7 +354,7 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                     <EditorToolbar editorRef={editorRef} subaccountId={doc.subAccountId} />
 
                     {/* Editor Area */}
-                    <ScrollArea className="flex-1 overscroll-contain">
+                    <div className="flex-1 overflow-y-auto overscroll-contain">
                         <div className="p-4 md:p-8 relative">
                             {/* Real-time Visual Cursors */}
                             <div className="absolute inset-0 pointer-events-none z-20 overflow-visible">
@@ -371,33 +371,10 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                                 className="max-w-4xl mx-auto bg-white dark:bg-zinc-900 min-h-[500px] p-8 md:p-12 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all duration-500"
                                 onMouseMove={(e) => {
                                     const rect = e.currentTarget.getBoundingClientRect()
-                                    // X as percentage (0-1) to handle resizing
                                     const x = (e.clientX - rect.left) / rect.width
-                                    // Y as absolute pixels from the top of the container
-                                    // We need to account for scrolling if we wanted global page pos, 
-                                    // but here 'top' is relative to this container in the viewer.
-                                    // e.clientY - rect.top gives Y relative to current viewport view of container.
-                                    // But if we scroll, the container scrolls? 
-                                    // Actually, this container is inside ScrollArea. 
-                                    // Wait, if the container is scrolled out of view, the ClientY changes.
-                                    // We want Y relative to the DOCUMENT (Editor) TOP.
-                                    // e.nativeEvent.offsetY is usually reliable for the target, but target changes.
-
-                                    // Best approach: e.clientY - rect.top is relative to viewport top of the element.
-                                    // But we broadcast this to a user who might have scrolled differently.
-                                    // We need Y relative to the CONTENT top.
-                                    // But this div *is* the content wrapper. 
-                                    // However, the text inside grows.
-
-                                    // Let's use relative coordinates to the container itself.
                                     const y = e.clientY - rect.top
 
-                                    // But if I scroll down, 'rect.top' moves up (becomes negative).
-                                    // e.clientY stays roughly same.
-                                    // So (clientY - rect.top) INCREASES as I scroll down? 
-                                    // Yes. e.g. clientY=100, rect.top=-500 -> y=600. Correct.
-
-                                    // Throttle using requestAnimationFrame or simple timestamp
+                                    // Throttle cursor broadcasts
                                     const now = Date.now()
                                     if (now - (window as any).lastCursorEmit < 50) return
                                     (window as any).lastCursorEmit = now
@@ -425,7 +402,7 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                                 </p>
                             </div>
                         </div>
-                    </ScrollArea>
+                    </div>
                 </div>
 
                 {/* Collaboration Sidebar */}

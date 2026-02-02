@@ -233,7 +233,6 @@ const EditorWrapper = forwardRef<EditorHandle, Props>(({ data, onChange, readOnl
                         isInitialized.current = true
 
                         // Listen for remote updates
-                        // Listen for remote updates
                         if (window.collaborationChannel) {
                             window.collaborationChannel.on('broadcast', { event: 'doc-update' }, async ({ payload }) => {
                                 if (payload.senderId !== window.currentUserId) {
@@ -241,35 +240,38 @@ const EditorWrapper = forwardRef<EditorHandle, Props>(({ data, onChange, readOnl
                                     (window as any).isRemoteUpdate = true
 
                                     try {
-                                        const currentData = await editor.save()
-                                        const newBlocks = payload.data.blocks
-                                        const currentBlocks = currentData.blocks
-
-                                        // Check if lengths match
-                                        if (newBlocks.length === currentBlocks.length) {
-                                            for (let i = 0; i < newBlocks.length; i++) {
-                                                const newBlock = newBlocks[i]
-                                                const currentBlock = currentBlocks[i]
-
-                                                if (JSON.stringify(newBlock.data) !== JSON.stringify(currentBlock.data)) {
-                                                    if (newBlock.id && newBlock.id === currentBlock.id) {
-                                                        // Update transparently
-                                                        editor.blocks.update(newBlock.id, newBlock.data)
-                                                    } else {
-                                                        // Fallback
-                                                        editor.render(payload.data)
-                                                        break
-                                                    }
-                                                }
+                                        // For real-time character-by-character updates, we need to render immediately
+                                        // Save current caret position if possible
+                                        let caretPosition = null
+                                        try {
+                                            const currentIndex = editor.blocks.getCurrentBlockIndex()
+                                            if (currentIndex >= 0) {
+                                                caretPosition = currentIndex
                                             }
-                                        } else {
-                                            editor.render(payload.data)
+                                        } catch (e) {
+                                            // Ignore caret errors
+                                        }
+
+                                        // Render the new content
+                                        await editor.render(payload.data)
+
+                                        // Try to restore caret position if we're not actively editing
+                                        if (caretPosition !== null && !document.activeElement?.closest('.ce-block')) {
+                                            try {
+                                                setTimeout(() => {
+                                                    if (editor.blocks && editor.caret) {
+                                                        editor.caret.setToBlock(caretPosition, 'end')
+                                                    }
+                                                }, 10)
+                                            } catch (e) {
+                                                // Ignore caret restoration errors
+                                            }
                                         }
                                     } finally {
-                                        // Reset flag after a short delay to allow internal events to fire and be ignored
+                                        // Reset flag after a short delay
                                         setTimeout(() => {
                                             (window as any).isRemoteUpdate = false
-                                        }, 50)
+                                        }, 100)
                                     }
                                 }
                             })
