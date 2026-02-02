@@ -16,7 +16,8 @@ import {
     ChevronRight,
     Search,
     BadgeCheck,
-    Signal
+    Signal,
+    Check
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,51 +35,75 @@ import { cn } from '@/lib/utils'
 
 type Tab = 'collaborators' | 'history' | 'teams'
 
-interface Collaborator {
-    id: string
-    name: string
-    role: string
-    avatar?: string
-    status: 'online' | 'busy' | 'away'
-    isViewing: boolean
-    color: string
-}
-
-interface Version {
-    id: string
-    author: string
-    time: string
-    changes: string
-    content: any
-}
+import { Collaborator } from './use-collaboration'
 
 interface CollaborationPanelProps {
     isOpen: boolean
     onClose: () => void
     docId: string
+    docTitle: string
+    agencyId: string
     onRevert: (content: any) => void
+    collaborators: Collaborator[]
+    versions: any[]
 }
 
-export default function CollaborationPanel({ isOpen, onClose, docId, onRevert }: CollaborationPanelProps) {
+import { getAgencyTeams, getAgencyTeamMembers } from '@/lib/client-docs-queries'
+import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
+import { createClient } from '@/lib/supabase/client'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
+
+export default function CollaborationPanel({ isOpen, onClose, docId, docTitle, agencyId, onRevert, collaborators, versions }: CollaborationPanelProps) {
     const [activeTab, setActiveTab] = useState<Tab>('collaborators')
     const [inCall, setInCall] = useState(false)
     const [isMuted, setIsMuted] = useState(false)
     const [callDuration, setCallDuration] = useState(0)
+    const [teams, setTeams] = useState<any[]>([])
+    const [agencyMembers, setAgencyMembers] = useState<any[]>([])
+    const [isInviteOpen, setIsInviteOpen] = useState(false)
+    const { user: supabaseUser } = useSupabaseUser()
+    const supabase = createClient()
 
-    // Mock Collaborators
-    const collaborators: Collaborator[] = [
-        { id: '1', name: 'You', role: 'Admin', status: 'online', isViewing: true, color: '#3b82f6' },
-        { id: '2', name: 'Sarah Wilson', role: 'Editor', status: 'online', isViewing: true, color: '#10b981', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
-        { id: '3', name: 'Marcus Chen', role: 'Viewer', status: 'away', isViewing: false, color: '#f59e0b', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus' }
-    ]
+    useEffect(() => {
+        if (isOpen && agencyId && supabaseUser?.id) {
+            const load = async () => {
+                const [t, m] = await Promise.all([
+                    getAgencyTeams(agencyId, supabaseUser.id),
+                    getAgencyTeamMembers(agencyId)
+                ])
+                setTeams(t)
+                setAgencyMembers(m)
+            }
+            load()
+        }
+    }, [isOpen, agencyId, supabaseUser?.id])
 
-    // Mock Version History
-    const versions: Version[] = [
-        { id: 'v1', author: 'You', time: '2 mins ago', changes: 'Updated pricing table', content: null },
-        { id: 'v2', author: 'Sarah Wilson', time: '1 hour ago', changes: 'Modified terms of service', content: null },
-        { id: 'v3', author: 'System', time: 'Yesterday, 4:15 PM', changes: 'Initial template draft', content: null },
-        { id: 'v4', author: 'Marcus Chen', time: '2 days ago', changes: 'Added company logo', content: null },
-    ]
+    const sendInvite = async (receiverId: string, receiverName: string) => {
+        if (!supabaseUser) return
+
+        const inviteChannel = supabase.channel(`user-notifications:${receiverId}`)
+        inviteChannel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await inviteChannel.send({
+                    type: 'broadcast',
+                    event: 'collab-invite',
+                    payload: {
+                        docId,
+                        docTitle,
+                        senderName: supabaseUser.user_metadata?.full_name || supabaseUser.email,
+                        senderAvatar: supabaseUser.user_metadata?.avatar_url,
+                        url: window.location.href
+                    }
+                })
+                toast.success(`Invitation sent to ${receiverName}`)
+                setIsInviteOpen(false)
+                supabase.removeChannel(inviteChannel)
+            }
+        })
+    }
+
+    // Remove mock collaborators/versions - we'll use the props now
 
     useEffect(() => {
         let interval: any
@@ -228,45 +253,78 @@ export default function CollaborationPanel({ isOpen, onClose, docId, onRevert }:
             {/* Content Area */}
             <ScrollArea className="flex-1">
                 <div className="p-4">
-                    {activeTab === 'collaborators' && (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Active in Session</span>
-                                <Badge variant="secondary" className="text-[10px]">3 Online</Badge>
-                            </div>
-                            <div className="space-y-3">
-                                {collaborators.map((c) => (
-                                    <div key={c.id} className="flex items-center justify-between group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="relative">
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarImage src={c.avatar} />
-                                                    <AvatarFallback>{c.name[0]}</AvatarFallback>
-                                                </Avatar>
-                                                <div className={cn(
-                                                    "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
-                                                    c.status === 'online' ? "bg-green-500" : c.status === 'busy' ? "bg-red-500" : "bg-yellow-500"
-                                                )} />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-bold flex items-center gap-1">
-                                                    {c.name}
-                                                    {c.role === 'Admin' && <BadgeCheck size={12} className="text-primary" />}
-                                                </p>
-                                                <p className="text-[10px] text-muted-foreground">{c.role} • {c.isViewing ? 'Viewing Page 1' : 'Idle'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: c.color }} />
-                                    </div>
-                                ))}
-                            </div>
-
-                            <Button variant="outline" className="w-full border-dashed gap-2 text-xs py-5 mt-4" size="sm">
-                                <Plus size={14} />
-                                Invite Collaborator
-                            </Button>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Active in Session</span>
+                            <Badge variant="secondary" className="text-[10px]">{collaborators.length} Online</Badge>
                         </div>
-                    )}
+                        <div className="space-y-3">
+                            {collaborators.map((c) => (
+                                <div key={c.id} className="flex items-center justify-between group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={c.avatar} />
+                                                <AvatarFallback>{c.name[0]}</AvatarFallback>
+                                            </Avatar>
+                                            <div className={cn(
+                                                "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
+                                                c.status === 'online' ? "bg-green-500" : "bg-zinc-400"
+                                            )} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold flex items-center gap-1">
+                                                {c.name}
+                                                {c.status === 'online' && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground">Active Now • Collaborator</p>
+                                        </div>
+                                    </div>
+                                    <div className="w-2 h-2 rounded-full ring-2 ring-background shadow-sm" style={{ backgroundColor: c.color }} />
+                                </div>
+                            ))}
+                            {collaborators.length === 0 && (
+                                <div className="text-center py-8 opacity-40">
+                                    <p className="text-xs">No online collaborators</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <Popover open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full border-dashed gap-2 text-xs py-5 mt-4 group" size="sm">
+                                    <Plus size={14} className="group-hover:rotate-90 transition-transform" />
+                                    Invite Team Member
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[280px] p-0" align="end">
+                                <Command className="rounded-lg border shadow-md">
+                                    <CommandInput placeholder="Search team members..." />
+                                    <CommandEmpty>No members found.</CommandEmpty>
+                                    <CommandGroup className="max-h-[300px] overflow-auto">
+                                        {agencyMembers
+                                            .filter(m => m.id !== supabaseUser?.id && !collaborators.find(c => c.id === m.id))
+                                            .map((member) => (
+                                                <CommandItem
+                                                    key={member.id}
+                                                    onSelect={() => sendInvite(member.id, member.name)}
+                                                    className="flex items-center gap-3 p-2 cursor-pointer"
+                                                >
+                                                    <Avatar className="h-8 w-8">
+                                                        <AvatarImage src={member.avatarUrl} />
+                                                        <AvatarFallback>{member.name[0]}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-sm font-medium truncate">{member.name}</span>
+                                                        <span className="text-[10px] text-muted-foreground truncate">{member.email}</span>
+                                                    </div>
+                                                </CommandItem>
+                                            ))}
+                                    </CommandGroup>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
 
                     {activeTab === 'history' && (
                         <div className="space-y-4">
@@ -281,7 +339,7 @@ export default function CollaborationPanel({ isOpen, onClose, docId, onRevert }:
                                     </Tooltip>
                                 </TooltipProvider>
                             </div>
-                            <div className="space-y-4 relative before:absolute before:inset-0 before:left-3 before:w-px before:bg-muted ml-1">
+                            <div className="space-y-4 relative before:absolute before:inset-0 before:left-3 before:w-px before:bg-muted ml-0.5">
                                 {versions.map((v) => (
                                     <div key={v.id} className="relative pl-7 group">
                                         <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-background border-2 border-muted flex items-center justify-center group-hover:border-primary transition-colors z-10">
@@ -289,7 +347,12 @@ export default function CollaborationPanel({ isOpen, onClose, docId, onRevert }:
                                         </div>
                                         <div className="bg-muted/30 hover:bg-muted/50 p-3 rounded-lg border border-transparent hover:border-border transition-all cursor-pointer">
                                             <div className="flex justify-between items-start mb-1">
-                                                <span className="text-[10px] font-bold text-primary">{v.time}</span>
+                                                <span className="text-[10px] font-bold text-primary">
+                                                    {new Date(v.createdAt).toLocaleDateString() === new Date().toLocaleDateString()
+                                                        ? new Date(v.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                        : new Date(v.createdAt).toLocaleDateString()
+                                                    }
+                                                </span>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
@@ -302,46 +365,79 @@ export default function CollaborationPanel({ isOpen, onClose, docId, onRevert }:
                                                     <RotateCcw size={10} />
                                                 </Button>
                                             </div>
-                                            <p className="text-xs font-medium mb-1">{v.changes}</p>
+                                            <p className="text-xs font-medium mb-1">{v.name || 'Untitled Version'}</p>
                                             <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                                by <span className="text-foreground">{v.author}</span>
+                                                by <span className="text-foreground">{v.User?.name || 'Unknown'}</span>
                                             </p>
                                         </div>
                                     </div>
                                 ))}
+                                {versions.length === 0 && (
+                                    <div className="text-center py-8 opacity-40">
+                                        <p className="text-xs">No snapshots yet</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'teams' && (
                         <div className="space-y-4">
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                                <Input placeholder="Search teams..." className="pl-8 h-9 text-xs" />
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Agency Teams</span>
+                                <Badge variant="secondary" className="text-[10px]">{teams.length}</Badge>
                             </div>
+
                             <div className="space-y-3">
-                                {[
-                                    { name: 'Marketing Squad', members: 5, color: 'bg-blue-500' },
-                                    { name: 'Design Review', members: 3, color: 'bg-purple-500' },
-                                    { name: 'Legal Team', members: 2, color: 'bg-zinc-500' }
-                                ].map((team) => (
-                                    <div key={team.name} className="flex items-center justify-between p-3 rounded-lg border bg-zinc-50/50 dark:bg-zinc-900/30 hover:shadow-sm transition-all group">
-                                        <div className="flex items-center gap-3">
-                                            <div className={cn("w-1.5 h-8 rounded-full", team.color)} />
-                                            <div>
-                                                <p className="text-xs font-bold">{team.name}</p>
-                                                <p className="text-[10px] text-muted-foreground">{team.members} members</p>
+                                {teams.map((team) => (
+                                    <div key={team.id} className="p-3 rounded-xl bg-muted/30 border border-transparent hover:border-primary/20 hover:bg-muted/50 transition-all cursor-pointer group">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: team.color || '#3b82f6' }} />
+                                                <span className="text-sm font-bold">{team.name}</span>
                                             </div>
+                                            <Badge variant="outline" className="text-[9px] opacity-60 group-hover:opacity-100 transition-opacity">
+                                                {team.TeamUser?.length || 0} Members
+                                            </Badge>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <ChevronRight size={14} />
-                                        </Button>
+                                        <p className="text-[11px] text-muted-foreground line-clamp-2 mb-3 leading-relaxed">
+                                            {team.description || 'No description provided for this team.'}
+                                        </p>
+                                        <div className="flex -space-x-2 overflow-hidden items-center justify-between">
+                                            <div className="flex -space-x-1.5">
+                                                {team.TeamUser?.slice(0, 4).map((tu: any) => (
+                                                    <Avatar key={tu.userId} className="h-6 w-6 border-2 border-background">
+                                                        <AvatarImage src={tu.User?.avatarUrl} />
+                                                        <AvatarFallback className="text-[8px]">{tu.User?.name[0]}</AvatarFallback>
+                                                    </Avatar>
+                                                ))}
+                                                {(team.TeamUser?.length || 0) > 4 && (
+                                                    <div className="h-6 w-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[7px] font-bold border-2 border-background">
+                                                        +{(team.TeamUser?.length || 0) - 4}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-all">
+                                                <ChevronRight size={14} />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
+
+                                {teams.length === 0 && (
+                                    <div className="text-center py-12 px-6 bg-muted/20 rounded-2xl border border-dashed border-muted">
+                                        <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                                            <Users size={20} className="text-muted-foreground/50" />
+                                        </div>
+                                        <p className="text-xs font-medium text-muted-foreground">No teams found</p>
+                                        <p className="text-[10px] text-muted-foreground/60 mt-1">Teams defined in agency settings will appear here.</p>
+                                    </div>
+                                )}
                             </div>
-                            <Button variant="outline" className="w-full gap-2 text-xs py-5 border-primary/20 text-primary hover:bg-primary/10" size="sm">
+
+                            <Button variant="outline" className="w-full border-dashed gap-2 text-xs py-5 mt-2" size="sm">
                                 <Plus size={14} />
-                                Create New Team
+                                Manage Teams
                             </Button>
                         </div>
                     )}

@@ -58,7 +58,7 @@ const nextConfig = {
     ],
   },
   reactStrictMode: false,
-  transpilePackages: ['@tremor/react', 'recharts', 'react-smooth'],
+  transpilePackages: ['@tremor/react', 'recharts', 'react-smooth', 'gsap'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

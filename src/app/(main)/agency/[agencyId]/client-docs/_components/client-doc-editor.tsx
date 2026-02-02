@@ -30,11 +30,25 @@ import {
 import { editorJsToHtml } from './editor-utils'
 import CollaborationPanel from './collaboration-panel'
 import { cn } from '@/lib/utils'
+import { useSupabaseUser } from '@/lib/hooks/use-supabase-user'
+import { useCollaboration } from './use-collaboration'
+import { getDocVersions, createDocVersion, getDocComments, createDocComment } from '@/lib/client-docs-queries'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 // Dynamic import for html2pdf to avoid SSR issues
 const html2pdf = typeof window !== 'undefined' ? require('html2pdf.js') : null
 
 export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId: string }) {
+    const { user: supabaseUser } = useSupabaseUser()
+    // Map supabase user to expected format if needed
+    const currentUser = supabaseUser ? {
+        id: supabaseUser.id,
+        name: supabaseUser.user_metadata?.full_name || supabaseUser.email,
+        avatarUrl: supabaseUser.user_metadata?.avatar_url
+    } : null
+
+    const { collaborators, updateCursor } = useCollaboration(doc.id, currentUser)
+
     // Initialize pages from document content
     const initializePages = (): DocumentPage[] => {
         if (doc.content?.pages && Array.isArray(doc.content.pages)) {
@@ -52,6 +66,36 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
     const [pages, setPages] = useState<DocumentPage[]>(initializePages())
     const [currentPageId, setCurrentPageId] = useState<string>(pages[0]?.id || 'page-1')
     const [isCollaborationOpen, setIsCollaborationOpen] = useState(false)
+    const [versions, setVersions] = useState<any[]>([])
+    const [comments, setComments] = useState<any[]>([])
+
+    useEffect(() => {
+        const fetchCollabData = async () => {
+            const [v, c] = await Promise.all([
+                getDocVersions(doc.id),
+                getDocComments(doc.id)
+            ])
+            setVersions(v)
+            setComments(c)
+        }
+        fetchCollabData()
+    }, [doc.id])
+
+    const handleSaveVersion = async () => {
+        if (!currentUser) return
+        try {
+            const version = await createDocVersion({
+                documentId: doc.id,
+                userId: currentUser.id,
+                content: { pages },
+                name: `Snapshot ${new Date().toLocaleTimeString()}`
+            })
+            setVersions([version, ...versions])
+            toast.success('Version saved')
+        } catch (e) {
+            toast.error('Failed to save version')
+        }
+    }
     const editorRef = useRef<EditorHandle>(null)
     const [saving, setSaving] = useState(false)
     const [showPreview, setShowPreview] = useState(false)
@@ -202,7 +246,7 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
     }
 
     return (
-        <div className="flex flex-col h-full relative overflow-hidden">
+        <div className="flex flex-col h-[calc(100vh-96px)] relative overflow-hidden">
             {/* Top Header */}
             <div className="flex justify-between items-center p-4 border-b bg-background z-20 shadow-sm">
                 <div className="flex items-center gap-4">
@@ -220,16 +264,21 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                             <div className="flex -space-x-1.5">
-                                <Avatar className="h-4 w-4 border border-background">
-                                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=You" />
-                                </Avatar>
-                                <Avatar className="h-4 w-4 border border-background">
-                                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" />
-                                </Avatar>
+                                {collaborators.slice(0, 3).map((c) => (
+                                    <Avatar key={c.id} className="h-5 w-5 border border-background ring-1 ring-background">
+                                        <AvatarImage src={c.avatar} />
+                                        <AvatarFallback className="text-[8px] bg-zinc-200">{c.name[0]}</AvatarFallback>
+                                    </Avatar>
+                                ))}
+                                {collaborators.length > 3 && (
+                                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[8px] border border-background font-bold text-zinc-500">
+                                        +{collaborators.length - 3}
+                                    </div>
+                                )}
                             </div>
                             <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
-                                2 editing now
+                                <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", collaborators.length > 0 ? "bg-green-500" : "bg-zinc-400")} />
+                                {collaborators.length} online now
                             </p>
                         </div>
                     </div>
@@ -291,7 +340,7 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
             </div>
 
             {/* Editor Content with Sidebars */}
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden min-h-0">
                 <PageSidebar
                     pages={pages}
                     currentPageId={currentPageId}
@@ -300,40 +349,83 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                     onPageDelete={handleDeletePage}
                 />
 
-                <div className="flex-1 flex flex-col min-w-0 bg-zinc-50 dark:bg-zinc-950/50">
+                <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-zinc-50 dark:bg-zinc-950/50">
                     {/* Formatting Toolbar */}
                     <EditorToolbar editorRef={editorRef} subaccountId={doc.subAccountId} />
 
                     {/* Editor Area */}
-                    <div className="flex-1 overflow-auto p-4 md:p-8 relative">
-                        {/* Real-time Collaboration Indicators (Floating) */}
-                        <div className="absolute top-12 right-12 flex flex-col items-end gap-2 pointer-events-none z-10 opacity-70">
-                            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-[10px] gap-2 py-1 px-2 backdrop-blur-sm">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
-                                Sarah Wilson is editing...
-                            </Badge>
-                        </div>
+                    <ScrollArea className="flex-1 overscroll-contain">
+                        <div className="p-4 md:p-8 relative">
+                            {/* Real-time Visual Cursors */}
+                            <div className="absolute inset-0 pointer-events-none z-20 overflow-visible">
+                                {collaborators.filter(c => c.id !== currentUser?.id).map((c) => (
+                                    <CollaboratorCursor
+                                        key={c.id}
+                                        collaborator={c}
+                                        containerId="active-editor-container"
+                                    />
+                                ))}
+                            </div>
 
-                        <div className="max-w-4xl mx-auto bg-white dark:bg-zinc-900 min-h-[500px] p-8 md:p-12 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all duration-500">
-                            {currentPage && (
-                                <EditorWrapper
-                                    key={currentPage.id}
-                                    ref={editorRef}
-                                    data={currentPage.content}
-                                    onChange={handleContentChange}
-                                />
-                            )}
-                        </div>
+                            <div
+                                className="max-w-4xl mx-auto bg-white dark:bg-zinc-900 min-h-[500px] p-8 md:p-12 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all duration-500"
+                                onMouseMove={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect()
+                                    // X as percentage (0-1) to handle resizing
+                                    const x = (e.clientX - rect.left) / rect.width
+                                    // Y as absolute pixels from the top of the container
+                                    // We need to account for scrolling if we wanted global page pos, 
+                                    // but here 'top' is relative to this container in the viewer.
+                                    // e.clientY - rect.top gives Y relative to current viewport view of container.
+                                    // But if we scroll, the container scrolls? 
+                                    // Actually, this container is inside ScrollArea. 
+                                    // Wait, if the container is scrolled out of view, the ClientY changes.
+                                    // We want Y relative to the DOCUMENT (Editor) TOP.
+                                    // e.nativeEvent.offsetY is usually reliable for the target, but target changes.
 
-                        {/* Status Footer inside Editor */}
-                        <div className="max-w-4xl mx-auto mt-4 px-2 flex justify-between items-center opacity-60">
-                            <p className="text-[10px] uppercase tracking-widest font-bold">Word Count: 428</p>
-                            <p className="text-[10px] uppercase tracking-widest font-bold flex items-center gap-1">
-                                <RotateCcw size={10} />
-                                Auto-saved at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
+                                    // Best approach: e.clientY - rect.top is relative to viewport top of the element.
+                                    // But we broadcast this to a user who might have scrolled differently.
+                                    // We need Y relative to the CONTENT top.
+                                    // But this div *is* the content wrapper. 
+                                    // However, the text inside grows.
+
+                                    // Let's use relative coordinates to the container itself.
+                                    const y = e.clientY - rect.top
+
+                                    // But if I scroll down, 'rect.top' moves up (becomes negative).
+                                    // e.clientY stays roughly same.
+                                    // So (clientY - rect.top) INCREASES as I scroll down? 
+                                    // Yes. e.g. clientY=100, rect.top=-500 -> y=600. Correct.
+
+                                    // Throttle using requestAnimationFrame or simple timestamp
+                                    const now = Date.now()
+                                    if (now - (window as any).lastCursorEmit < 50) return
+                                    (window as any).lastCursorEmit = now
+
+                                    updateCursor({ x, y })
+                                }}
+                            >
+                                {currentPage && (
+                                    <EditorWrapper
+                                        key={currentPage.id}
+                                        ref={editorRef}
+                                        data={currentPage.content}
+                                        onChange={handleContentChange}
+                                        holderId="active-editor-container"
+                                    />
+                                )}
+                            </div>
+
+                            {/* Status Footer inside Editor */}
+                            <div className="max-w-4xl mx-auto mt-4 px-2 flex justify-between items-center opacity-60">
+                                <p className="text-[10px] uppercase tracking-widest font-bold">Word Count: 428</p>
+                                <p className="text-[10px] uppercase tracking-widest font-bold flex items-center gap-1">
+                                    <RotateCcw size={10} />
+                                    Auto-saved at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    </ScrollArea>
                 </div>
 
                 {/* Collaboration Sidebar */}
@@ -341,7 +433,11 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                     isOpen={isCollaborationOpen}
                     onClose={() => setIsCollaborationOpen(false)}
                     docId={doc.id}
+                    docTitle={doc.title || 'Untitled Document'}
+                    agencyId={agencyId}
                     onRevert={handleRevert}
+                    collaborators={collaborators}
+                    versions={versions}
                 />
             </div>
 
@@ -362,6 +458,93 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                     </div>
                 </DialogContent>
             </Dialog>
+        </div>
+    )
+}
+
+function CollaboratorCursor({ collaborator, containerId }: { collaborator: any, containerId: string }) {
+    const [position, setPosition] = useState({ top: 0, left: 0, visible: false })
+
+    useEffect(() => {
+        const updatePosition = () => {
+            const editorContainer = document.getElementById(containerId)
+
+            // Priority 1: Use exact mouse coordinates if available
+            if (collaborator.cursor && editorContainer) {
+                // X as percentage of container width
+                const x = collaborator.cursor.x * editorContainer.offsetWidth
+                // Y as absolute offset
+                const y = collaborator.cursor.y
+
+                setPosition({
+                    top: editorContainer.offsetTop + y,
+                    left: editorContainer.offsetLeft + x,
+                    visible: true
+                })
+                return
+            }
+
+            // Priority 2: Fallback to Block Index
+            if (collaborator.blockIndex !== undefined) {
+                if (!editorContainer) return
+
+                // EditorJS blocks have class 'ce-block'
+                const blocks = editorContainer.querySelectorAll('.ce-block')
+                const block = blocks[collaborator.blockIndex] as HTMLElement
+
+                if (block) {
+                    setPosition({
+                        top: editorContainer.offsetTop + block.offsetTop + 10,
+                        left: editorContainer.offsetLeft + block.offsetLeft - 24, // 24px left of the block
+                        visible: true
+                    })
+                }
+            } else {
+                setPosition(prev => ({ ...prev, visible: false }))
+            }
+        }
+
+        updatePosition()
+        const interval = setInterval(updatePosition, 50)
+        return () => clearInterval(interval)
+    }, [collaborator.blockIndex, collaborator.cursor, containerId])
+
+    if (!position.visible) return null
+
+    return (
+        <div
+            className="absolute transition-all duration-300 z-50 flex items-center pointer-events-none group"
+            style={{
+                top: `${position.top}px`,
+                left: `${position.left}px`
+            }}
+        >
+            {/* Visual Cursor */}
+            <div className="relative">
+                <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{ color: collaborator.color }}
+                    className="drop-shadow-sm"
+                >
+                    <path
+                        d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z"
+                        fill="currentColor"
+                        stroke="white"
+                        strokeWidth="2"
+                    />
+                </svg>
+                {/* Name Tag */}
+                <div
+                    className="absolute left-4 top-2 px-2 py-1 rounded-md text-[10px] font-bold text-white whitespace-nowrap shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ backgroundColor: collaborator.color }}
+                >
+                    {collaborator.name}
+                </div>
+            </div>
         </div>
     )
 }

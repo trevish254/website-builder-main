@@ -8,7 +8,6 @@ import {
   getAuthUserDetails,
 } from '@/lib/queries'
 import { getUser } from '@/lib/supabase/server'
-import { supabase } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import React from 'react'
 
@@ -19,8 +18,9 @@ type Props = {
 
 import { SidebarProvider } from '@/providers/sidebar-provider'
 import MainLayoutWrapper from '@/components/sidebar/main-layout-wrapper'
+import CollabInvitationListener from './client-docs/_components/invitation-listener'
 
-const layout = async ({ children, params }: Props) => {
+const AgencyLayout = async ({ children, params }: Props) => {
   const user = await getUser()
   if (!user) return redirect('/agency/sign-in')
 
@@ -148,9 +148,10 @@ const layout = async ({ children, params }: Props) => {
             <BlurPage>{children}</BlurPage>
           </div>
         </MainLayoutWrapper>
+        <CollabInvitationListener />
       </div>
     </SidebarProvider>
   )
 }
 
-export default layout
+export default AgencyLayout

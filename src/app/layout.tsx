@@ -1,6 +1,6 @@
+import './globals.css'
 import type { Metadata } from 'next'
 import { Inter, Orbitron } from 'next/font/google'
-import './globals.css'
 import "@uploadthing/react/styles.css"
 import { SmoothScrollProvider } from "@/providers/smooth-scroll-provider"
 
@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   icons: {
     icon: '/icon.png',
   },
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({

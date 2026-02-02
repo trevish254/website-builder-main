@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { createContext, useContext, useState } from 'react'
 
@@ -69,26 +69,36 @@ export const SidebarProvider = ({
     // Dynamic State with basic initialization
     const [pinnedCategoryIds, setPinnedCategoryIds] = useState<string[]>(() => {
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('sidebar_pinned')
-            const initial = saved ? JSON.parse(saved) : DEFAULT_PINNED
-            // Hard dedupe, exclude 'upgrade', and ensure all IDs exist in ALL_CATEGORIES
-            let filtered = Array.from(new Set(initial))
-                .filter(id => id !== 'upgrade' && ALL_CATEGORIES.includes(id as any))
+            try {
+                const saved = localStorage.getItem('sidebar_pinned')
+                const initial = saved ? JSON.parse(saved) : DEFAULT_PINNED
+                // Hard dedupe, exclude 'upgrade', and ensure all IDs exist in ALL_CATEGORIES
+                let filtered = Array.from(new Set(initial))
+                    .filter(id => id !== 'upgrade' && ALL_CATEGORIES.includes(id as any))
 
-            // Re-balance: Ensure we always have exactly the expected number items in the dock pool
-            if (filtered.length < DEFAULT_PINNED.length) {
-                const missing = ALL_CATEGORIES.filter(id => !filtered.includes(id) && id !== 'upgrade')
-                filtered = [...filtered, ...missing].slice(0, DEFAULT_PINNED.length)
+                // Re-balance: Ensure we always have exactly the expected number items in the dock pool
+                if (filtered.length < DEFAULT_PINNED.length) {
+                    const missing = ALL_CATEGORIES.filter(id => !filtered.includes(id) && id !== 'upgrade')
+                    filtered = [...filtered, ...missing].slice(0, DEFAULT_PINNED.length)
+                }
+                return filtered
+            } catch (e) {
+                console.error('Error parsing sidebar_pinned:', e)
+                return DEFAULT_PINNED
             }
-            return filtered
         }
         return DEFAULT_PINNED.filter(id => id !== 'upgrade')
     })
 
     const [categoryUsage, setCategoryUsage] = useState<Record<string, number>>(() => {
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('sidebar_usage')
-            return saved ? JSON.parse(saved) : {}
+            try {
+                const saved = localStorage.getItem('sidebar_usage')
+                return saved ? JSON.parse(saved) : {}
+            } catch (e) {
+                console.error('Error parsing sidebar_usage:', e)
+                return {}
+            }
         }
         return {}
     })

@@ -5,6 +5,7 @@ type Props = {
     data?: any
     onChange?: (data: any) => void
     readOnly?: boolean
+    holderId?: string
 }
 
 export type EditorHandle = {
@@ -12,11 +13,11 @@ export type EditorHandle = {
     getEditor: () => any
 }
 
-const EditorWrapper = forwardRef<EditorHandle, Props>(({ data, onChange, readOnly }, ref) => {
+const EditorWrapper = forwardRef<EditorHandle, Props>(({ data, onChange, readOnly, holderId: customHolderId }, ref) => {
     const editorRef = useRef<any>(null)
     const isInitialized = useRef(false)
     const [isMounted, setIsMounted] = useState(false)
-    const holderId = useRef(`editorjs-${Math.random().toString(36).substr(2, 9)}`).current
+    const holderId = useRef(customHolderId || `editorjs-${Math.random().toString(36).substr(2, 9)}`).current
 
     const isDestroyed = useRef(false)
 
@@ -215,12 +216,73 @@ const EditorWrapper = forwardRef<EditorHandle, Props>(({ data, onChange, readOnl
                         try {
                             const savedData = await editor.save()
                             onChange?.(savedData)
+
+                            // Broadcast change to other users
+                            if (window.collaborationChannel) {
+                                window.collaborationChannel.send({
+                                    type: 'broadcast',
+                                    event: 'doc-update',
+                                    payload: { data: savedData, senderId: window.currentUserId }
+                                })
+                            }
                         } catch (error) {
                             console.error('Error saving editor data:', error)
                         }
                     },
                     onReady: () => {
                         isInitialized.current = true
+
+                        // Listen for remote updates
+                        // Listen for remote updates
+                        if (window.collaborationChannel) {
+                            window.collaborationChannel.on('broadcast', { event: 'doc-update' }, async ({ payload }) => {
+                                if (payload.senderId !== window.currentUserId) {
+                                    // Debounce updates slightly to avoid rapid-fire processing
+                                    const currentData = await editor.save()
+                                    const newBlocks = payload.data.blocks
+                                    const currentBlocks = currentData.blocks
+
+                                    // Check if lengths match
+                                    if (newBlocks.length === currentBlocks.length) {
+                                        for (let i = 0; i < newBlocks.length; i++) {
+                                            const newBlock = newBlocks[i]
+                                            const currentBlock = currentBlocks[i]
+
+                                            if (JSON.stringify(newBlock.data) !== JSON.stringify(currentBlock.data)) {
+                                                // STRICTLY use Block IDs. editor.blocks.update(id, data) requires an ID string.
+                                                // Passing an index will cause "Block with id 'X' not found" errors.
+
+                                                if (newBlock.id && currentBlock.id && newBlock.id === currentBlock.id) {
+                                                    editor.blocks.update(newBlock.id, newBlock.data)
+                                                } else {
+                                                    // Structural mismatch despite length match (e.g. replaced block)
+                                                    // Fallback to full render to be safe
+                                                    editor.render(payload.data)
+                                                    return
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        editor.render(payload.data)
+                                    }
+                                }
+                            })
+
+                            // Broadcast cursor position when caret changes or clicking
+                            const handleCaretChange = () => {
+                                const index = editor.blocks.getCurrentBlockIndex()
+                                if (index >= 0) {
+                                    window.collaborationChannel?.send({
+                                        type: 'broadcast',
+                                        event: 'cursor-move',
+                                        payload: { userId: window.currentUserId, blockIndex: index }
+                                    })
+                                }
+                            }
+
+                            document.addEventListener('keyup', handleCaretChange)
+                            document.addEventListener('click', handleCaretChange)
+                        }
                     },
 
                     // Logging
