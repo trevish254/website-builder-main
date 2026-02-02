@@ -1353,8 +1353,9 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
       {/* Chat Area - Always visible on desktop (md+), hidden on mobile when no chat is open */}
       <div className={cn(
-        "h-full flex-1 min-w-0 md:!flex",
-        selectedConversationId ? "flex w-full" : "hidden"
+        "h-full flex-1 min-w-0",
+        "md:flex",
+        selectedConversationId ? "flex" : "hidden"
       )}>
         <ChatWindow
           selectedMsg={selectedMsg}
