@@ -662,6 +662,25 @@ const AgencyMessagesPage = ({ params }: Props) => {
                 ]
               })
 
+              // Update sidebar instantly
+              setInboxItems(prev => {
+                const updated = [...prev]
+                const index = updated.findIndex(i => i.id === m.conversationId)
+                if (index !== -1) {
+                  const item = { ...updated[index] }
+                  item.preview = m.content
+                  item.timestamp = new Date(m.createdAt).toLocaleDateString()
+                  if (m.senderId !== user?.id && m.conversationId !== selectedConversationId) {
+                    item.unread = true
+                    item.unreadCount = (item.unreadCount || 0) + 1
+                  }
+                  // Move to top
+                  updated.splice(index, 1)
+                  updated.unshift(item)
+                }
+                return updated
+              })
+
               // Handle notifications for messages from others
               if (m.senderId !== user?.id) {
                 const senderUser = agencyUsers.find(u => u.id === m.senderId) || chatParticipants.get(m.senderId)
@@ -1317,11 +1336,11 @@ const AgencyMessagesPage = ({ params }: Props) => {
         }}
       />
 
-      {/* Inbox List - Always visible on desktop (md+), hidden on mobile when a chat is open */}
+      {/* Inbox List - Left Section */}
       <div className={cn(
-        "h-full border-r border-zinc-100 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-950",
-        "md:flex md:w-[380px] lg:w-[440px]",
-        selectedConversationId ? "hidden md:flex" : "flex w-full md:flex"
+        "h-full border-r border-zinc-100 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-950 transition-all duration-300",
+        "hidden md:flex md:w-[320px] lg:w-[380px]", // Desktop: always flex and fixed width
+        !selectedConversationId ? "flex w-full" : "" // Mobile: show if no conversation
       )}>
         <ChatSidebar
           inboxItems={inboxItems}
@@ -1351,10 +1370,11 @@ const AgencyMessagesPage = ({ params }: Props) => {
         />
       </div>
 
-      {/* Chat Area - Always visible on desktop (md+), hidden on mobile when no chat is open */}
+      {/* Chat Area - Right Section */}
       <div className={cn(
-        "h-full flex-1 min-w-0 md:flex",
-        selectedConversationId ? "flex" : "hidden md:flex"
+        "h-full flex-1 min-w-0 bg-zinc-50 dark:bg-zinc-900/10",
+        "hidden md:flex", // Desktop: always flex
+        selectedConversationId ? "flex w-full" : "" // Mobile: show if conversation selected
       )}>
         <ChatWindow
           selectedMsg={selectedMsg}

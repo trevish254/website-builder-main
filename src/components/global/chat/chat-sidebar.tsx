@@ -154,25 +154,19 @@ const ChatSidebar = ({
         <div className="flex flex-col h-full bg-white dark:bg-background overflow-hidden">
 
             {/* Header */}
-            <div className="px-5 py-6 flex flex-col gap-5 border-b border-gray-100 dark:border-gray-800/50">
+            <div className="px-4 py-4 flex flex-col gap-3 border-b border-zinc-100 dark:border-zinc-800/50">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
+                        <h2 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 tracking-tight">
                             Messages
                         </h2>
-                        <div className="flex items-center gap-2 mt-1">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-[11px] text-gray-500 font-medium">
-                                {onlineAgencyUsers.length} people online
-                            </span>
-                        </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                         {notificationSettings}
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-9 w-9 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:scale-105 transition-all"
+                            className="h-8 w-8 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:scale-105 transition-all"
                             onClick={onNewGroup}
                         >
                             <Users className="h-4 w-4" />
@@ -180,7 +174,7 @@ const ChatSidebar = ({
                         <Button
                             variant="secondary"
                             size="icon"
-                            className="h-9 w-9 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+                            className="h-8 w-8 rounded-lg bg-primary text-white shadow-lg shadow-primary/20 hover:scale-105 transition-all"
                             onClick={onNewMessage}
                         >
                             <Edit className="h-4 w-4" />
@@ -189,47 +183,17 @@ const ChatSidebar = ({
                 </div>
 
                 <div className="relative group">
-                    <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 group-focus-within:text-primary transition-colors" />
                     <Input
-                        placeholder="Search conversations..."
+                        placeholder="Search..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="pl-10 h-11 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-primary transition-all shadow-sm"
+                        className="pl-9 h-9 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 text-xs rounded-lg focus-visible:ring-1 focus-visible:ring-primary transition-all"
                     />
-                    <div className="absolute right-3.5 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5">
-                        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-black px-1.5 font-mono text-[10px] font-bold text-gray-400 opacity-100 sm:flex">
-                            <span className="text-xs">⌘</span>K
-                        </kbd>
-                    </div>
                 </div>
             </div>
 
-            {/* Online Now Section */}
-            <div className="px-3 mb-2">
-                <div className="flex items-center justify-between mb-1.5">
-                    <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Online Now</h3>
-                    <button className="text-[11px] text-blue-600 hover:underline">See all</button>
-                </div>
-                <ScrollArea className="w-full whitespace-nowrap pb-1">
-                    <div className="flex gap-2">
-                        {onlineAgencyUsers.length === 0 ? (
-                            <p className="text-[10px] text-gray-400 italic">No one is online</p>
-                        ) : (
-                            onlineAgencyUsers.map(user => (
-                                <div key={user.id} className="relative flex flex-col items-center gap-1 min-w-[40px]">
-                                    <div className="relative">
-                                        <Avatar className="h-8 w-8 border-2 border-white dark:border-background">
-                                            <AvatarImage src={user.avatarUrl} />
-                                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border-2 border-white dark:border-background rounded-full"></span>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </ScrollArea>
-            </div>
+
 
             {/* Tabs */}
             <div className="px-3 mb-1">
@@ -282,36 +246,36 @@ const ChatSidebar = ({
                                 key={message.id}
                                 onClick={() => onSelectConversation(message.id)}
                                 className={`
-                                    group relative p-4 rounded-xl cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border-l-2
+                                    group relative p-2.5 rounded-lg cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border-l-2
                                     ${selectedConversationId === message.id
-                                        ? 'bg-zinc-50 dark:bg-zinc-900/50 border-l-primary shadow-sm'
+                                        ? 'bg-zinc-50 dark:bg-zinc-900/50 border-l-primary'
                                         : 'border-l-transparent'
                                     }
                                     ${selectedIds.has(message.id) ? 'bg-primary/5 dark:bg-primary/10' : ''}
                                 `}
                             >
-                                <div className="flex items-start gap-3">
+                                <div className="flex items-center gap-2.5">
                                     <div
                                         className={cn(
-                                            "mt-2 shrink-0 transition-all",
+                                            "shrink-0 transition-all",
                                             selectedIds.has(message.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                                         )}
                                         onClick={(e) => toggleSelect(message.id, e)}
                                     >
                                         <div className={cn(
-                                            "h-4 w-4 rounded border flex items-center justify-center transition-colors",
+                                            "h-3.5 w-3.5 rounded border flex items-center justify-center transition-colors",
                                             selectedIds.has(message.id)
                                                 ? "bg-primary border-primary text-white"
                                                 : "border-zinc-300 dark:border-zinc-700"
                                         )}>
-                                            {selectedIds.has(message.id) && <Check className="h-2.5 w-2.5" />}
+                                            {selectedIds.has(message.id) && <Check className="h-2 w-2" />}
                                         </div>
                                     </div>
 
                                     <div className="relative shrink-0">
-                                        <Avatar className="h-11 w-11 shadow-sm border border-zinc-100 dark:border-zinc-800">
+                                        <Avatar className="h-9 w-9 border border-zinc-100 dark:border-zinc-800">
                                             <AvatarImage src={message.type === 'group' ? (message.iconUrl || '') : (message.avatar || message.participantInfo?.avatarUrl || '')} />
-                                            <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold text-xs">
+                                            <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold text-[10px]">
                                                 {message.type === 'video'
                                                     ? 'V'
                                                     : message.type === 'group'
@@ -320,39 +284,37 @@ const ChatSidebar = ({
                                             </AvatarFallback>
                                         </Avatar>
                                         {(message.type !== 'group' && message.participantInfo?.id && onlineUsers.has(message.participantInfo.id)) && (
-                                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-zinc-950 rounded-full shadow-sm"></span>
+                                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-zinc-950 rounded-full"></span>
                                         )}
                                     </div>
-                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                        <div className="flex items-center justify-between mb-0.5">
-                                            <span className={`font-bold text-[14px] truncate transition-colors ${message.unread ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200'}`}>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-1">
+                                            <span className={`font-bold text-[13px] truncate transition-colors ${message.unread ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200'}`}>
                                                 {message.type === 'group' ? message.title : (message.participantInfo?.name || message.title)}
                                             </span>
-                                            <span className="text-[10px] font-medium text-zinc-400 whitespace-nowrap ml-1.5 shrink-0">
+                                            <span className="text-[9px] font-medium text-zinc-400 whitespace-nowrap shrink-0">
                                                 {message.timestamp}
                                             </span>
                                         </div>
-                                        <div className="flex items-center justify-between gap-2">
-                                            <p className={`text-[12.5px] truncate flex-1 leading-tight ${message.unreadCount && message.unreadCount > 0 ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-500'}`}>
+                                        <div className="flex items-center justify-between gap-2 overflow-hidden">
+                                            <p className={`text-[11.5px] truncate flex-1 leading-none h-[14px] ${message.unreadCount && message.unreadCount > 0 ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-400'}`}>
                                                 {typingStates[message.id]?.size > 0 ? (
                                                     <span className="text-primary italic animate-pulse">typing...</span>
                                                 ) : (
                                                     message.preview || 'No messages yet'
                                                 )}
                                             </p>
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                {Boolean(message.unreadCount && message.unreadCount > 0) && (
-                                                    <Badge className="h-5 min-w-[20px] px-1.5 flex items-center justify-center bg-primary hover:bg-primary/90 text-white border-none rounded-full text-[10px] font-extrabold shadow-lg shadow-primary/20">
-                                                        {message.unreadCount! > 99 ? '99+' : message.unreadCount}
-                                                    </Badge>
-                                                )}
-                                            </div>
+                                            {Boolean(message.unreadCount && message.unreadCount > 0) && (
+                                                <Badge className="h-4.5 min-w-[18px] px-1 flex items-center justify-center bg-primary hover:bg-primary text-white border-none rounded-full text-[9px] font-bold shrink-0">
+                                                    {message.unreadCount! > 99 ? '99+' : message.unreadCount}
+                                                </Badge>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                                 {message.unread && !message.unreadCount && (
-                                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                                        <div className="h-2.5 w-2.5 bg-primary rounded-full shadow-lg shadow-primary/20 animate-pulse"></div>
+                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                        <div className="h-2 w-2 bg-primary rounded-full"></div>
                                     </div>
                                 )}
                             </div>
