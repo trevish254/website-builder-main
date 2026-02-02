@@ -899,14 +899,35 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                             </div>
                                         )}
 
+                                        {option.name === 'All Docs' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {['Recent', 'Starred', 'Archived'].map((status) => (
+                                                        <Link
+                                                            key={status}
+                                                            href={option.link + (option.link.includes('?') ? '&' : '?') + `filter=${status.toLowerCase()}`}
+                                                            className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors"
+                                                        >
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {option.name === 'Shared' && (
                                             <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
                                                 <div className="space-y-0.5">
                                                     {['Shared with Subaccounts', 'Internal Only'].map((status) => (
-                                                        <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                        <Link
+                                                            key={status}
+                                                            href={option.link + (option.link.includes('?') ? '&' : '?') + `filter=${status.toLowerCase().replace(/\s+/g, '-')}`}
+                                                            className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors"
+                                                        >
                                                             <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                             <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
-                                                        </div>
+                                                        </Link>
                                                     ))}
                                                 </div>
                                             </div>
@@ -916,13 +937,17 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                             <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
                                                 <div className="space-y-0.5">
                                                     {['Assigned to Me', 'Assigned by Me'].map((status) => (
-                                                        <div key={status} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                        <Link
+                                                            key={status}
+                                                            href={option.link + (option.link.includes('?') ? '&' : '?') + `filter=${status.toLowerCase().replace(/\s+/g, '-')}`}
+                                                            className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors"
+                                                        >
                                                             <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
                                                             <span className={cn(
                                                                 "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
                                                                 status === 'Assigned to Me' ? "bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
                                                             )}>0</span>
-                                                        </div>
+                                                        </Link>
                                                     ))}
                                                 </div>
                                             </div>
@@ -936,13 +961,34 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                                         { label: 'Received' },
                                                         { label: 'Overdue', color: 'text-rose-500' }
                                                     ].map((status) => (
-                                                        <div key={status.label} className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors">
+                                                        <Link
+                                                            key={status.label}
+                                                            href={option.link + (option.link.includes('?') ? '&' : '?') + `filter=${status.label.toLowerCase()}`}
+                                                            className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors"
+                                                        >
                                                             <span className={cn("text-xs group-hover/metric:text-primary", status.color || "text-gray-600 dark:text-gray-400")}>{status.label}</span>
                                                             <span className={cn(
                                                                 "text-[10px] font-semibold px-1.5 py-0 rounded-full min-w-[18px] text-center",
                                                                 status.badge ? "bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary" : "bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400"
                                                             )}>0</span>
-                                                        </div>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {option.name === 'Templates' && (
+                                            <div className="ml-7 mt-1 space-y-2 border-l border-gray-100 dark:border-gray-800 pl-3 py-1 mb-2">
+                                                <div className="space-y-0.5">
+                                                    {['Agreements', 'Invoices', 'Reports'].map((status) => (
+                                                        <Link
+                                                            key={status}
+                                                            href={option.link + (option.link.includes('?') ? '&' : '?') + `type=${status.toLowerCase()}`}
+                                                            className="flex justify-between items-center pr-2 group/metric cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded px-1 -ml-1 py-0.5 transition-colors"
+                                                        >
+                                                            <span className="text-xs text-gray-600 dark:text-gray-400 group-hover/metric:text-primary">{status}</span>
+                                                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-gray-400 px-1.5 py-0 rounded-full min-w-[18px] text-center">0</span>
+                                                        </Link>
                                                     ))}
                                                 </div>
                                             </div>

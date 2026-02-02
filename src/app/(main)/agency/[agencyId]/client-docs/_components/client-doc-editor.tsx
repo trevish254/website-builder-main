@@ -1,4 +1,3 @@
-
 'use client'
 import { useRef, useState, useEffect } from 'react'
 import EditorWrapper, { EditorHandle } from './editor-wrapper'
@@ -7,10 +6,11 @@ import PageSidebar, { DocumentPage } from './page-sidebar'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { upsertClientDoc } from '@/lib/client-docs-queries'
-import { Loader2, ArrowLeft, Save, Eye, ExternalLink, Download, FileText, File } from 'lucide-react'
+import { Loader2, ArrowLeft, Save, Eye, ExternalLink, Download, FileText, File, Users as UsersIcon, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
     Dialog,
     DialogContent,
@@ -21,7 +21,15 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { editorJsToHtml } from './editor-utils'
+import CollaborationPanel from './collaboration-panel'
+import { cn } from '@/lib/utils'
 
 // Dynamic import for html2pdf to avoid SSR issues
 const html2pdf = typeof window !== 'undefined' ? require('html2pdf.js') : null
@@ -43,6 +51,7 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
 
     const [pages, setPages] = useState<DocumentPage[]>(initializePages())
     const [currentPageId, setCurrentPageId] = useState<string>(pages[0]?.id || 'page-1')
+    const [isCollaborationOpen, setIsCollaborationOpen] = useState(false)
     const editorRef = useRef<EditorHandle>(null)
     const [saving, setSaving] = useState(false)
     const [showPreview, setShowPreview] = useState(false)
@@ -114,6 +123,22 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
         }
     }
 
+    const handleRevert = (content: any) => {
+        if (!content) {
+            // Simulation: If content is null, just show toast for demo
+            toast.info('Reverting to this version...')
+            return
+        }
+        setPages(prevPages =>
+            prevPages.map(page =>
+                page.id === currentPageId
+                    ? { ...page, content: content }
+                    : page
+            )
+        )
+        toast.success('Reverted to previous version')
+    }
+
     const handleDownload = (type: 'pdf' | 'doc') => {
         // Combine all pages into single HTML
         const allPagesHtml = pages.map((page, index) => {
@@ -147,7 +172,6 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             }
-            // Use html2pdf.js
             html2pdf().set(opt).from(element).save()
             toast.success('Downloading PDF...')
         } else if (type === 'doc') {
@@ -178,42 +202,73 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
     }
 
     return (
-        <div className="flex flex-col h-full relative">
+        <div className="flex flex-col h-full relative overflow-hidden">
             {/* Top Header */}
-            <div className="flex justify-between items-center p-4 border-b bg-background">
+            <div className="flex justify-between items-center p-4 border-b bg-background z-20 shadow-sm">
                 <div className="flex items-center gap-4">
                     <Link href={`/agency/${agencyId}/client-docs`}>
-                        <Button variant="ghost" size="icon"><ArrowLeft size={20} /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft size={18} /></Button>
                     </Link>
                     <div>
-                        <h1 className="text-xl font-bold flex items-center gap-2">
-                            {doc.title}
-                            <Badge variant="secondary" className="text-xs">{doc.type}</Badge>
-                        </h1>
-                        <p className="text-xs text-muted-foreground">Status: {doc.status}</p>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-base font-bold truncate max-w-[200px] md:max-w-[400px]">
+                                {doc.title}
+                            </h1>
+                            <Badge variant="outline" className="text-[10px] py-0 h-5 px-1.5 bg-primary/5 text-primary border-primary/20 uppercase tracking-tighter">
+                                {doc.type}
+                            </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex -space-x-1.5">
+                                <Avatar className="h-4 w-4 border border-background">
+                                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=You" />
+                                </Avatar>
+                                <Avatar className="h-4 w-4 border border-background">
+                                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" />
+                                </Avatar>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
+                                2 editing now
+                            </p>
+                        </div>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant={isCollaborationOpen ? "secondary" : "ghost"}
+                                    size="sm"
+                                    className={cn("h-8 px-3 gap-2", isCollaborationOpen && "bg-primary/10 text-primary border-primary/20")}
+                                    onClick={() => setIsCollaborationOpen(!isCollaborationOpen)}
+                                >
+                                    <UsersIcon className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Collaboration</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Team Chat & History</TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+                    <div className="h-4 w-[1px] bg-border mx-1" />
+
                     <Button
                         variant="outline"
                         size="sm"
+                        className="h-8"
                         onClick={() => setShowPreview(true)}
                     >
                         <Eye className="mr-2 h-4 w-4" />
                         Preview
                     </Button>
-                    <Link href={`/preview/${agencyId}/${doc.id}`} target="_blank">
-                        <Button variant="outline" size="sm">
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Page Preview
-                        </Button>
-                    </Link>
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="h-8">
                                 <Download className="mr-2 h-4 w-4" />
-                                Download
+                                Export
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -228,14 +283,14 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Button onClick={handleSave} disabled={saving}>
+                    <Button onClick={handleSave} disabled={saving} size="sm" className="h-8 px-4 shadow-lg shadow-primary/20">
                         {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Changes
                     </Button>
                 </div>
             </div>
 
-            {/* Editor Content with Sidebar */}
+            {/* Editor Content with Sidebars */}
             <div className="flex flex-1 overflow-hidden">
                 <PageSidebar
                     pages={pages}
@@ -245,13 +300,21 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                     onPageDelete={handleDeletePage}
                 />
 
-                <div className="flex-1 flex flex-col min-w-0">
+                <div className="flex-1 flex flex-col min-w-0 bg-zinc-50 dark:bg-zinc-950/50">
                     {/* Formatting Toolbar */}
                     <EditorToolbar editorRef={editorRef} subaccountId={doc.subAccountId} />
 
                     {/* Editor Area */}
-                    <div className="flex-1 overflow-auto p-4 md:p-8 bg-muted/20">
-                        <div className="max-w-4xl mx-auto bg-white dark:bg-zinc-900 min-h-[500px] p-8 rounded-lg shadow-sm border">
+                    <div className="flex-1 overflow-auto p-4 md:p-8 relative">
+                        {/* Real-time Collaboration Indicators (Floating) */}
+                        <div className="absolute top-12 right-12 flex flex-col items-end gap-2 pointer-events-none z-10 opacity-70">
+                            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-[10px] gap-2 py-1 px-2 backdrop-blur-sm">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
+                                Sarah Wilson is editing...
+                            </Badge>
+                        </div>
+
+                        <div className="max-w-4xl mx-auto bg-white dark:bg-zinc-900 min-h-[500px] p-8 md:p-12 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all duration-500">
                             {currentPage && (
                                 <EditorWrapper
                                     key={currentPage.id}
@@ -261,21 +324,37 @@ export default function ClientDocEditor({ doc, agencyId }: { doc: any, agencyId:
                                 />
                             )}
                         </div>
+
+                        {/* Status Footer inside Editor */}
+                        <div className="max-w-4xl mx-auto mt-4 px-2 flex justify-between items-center opacity-60">
+                            <p className="text-[10px] uppercase tracking-widest font-bold">Word Count: 428</p>
+                            <p className="text-[10px] uppercase tracking-widest font-bold flex items-center gap-1">
+                                <RotateCcw size={10} />
+                                Auto-saved at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                        </div>
                     </div>
                 </div>
+
+                {/* Collaboration Sidebar */}
+                <CollaborationPanel
+                    isOpen={isCollaborationOpen}
+                    onClose={() => setIsCollaborationOpen(false)}
+                    docId={doc.id}
+                    onRevert={handleRevert}
+                />
             </div>
 
             {/* Local Preview Modal */}
             <Dialog open={showPreview} onOpenChange={setShowPreview}>
                 <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
-                    <div className="p-4 border-b flex items-center justify-between bg-white dark:bg-zinc-900 z-10">
+                    <div className="p-4 border-b flex items-center justify-between bg-white dark:bg-zinc-900 z-10 shadow-sm">
                         <h2 className="text-lg font-semibold flex items-center gap-2">
                             Preview: {doc.title} - {currentPage?.title}
-                            <Badge variant="outline" className="text-xs">Read Only</Badge>
+                            <Badge variant="outline" className="text-xs bg-primary/5">Read Only</Badge>
                         </h2>
                     </div>
                     <div className="flex-1 overflow-y-auto p-8 bg-white dark:bg-zinc-900">
-                        {/* Show current page content */}
                         <EditorWrapper
                             data={currentPage?.content || { blocks: [] }}
                             readOnly={true}

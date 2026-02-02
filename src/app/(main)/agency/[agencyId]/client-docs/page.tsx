@@ -4,6 +4,7 @@ import { Plus, LayoutGrid, List } from 'lucide-react'
 import Link from 'next/link'
 import ClientDocsList from './_components/client-docs-list'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import TemplatesSection from './_components/templates-section'
 
 type Props = {
     params: { agencyId: string }
@@ -49,28 +50,36 @@ const ClientDocsPage = async ({ params, searchParams }: Props) => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto p-6">
-                {docs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                        <div className="text-6xl mb-4">📄</div>
-                        <h2 className="text-xl font-semibold mb-2">No documents yet</h2>
-                        <p className="text-muted-foreground mb-6">
-                            Create your first client document to get started
-                        </p>
-                        <Button asChild>
-                            <Link href={`/agency/${params.agencyId}/client-docs/new`}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Create Document
-                            </Link>
-                        </Button>
+            <div className="flex-1 overflow-auto p-6 bg-gray-50/50 dark:bg-zinc-950/50">
+                <div className="max-w-7xl mx-auto">
+                    <TemplatesSection agencyId={params.agencyId} />
+
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold">My Documents</h2>
                     </div>
-                ) : (
-                    <ClientDocsList
-                        docs={docs}
-                        agencyId={params.agencyId}
-                        viewMode={viewMode}
-                    />
-                )}
+
+                    {docs.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center p-20 text-center bg-background border rounded-2xl border-dashed">
+                            <div className="text-6xl mb-4 opacity-20">📄</div>
+                            <h2 className="text-xl font-semibold mb-2">No documents yet</h2>
+                            <p className="text-muted-foreground mb-6">
+                                Create your first client document to get started
+                            </p>
+                            <Button asChild>
+                                <Link href={`/agency/${params.agencyId}/client-docs/new`}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Create Document
+                                </Link>
+                            </Button>
+                        </div>
+                    ) : (
+                        <ClientDocsList
+                            docs={docs}
+                            agencyId={params.agencyId}
+                            viewMode={viewMode}
+                        />
+                    )}
+                </div>
             </div>
         </div>
     )

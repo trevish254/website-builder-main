@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { Loader2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { DOCUMENT_TEMPLATES } from '../_components/document-templates'
+import * as LucideIcons from 'lucide-react'
 
 export default function NewClientDocPage({ params }: { params: { agencyId: string } }) {
     const [title, setTitle] = useState('')
@@ -85,28 +86,64 @@ export default function NewClientDocPage({ params }: { params: { agencyId: strin
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {DOCUMENT_TEMPLATES.map((template) => (
-                                <Card
-                                    key={template.id}
-                                    className={`cursor-pointer transition-all hover:shadow-md ${selectedTemplate === template.id
-                                        ? 'border-primary ring-2 ring-primary'
-                                        : 'hover:border-primary/50'
-                                        }`}
-                                    onClick={() => setSelectedTemplate(template.id)}
-                                >
-                                    <CardHeader>
-                                        <div className="flex items-start gap-3">
-                                            <div className="text-4xl">{template.icon}</div>
-                                            <div className="flex-1">
-                                                <CardTitle className="text-base">{template.name}</CardTitle>
-                                                <CardDescription className="text-xs mt-1">
-                                                    {template.description}
-                                                </CardDescription>
+                            {DOCUMENT_TEMPLATES.map((template) => {
+                                const IconComponent = (LucideIcons as any)[template.icon] || LucideIcons.FileText
+                                const iconColor = (template as any).color || '#3b82f6'
+                                const isSelected = selectedTemplate === template.id
+
+                                return (
+                                    <Card
+                                        key={template.id}
+                                        className={`cursor-pointer transition-all duration-300 relative overflow-hidden group ${isSelected
+                                            ? 'border-primary shadow-lg shadow-primary/10 bg-primary/5'
+                                            : 'hover:border-primary/50 bg-background/50 hover:bg-background'
+                                            }`}
+                                        onClick={() => setSelectedTemplate(template.id)}
+                                    >
+                                        <CardHeader className="p-4">
+                                            <div className="flex items-start gap-4">
+                                                <div
+                                                    className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-md border overflow-hidden ${isSelected ? 'scale-110 rotate-3' : 'group-hover:scale-105'}`}
+                                                    style={{
+                                                        backgroundColor: `${iconColor}${isSelected ? '20' : '10'}`,
+                                                        borderColor: `${iconColor}${isSelected ? '40' : '20'}`,
+                                                    }}
+                                                >
+                                                    <IconComponent
+                                                        size={28}
+                                                        style={{
+                                                            color: iconColor,
+                                                            filter: `drop-shadow(0 0 8px ${iconColor}${isSelected ? '99' : '60'})`
+                                                        }}
+                                                        className="relative z-10"
+                                                    />
+                                                    <div
+                                                        className={`absolute inset-0 transition-opacity duration-500 ${isSelected ? 'opacity-40' : 'opacity-10 group-hover:opacity-30'}`}
+                                                        style={{
+                                                            background: `radial-gradient(circle at center, ${iconColor}, transparent 70%)`
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <CardTitle className={`text-base font-bold truncate transition-colors ${isSelected ? 'text-primary' : 'group-hover:text-primary/80'}`}>
+                                                        {template.name}
+                                                    </CardTitle>
+                                                    <CardDescription className="text-xs mt-1 line-clamp-2 leading-relaxed">
+                                                        {template.description}
+                                                    </CardDescription>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </CardHeader>
-                                </Card>
-                            ))}
+                                        </CardHeader>
+                                        {isSelected && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary" />
+                                        )}
+                                        <div
+                                            className={`absolute -right-4 -top-4 w-20 h-20 blur-3xl transition-opacity duration-500 pointer-events-none ${isSelected ? 'opacity-20' : 'opacity-0'}`}
+                                            style={{ backgroundColor: iconColor }}
+                                        />
+                                    </Card>
+                                )
+                            })}
                         </div>
                     </div>
 

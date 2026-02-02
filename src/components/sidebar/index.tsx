@@ -170,6 +170,15 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
             subAccountId: id,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sub-sidebar-${id}-client-docs`,
+            name: 'Client Docs',
+            link: `/agency/${details?.agencyId || 'id'}/client-docs?subaccountId=${id}`,
+            icon: 'document',
+            subAccountId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           }
         ]
       }
@@ -433,6 +442,19 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         name: 'Campaigns',
         icon: 'campaigns',
         link: `/subaccount/${details?.id}/campaigns`,
+        subAccountId: details?.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+    }
+
+    // Add Client Docs option if not present
+    if (!sidebarOpt.find((opt) => opt.name === 'Client Docs')) {
+      sidebarOpt.push({
+        id: `sidebar-${details?.id}-client-docs`,
+        name: 'Client Docs',
+        icon: 'document',
+        link: `/agency/${user.Agency.id}/client-docs?subaccountId=${details?.id}`,
         subAccountId: details?.id,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -991,11 +1013,11 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
 
   // Inject Docs Submenu items
   const docsSubmenusList = [
-    { name: 'All Docs', link: type === 'agency' ? `/agency/${id}/docs/all` : `/subaccount/${id}/docs/all`, icon: 'file' },
-    { name: 'Shared', link: type === 'agency' ? `/agency/${id}/docs/shared` : `/subaccount/${id}/docs/shared`, icon: 'users' },
-    { name: 'Assigned', link: type === 'agency' ? `/agency/${id}/docs/assigned` : `/subaccount/${id}/docs/assigned`, icon: 'person' },
-    { name: 'Requests', link: type === 'agency' ? `/agency/${id}/docs/requests` : `/subaccount/${id}/docs/requests`, icon: 'clock' },
-    { name: 'Templates', link: type === 'agency' ? `/agency/${id}/docs/templates` : `/subaccount/${id}/docs/templates`, icon: 'file' },
+    { name: 'All Docs', link: type === 'agency' ? `/agency/${id}/client-docs` : `/agency/${user.Agency.id}/client-docs?subaccountId=${id}`, icon: 'file' },
+    { name: 'Shared', link: type === 'agency' ? `/agency/${id}/client-docs?tab=shared` : `/agency/${user.Agency.id}/client-docs?subaccountId=${id}&tab=shared`, icon: 'users' },
+    { name: 'Assigned', link: type === 'agency' ? `/agency/${id}/client-docs?tab=assigned` : `/agency/${user.Agency.id}/client-docs?subaccountId=${id}&tab=assigned`, icon: 'person' },
+    { name: 'Requests', link: type === 'agency' ? `/agency/${id}/client-docs?tab=requests` : `/agency/${user.Agency.id}/client-docs?subaccountId=${id}&tab=requests`, icon: 'clock' },
+    { name: 'Templates', link: type === 'agency' ? `/agency/${id}/client-docs?tab=templates` : `/agency/${user.Agency.id}/client-docs?subaccountId=${id}&tab=templates`, icon: 'file' },
   ]
 
   docsSubmenusList.forEach(item => {
