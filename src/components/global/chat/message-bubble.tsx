@@ -161,12 +161,12 @@ const MessageBubble = ({
         <>
             {/* System/Call Messages */}
             {type === 'call' ? (
-                <div className="flex justify-center my-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
-                    <div className="flex items-center gap-2 opacity-60">
-                        <Phone className="h-3 w-3 text-gray-500 mr-1" />
-                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">
+                <div className="flex justify-center my-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                    <div className="flex items-center gap-2 opacity-50">
+                        <Phone className="h-2.5 w-2.5 text-gray-400 mr-1" />
+                        <p className="text-[9px] font-light italic text-gray-500 dark:text-gray-400 tracking-tight">
                             {isSender ? content.replace(senderName || '', 'You') : content}
-                            <span className="ml-2 font-mono text-[9px] lowercase font-normal opacity-50">
+                            <span className="ml-2 font-mono text-[8px] font-normal opacity-40">
                                 {timestamp}
                             </span>
                         </p>

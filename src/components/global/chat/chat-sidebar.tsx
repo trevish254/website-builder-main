@@ -184,22 +184,22 @@ const ChatSidebar = ({
             </div>
 
             {/* Online Now Section */}
-            <div className="px-4 py-2 mt-1">
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Online Now</span>
-                    <button className="text-[10px] text-blue-500 font-semibold hover:underline">See all</button>
+            <div className="px-5 py-3 border-b border-zinc-50 dark:border-zinc-900">
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Online Now</span>
+                    <button className="text-[11px] text-blue-500 font-semibold hover:underline">See all</button>
                 </div>
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                <div className="flex gap-3 overflow-x-auto no-scrollbar">
                     {onlineAgencyUsers.length === 0 ? (
                         <p className="text-[10px] text-zinc-500 italic">No one is online</p>
                     ) : (
                         onlineAgencyUsers.map(user => (
-                            <div key={user.id} className="relative shrink-0">
-                                <Avatar className="h-8 w-8 border border-zinc-200 dark:border-zinc-800">
+                            <div key={user.id} className="relative shrink-0 transition-transform hover:scale-105">
+                                <Avatar className="h-10 w-10 border-2 border-white dark:border-background">
                                     <AvatarImage src={user.avatarUrl} />
-                                    <AvatarFallback className="text-[10px]">{user.name.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback className="text-[11px]">{user.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-zinc-950 rounded-full"></span>
+                                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-background rounded-full"></span>
                             </div>
                         ))
                     )}
@@ -259,35 +259,35 @@ const ChatSidebar = ({
                                 key={message.id}
                                 onClick={() => onSelectConversation(message.id)}
                                 className={`
-                                    group relative p-2 px-3 rounded-lg cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border-l-2
+                                    group relative p-3.5 px-4 rounded-xl cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/40
                                     ${selectedConversationId === message.id
-                                        ? 'bg-zinc-50 dark:bg-zinc-900/50 border-l-primary'
-                                        : 'border-l-transparent'
+                                        ? 'bg-zinc-50 dark:bg-zinc-900/50 ring-1 ring-zinc-200 dark:ring-zinc-800'
+                                        : ''
                                     }
                                 `}
                             >
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-4">
                                     <div className="relative shrink-0">
-                                        <Avatar className="h-8 w-8 border border-zinc-100 dark:border-zinc-800">
+                                        <Avatar className="h-10 w-10 shadow-sm">
                                             <AvatarImage src={message.type === 'group' ? (message.iconUrl || '') : (message.avatar || message.participantInfo?.avatarUrl || '')} />
-                                            <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold text-[10px]">
+                                            <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold text-xs">
                                                 {message.type === 'video' ? 'V' : message.title?.charAt(0) || 'U'}
                                             </AvatarFallback>
                                         </Avatar>
                                         {(message.type !== 'group' && message.participantInfo?.id && onlineUsers.has(message.participantInfo.id)) && (
-                                            <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border-2 border-white dark:border-zinc-950 rounded-full"></span>
+                                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-background rounded-full"></span>
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-0.5">
-                                            <span className={`font-bold text-[13px] truncate ${message.unread ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-400'}`}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className={`font-bold text-[14px] truncate ${message.unread ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-400'}`}>
                                                 {message.type === 'group' ? message.title : (message.participantInfo?.name || message.title)}
                                             </span>
-                                            <span className="text-[10px] text-zinc-400 whitespace-nowrap ml-1 shrink-0">
+                                            <span className="text-[10px] font-medium text-zinc-400 whitespace-nowrap ml-2 shrink-0">
                                                 {message.timestamp}
                                             </span>
                                         </div>
-                                        <p className={`text-[11px] truncate leading-none ${message.unreadCount && message.unreadCount > 0 ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>
+                                        <p className={`text-[12px] truncate leading-tight ${message.unreadCount && message.unreadCount > 0 ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>
                                             {typingStates[message.id]?.size > 0 ? (
                                                 <span className="text-primary italic animate-pulse">typing...</span>
                                             ) : (
@@ -296,8 +296,8 @@ const ChatSidebar = ({
                                         </p>
                                     </div>
                                     {Boolean(message.unreadCount && message.unreadCount > 0) && (
-                                        <div className="absolute right-3 bottom-2">
-                                            <div className="h-2 w-2 bg-primary rounded-full shadow-sm"></div>
+                                        <div className="flex-shrink-0 ml-2">
+                                            <div className="h-2.5 w-2.5 bg-primary rounded-full shadow-lg shadow-primary/20 animate-pulse"></div>
                                         </div>
                                     )}
                                 </div>

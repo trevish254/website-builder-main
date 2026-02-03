@@ -1336,154 +1336,149 @@ const AgencyMessagesPage = ({ params }: Props) => {
         }}
       />
 
-      {/* Inbox List - Left Section */}
-      <div className={cn(
-        "h-full border-r border-zinc-100 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-950 transition-all duration-300",
-        "md:w-[320px] lg:w-[350px]",
-        selectedConversationId ? "hidden md:flex" : "flex w-full"
-      )}>
-        <ChatSidebar
-          inboxItems={inboxItems}
-          selectedConversationId={selectedConversationId || ''}
-          onSelectConversation={(id) => {
-            setSelectedConversationId(id)
-            setChatMessages([])
-          }}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onDeleteConversation={handleDeleteConversation}
-          onDeleteBulk={handleDeleteBulk}
-          agencyUsers={agencyUsers}
-          onlineUsers={onlineUsers}
-          onNewMessage={() => setShowNewMessageDialog(true)}
-          onNewGroup={() => setShowNewGroupDialog(true)}
-          onNewVideoRoom={() => setShowNewVideoRoomDialog(true)}
-          notificationSettings={
-            <NotificationSettingsDialog
-              settings={notificationSettings}
-              onSettingsChange={handleNotificationSettingsChange}
-            />
-          }
-          typingStates={typingStates}
-        />
-      </div>
+      {/* Forced Sectionalized Layout - Breaking Mobile Logic as requested */}
+      <div className="flex flex-row w-full h-full overflow-hidden">
 
-      {/* Chat Area - Right Section */}
-      <div className={cn(
-        "h-full flex-1 min-w-0 bg-zinc-50 dark:bg-zinc-900/10 transition-all duration-300",
-        selectedConversationId ? "flex w-full md:flex-1" : "hidden md:flex"
-      )}>
-        <ChatWindow
-          selectedMsg={selectedMsg}
-          chatMessages={chatMessages}
-          newMessage={newMessage}
-          onNewMessageChange={(val) => {
-            setNewMessage(val)
-            handleTyping()
-          }}
-          onSendMessage={handleSendMessage}
-          onFileUpload={handleFileUpload}
-          isUploading={isUploading}
-          typingUsers={selectedConversationId ? typingStates[selectedConversationId] : new Set()}
-          chatParticipants={chatParticipants}
-          onLoadMore={loadMoreMessages}
-          hasMoreMessages={hasMoreMessages}
-          isLoadingMore={isLoadingMore}
-          allAttachments={allAttachments}
-          onInputKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              handleSendMessage()
+        {/* Inbox List - Left Section (Rigid Width) */}
+        <div className="h-full border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shrink-0 w-[450px] lg:w-[500px] flex flex-col">
+          <ChatSidebar
+            inboxItems={inboxItems}
+            selectedConversationId={selectedConversationId || ''}
+            onSelectConversation={(id) => {
+              setSelectedConversationId(id)
+              setChatMessages([])
+            }}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onDeleteConversation={handleDeleteConversation}
+            onDeleteBulk={handleDeleteBulk}
+            agencyUsers={agencyUsers}
+            onlineUsers={onlineUsers}
+            onNewMessage={() => setShowNewMessageDialog(true)}
+            onNewGroup={() => setShowNewGroupDialog(true)}
+            onNewVideoRoom={() => setShowNewVideoRoomDialog(true)}
+            notificationSettings={
+              <NotificationSettingsDialog
+                settings={notificationSettings}
+                onSettingsChange={handleNotificationSettingsChange}
+              />
             }
-          }}
-          onDeleteMessage={handleDeleteMessage}
-          onReplyMessage={handleReplyMessage}
-          onEditMessage={handleEditMessage}
-          onForwardMessage={handleForwardMessage}
-          onBack={() => setSelectedConversationId(null)}
-          onVideoCall={() => {
-            if (selectedMsg && user) {
-              const videoRoomId = selectedMsg.id
-              const targetIds = (selectedMsg.participants || [])
-                .map((p: any) => p.id)
-                .filter((id: string) => id && id !== user.id)
+            typingStates={typingStates}
+          />
+        </div>
 
-              console.log('[VIDEO] Initiating call for room:', videoRoomId, 'Targets:', targetIds)
-
-              toast({
-                title: 'Launching Video Call',
-                description: 'A new tab is opening for your video session.'
-              })
-
-              // 1. Open local session (Distraction-free)
-              const win = window.open(`/video/${videoRoomId}`, '_blank')
-              if (!win) {
-                toast({
-                  variant: 'destructive',
-                  title: 'Popup Blocked',
-                  description: 'Please allow popups or click here to open the call.',
-                  action: (
-                    <Button
-                      onClick={() => window.location.href = `/video/${videoRoomId}`}
-                      className="bg-primary text-white text-xs h-8"
-                    >
-                      Open Link
-                    </Button>
+        {/* Chat Area - Right Section (Flexible Fill) */}
+        <div className="h-full flex-1 min-w-0 bg-white dark:bg-background/20 flex flex-col relative">
+          {selectedConversationId ? (
+            <ChatWindow
+              selectedMsg={selectedMsg}
+              chatMessages={chatMessages}
+              newMessage={newMessage}
+              onNewMessageChange={(val) => {
+                setNewMessage(val)
+                handleTyping()
+              }}
+              onSendMessage={handleSendMessage}
+              onFileUpload={handleFileUpload}
+              isUploading={isUploading}
+              typingUsers={selectedConversationId ? typingStates[selectedConversationId] : new Set()}
+              chatParticipants={chatParticipants}
+              onLoadMore={loadMoreMessages}
+              hasMoreMessages={hasMoreMessages}
+              isLoadingMore={isLoadingMore}
+              allAttachments={allAttachments}
+              onInputKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSendMessage()
+                }
+              }}
+              onDeleteMessage={handleDeleteMessage}
+              onReplyMessage={handleReplyMessage}
+              onEditMessage={handleEditMessage}
+              onForwardMessage={handleForwardMessage}
+              onBack={() => setSelectedConversationId(null)}
+              activeTab={activeTab}
+              replyingTo={replyingTo}
+              onCancelReply={() => setReplyingTo(null)}
+              editingMessage={editingMessage}
+              onCancelEdit={() => {
+                setEditingMessage(null)
+                setNewMessage('')
+              }}
+              onVoiceCall={() => {
+                if (selectedMsg?.participantInfo) {
+                  initiateCall(
+                    selectedMsg.participantInfo.id,
+                    selectedMsg.participantInfo.name,
+                    selectedMsg.participantInfo.avatarUrl
                   )
-                })
-              }
+                }
+              }}
+              onVideoCall={() => {
+                if (selectedMsg && user) {
+                  const videoRoomId = selectedMsg.id
+                  const targetIds = (selectedMsg.participants || [])
+                    .map((p: any) => p.id)
+                    .filter((id: string) => id && id !== user.id)
 
-              // 2. Broadcast invite to each participant's private channel
-              if (selectedMsg.type !== 'video' && targetIds.length > 0) {
-                targetIds.forEach(targetId => {
-                  const channel = supabase.channel(`user-notifications:${targetId}`)
-                  channel.subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                      channel.send({
-                        type: 'broadcast',
-                        event: 'video-call-invite',
-                        payload: {
-                          roomId: videoRoomId,
-                          roomTitle: selectedMsg.title || 'Direct Chat',
-                          inviterName: userName,
-                          inviterId: user.id
+                  const win = window.open(`/video/${videoRoomId}`, '_blank')
+                  if (!win) {
+                    toast({
+                      variant: 'destructive',
+                      title: 'Popup Blocked',
+                      description: 'Please allow popups to open the call.',
+                      action: (
+                        <Button
+                          onClick={() => window.location.href = `/video/${videoRoomId}`}
+                          className="bg-primary text-white text-xs h-8"
+                        >
+                          Open
+                        </Button>
+                      )
+                    })
+                  }
+
+                  // Broadcast invites
+                  if (selectedMsg.type !== 'video' && targetIds.length > 0) {
+                    targetIds.forEach(targetId => {
+                      const channel = supabase.channel(`user-notifications:${targetId}`)
+                      channel.subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                          channel.send({
+                            type: 'broadcast',
+                            event: 'video-call-invite',
+                            payload: {
+                              roomId: videoRoomId,
+                              roomTitle: selectedMsg.title || 'Direct Chat',
+                              inviterName: userName,
+                              inviterId: user.id
+                            }
+                          })
+                          setTimeout(() => supabase.removeChannel(channel), 5000)
                         }
                       })
-                      console.log(`[VIDEO] Invite sent to user: ${targetId}`)
-                      // Cleanup channel after sending
-                      setTimeout(() => supabase.removeChannel(channel), 5000)
-                    }
-                  })
-                })
-              }
-            } else {
-              toast({
-                variant: 'destructive',
-                title: 'Operation Failed',
-                description: 'Please select a conversation and ensure you are logged in.'
-              })
-            }
-          }}
-          activeTab={activeTab}
-          replyingTo={replyingTo}
-          onCancelReply={() => setReplyingTo(null)}
-          editingMessage={editingMessage}
-          onCancelEdit={() => {
-            setEditingMessage(null)
-            setNewMessage('')
-          }}
-          onVoiceCall={() => {
-            if (selectedMsg?.participantInfo) {
-              initiateCall(
-                selectedMsg.participantInfo.id,
-                selectedMsg.participantInfo.name,
-                selectedMsg.participantInfo.avatarUrl
-              )
-            }
-          }}
-        />
+                    })
+                  }
+                }
+              }}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-zinc-50/20 dark:bg-zinc-900/5">
+              <div className="w-24 h-24 mb-6 rounded-[2.5rem] bg-white dark:bg-zinc-800 flex items-center justify-center border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                <MessageSquare className="w-10 h-10 text-zinc-300 dark:text-zinc-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+                Your Conversation
+              </h3>
+              <p className="text-zinc-500 dark:text-zinc-400 max-w-[320px] mx-auto text-sm leading-relaxed">
+                Select a direct message or group from the inbox to start viewing your history.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       <VoiceCallOverlay
@@ -1926,7 +1921,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   )
 }
 
