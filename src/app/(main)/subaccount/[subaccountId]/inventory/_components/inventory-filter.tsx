@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
-import { Search, X } from 'lucide-react'
+import { Search, X, Filter } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -134,23 +134,28 @@ const InventoryFilter: React.FC<InventoryFilterProps> = ({
 
 
     return (
-        <div className="w-full bg-card rounded-xl border shadow-sm sticky top-4 flex flex-col max-h-[calc(100vh-2rem)]">
-            <div className="p-4 border-b flex items-center justify-between bg-card/50 shrink-0">
-                <h3 className="font-bold text-lg">Filters</h3>
+        <div className="w-full bg-card rounded-2xl border border-border shadow-md flex flex-col h-full overflow-hidden">
+            <div className="p-5 border-b flex items-center justify-between bg-muted/30 shrink-0">
+                <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-primary" />
+                    <h3 className="font-extrabold text-base uppercase tracking-tight">Filters</h3>
+                </div>
                 <button
                     onClick={() => router.push(`/subaccount/${subAccountId}/inventory`)}
-                    className="text-xs font-medium text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                    className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 transition-all hover:scale-105"
                 >
-                    <X size={14} /> Clear all
+                    <X size={14} /> Reset
                 </button>
             </div>
 
             <div className="p-4 space-y-6 overflow-y-auto">
                 {/* Type / Category */}
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm text-foreground/80">Category</h4>
-                        <X className="h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-foreground" />
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between group/title">
+                        <h4 className="font-extrabold text-xs uppercase tracking-widest text-muted-foreground">Category</h4>
+                        <div className="h-4 w-4 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
+                            <X className="h-3 w-3 text-muted-foreground/30 group-hover/title:text-muted-foreground cursor-pointer" />
+                        </div>
                     </div>
                     <div className="space-y-2">
                         {categories.map((cat) => (
@@ -172,10 +177,12 @@ const InventoryFilter: React.FC<InventoryFilterProps> = ({
                 <div className="h-[1px] bg-border/50" />
 
                 {/* Brands */}
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm text-foreground/80">Brands</h4>
-                        <X className="h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-foreground" />
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between group/title">
+                        <h4 className="font-extrabold text-xs uppercase tracking-widest text-muted-foreground">Brands</h4>
+                        <div className="h-4 w-4 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
+                            <X className="h-3 w-3 text-muted-foreground/30 group-hover/title:text-muted-foreground cursor-pointer" />
+                        </div>
                     </div>
 
                     <ScrollArea className="h-[180px] w-full pr-3">
@@ -204,9 +211,11 @@ const InventoryFilter: React.FC<InventoryFilterProps> = ({
 
                 {/* Price */}
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm text-foreground/80">Price</h4>
-                        <X className="h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-foreground" />
+                    <div className="flex items-center justify-between group/title">
+                        <h4 className="font-extrabold text-xs uppercase tracking-widest text-muted-foreground">Price Range</h4>
+                        <div className="h-4 w-4 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
+                            <X className="h-3 w-3 text-muted-foreground/30 group-hover/title:text-muted-foreground cursor-pointer" />
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="relative flex-1">
@@ -244,10 +253,12 @@ const InventoryFilter: React.FC<InventoryFilterProps> = ({
                 <div className="h-[1px] bg-border/50" />
 
                 {/* Colors */}
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm text-foreground/80">Colors Options</h4>
-                        <X className="h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-foreground" />
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between group/title">
+                        <h4 className="font-extrabold text-xs uppercase tracking-widest text-muted-foreground">Colors</h4>
+                        <div className="h-4 w-4 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
+                            <X className="h-3 w-3 text-muted-foreground/30 group-hover/title:text-muted-foreground cursor-pointer" />
+                        </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {colors.map((color) => {
@@ -273,10 +284,12 @@ const InventoryFilter: React.FC<InventoryFilterProps> = ({
                 <div className="h-[1px] bg-border/50" />
 
                 {/* Availability */}
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm text-foreground/80">Availability</h4>
-                        <X className="h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-foreground" />
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between group/title">
+                        <h4 className="font-extrabold text-xs uppercase tracking-widest text-muted-foreground">Availability</h4>
+                        <div className="h-4 w-4 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
+                            <X className="h-3 w-3 text-muted-foreground/30 group-hover/title:text-muted-foreground cursor-pointer" />
+                        </div>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Checkbox

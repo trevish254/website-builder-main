@@ -87,46 +87,30 @@ const InventoryClient: React.FC<InventoryClientProps> = ({
 
                         <div className="flex items-center gap-4">
                             <InventoryControls subAccountId={subAccountId} />
-
-                            <Button
-                                variant={showFilters ? 'secondary' : 'outline'}
-                                size="icon"
-                                onClick={() => setShowFilters(!showFilters)}
-                                className={cn("h-10 w-10 transition-colors", showFilters && "bg-secondary border-primary/20")}
-                            >
-                                <Filter className="h-4 w-4" />
-                            </Button>
-
                             <CreateProductButton subaccountId={subAccountId} />
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-6 p-4 pt-0">
+                <div className="flex flex-col md:flex-row gap-6 p-4 pt-0 relative flex-1">
                     {/* Sidebar Filters */}
-                    {showFilters && (
-                        <aside className="w-full lg:w-[250px] flex-shrink-0 pt-4 animate-in slide-in-from-left-4 duration-300">
+                    <aside className="hidden md:block w-[280px] flex-shrink-0 pt-0 animate-in slide-in-from-left-4 duration-300">
+                        <div className="sticky top-[80px] h-[calc(100vh-100px)]">
                             <InventoryFilter
                                 subAccountId={subAccountId}
                                 attributes={attributes}
                                 existingBrands={existingBrands}
                                 existingCategories={existingCategories}
                             />
-                        </aside>
-                    )}
+                        </div>
+                    </aside>
 
                     {/* Main Content */}
-                    <div className="flex-1 flex flex-col min-w-0 pt-4 transition-all duration-300">
-
+                    <div className="flex-1 flex flex-col min-w-0 pt-0 transition-all duration-300">
                         {products && products.length > 0 ? (
                             <>
                                 {view === 'grid' ? (
-                                    <div className={cn(
-                                        "grid gap-4 mb-8 transition-all",
-                                        showFilters
-                                            ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                                            : "grid-cols-2 md:grid-cols-4 lg:grid-cols-5"
-                                    )}>
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
                                         {products.map((product) => (
                                             <ProductCard key={product.id} product={product} />
                                         ))}
@@ -137,7 +121,7 @@ const InventoryClient: React.FC<InventoryClientProps> = ({
                                     </div>
                                 )}
 
-                                <Pagination className="justify-center">
+                                <Pagination className="justify-center mt-auto">
                                     <PaginationContent>
                                         {page > 1 && (
                                             <PaginationPrevious href={`?page=${page - 1}&${new URLSearchParams({ ...searchParams, page: (page - 1).toString() }).toString()}`} />
