@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Search, MessageSquare, Pin, Star, Circle, Trash2, Edit, Users, Video, Check } from 'lucide-react'
+import { Search, MessageSquare, Pin, Star, Circle, Trash2, Edit, Users, Video, Check, Bell, UserPlus } from 'lucide-react'
 import ConnectivityIndicator from '@/components/global/connectivity-indicator'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -154,42 +154,55 @@ const ChatSidebar = ({
         <div className="flex flex-col h-full bg-white dark:bg-background overflow-hidden">
 
             {/* Header */}
-            <div className="px-4 py-4 flex flex-col gap-3 border-b border-zinc-100 dark:border-zinc-800/50">
+            <div className="px-4 py-4 flex flex-col gap-3 border-b border-zinc-50 dark:border-zinc-900">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 tracking-tight">
-                            Messages
-                        </h2>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        {notificationSettings}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:scale-105 transition-all"
-                            onClick={onNewGroup}
-                        >
-                            <Users className="h-4 w-4" />
+                    <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+                        Message
+                    </h2>
+                    <div className="flex items-center gap-1.5 text-zinc-500">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                            <Bell className="h-4 w-4" />
                         </Button>
-                        <Button
-                            variant="secondary"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg bg-primary text-white shadow-lg shadow-primary/20 hover:scale-105 transition-all"
-                            onClick={onNewMessage}
-                        >
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800" onClick={onNewGroup}>
+                            <UserPlus className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800" onClick={onNewMessage}>
                             <Edit className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
 
-                <div className="relative group">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 group-focus-within:text-primary transition-colors" />
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
                     <Input
-                        placeholder="Search..."
+                        placeholder="Search here..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="pl-9 h-9 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 text-xs rounded-lg focus-visible:ring-1 focus-visible:ring-primary transition-all"
+                        className="pl-9 h-9 bg-zinc-50 dark:bg-zinc-900 border-none text-xs rounded-lg"
                     />
+                </div>
+            </div>
+
+            {/* Online Now Section */}
+            <div className="px-4 py-2 mt-1">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Online Now</span>
+                    <button className="text-[10px] text-blue-500 font-semibold hover:underline">See all</button>
+                </div>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    {onlineAgencyUsers.length === 0 ? (
+                        <p className="text-[10px] text-zinc-500 italic">No one is online</p>
+                    ) : (
+                        onlineAgencyUsers.map(user => (
+                            <div key={user.id} className="relative shrink-0">
+                                <Avatar className="h-8 w-8 border border-zinc-200 dark:border-zinc-800">
+                                    <AvatarImage src={user.avatarUrl} />
+                                    <AvatarFallback className="text-[10px]">{user.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-zinc-950 rounded-full"></span>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
 
@@ -246,77 +259,48 @@ const ChatSidebar = ({
                                 key={message.id}
                                 onClick={() => onSelectConversation(message.id)}
                                 className={`
-                                    group relative p-2.5 rounded-lg cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border-l-2
+                                    group relative p-2 px-3 rounded-lg cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border-l-2
                                     ${selectedConversationId === message.id
                                         ? 'bg-zinc-50 dark:bg-zinc-900/50 border-l-primary'
                                         : 'border-l-transparent'
                                     }
-                                    ${selectedIds.has(message.id) ? 'bg-primary/5 dark:bg-primary/10' : ''}
                                 `}
                             >
-                                <div className="flex items-center gap-2.5">
-                                    <div
-                                        className={cn(
-                                            "shrink-0 transition-all",
-                                            selectedIds.has(message.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                                        )}
-                                        onClick={(e) => toggleSelect(message.id, e)}
-                                    >
-                                        <div className={cn(
-                                            "h-3.5 w-3.5 rounded border flex items-center justify-center transition-colors",
-                                            selectedIds.has(message.id)
-                                                ? "bg-primary border-primary text-white"
-                                                : "border-zinc-300 dark:border-zinc-700"
-                                        )}>
-                                            {selectedIds.has(message.id) && <Check className="h-2 w-2" />}
-                                        </div>
-                                    </div>
-
+                                <div className="flex items-center gap-3">
                                     <div className="relative shrink-0">
-                                        <Avatar className="h-9 w-9 border border-zinc-100 dark:border-zinc-800">
+                                        <Avatar className="h-8 w-8 border border-zinc-100 dark:border-zinc-800">
                                             <AvatarImage src={message.type === 'group' ? (message.iconUrl || '') : (message.avatar || message.participantInfo?.avatarUrl || '')} />
                                             <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold text-[10px]">
-                                                {message.type === 'video'
-                                                    ? 'V'
-                                                    : message.type === 'group'
-                                                        ? message.title?.charAt(0) || 'G'
-                                                        : message.participantInfo?.name?.charAt(0) || message.title?.charAt(0) || 'U'}
+                                                {message.type === 'video' ? 'V' : message.title?.charAt(0) || 'U'}
                                             </AvatarFallback>
                                         </Avatar>
                                         {(message.type !== 'group' && message.participantInfo?.id && onlineUsers.has(message.participantInfo.id)) && (
-                                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-zinc-950 rounded-full"></span>
+                                            <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border-2 border-white dark:border-zinc-950 rounded-full"></span>
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-1">
-                                            <span className={`font-bold text-[13px] truncate transition-colors ${message.unread ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200'}`}>
+                                        <div className="flex items-center justify-between mb-0.5">
+                                            <span className={`font-bold text-[13px] truncate ${message.unread ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-400'}`}>
                                                 {message.type === 'group' ? message.title : (message.participantInfo?.name || message.title)}
                                             </span>
-                                            <span className="text-[9px] font-medium text-zinc-400 whitespace-nowrap shrink-0">
+                                            <span className="text-[10px] text-zinc-400 whitespace-nowrap ml-1 shrink-0">
                                                 {message.timestamp}
                                             </span>
                                         </div>
-                                        <div className="flex items-center justify-between gap-2 overflow-hidden">
-                                            <p className={`text-[11.5px] truncate flex-1 leading-none h-[14px] ${message.unreadCount && message.unreadCount > 0 ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-400'}`}>
-                                                {typingStates[message.id]?.size > 0 ? (
-                                                    <span className="text-primary italic animate-pulse">typing...</span>
-                                                ) : (
-                                                    message.preview || 'No messages yet'
-                                                )}
-                                            </p>
-                                            {Boolean(message.unreadCount && message.unreadCount > 0) && (
-                                                <Badge className="h-4.5 min-w-[18px] px-1 flex items-center justify-center bg-primary hover:bg-primary text-white border-none rounded-full text-[9px] font-bold shrink-0">
-                                                    {message.unreadCount! > 99 ? '99+' : message.unreadCount}
-                                                </Badge>
+                                        <p className={`text-[11px] truncate leading-none ${message.unreadCount && message.unreadCount > 0 ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>
+                                            {typingStates[message.id]?.size > 0 ? (
+                                                <span className="text-primary italic animate-pulse">typing...</span>
+                                            ) : (
+                                                message.preview || 'No messages yet'
                                             )}
+                                        </p>
+                                    </div>
+                                    {Boolean(message.unreadCount && message.unreadCount > 0) && (
+                                        <div className="absolute right-3 bottom-2">
+                                            <div className="h-2 w-2 bg-primary rounded-full shadow-sm"></div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
-                                {message.unread && !message.unreadCount && (
-                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                        <div className="h-2 w-2 bg-primary rounded-full"></div>
-                                    </div>
-                                )}
                             </div>
                         ))
                     )}

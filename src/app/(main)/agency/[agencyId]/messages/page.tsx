@@ -1339,8 +1339,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
       {/* Inbox List - Left Section */}
       <div className={cn(
         "h-full border-r border-zinc-100 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-950 transition-all duration-300",
-        "hidden md:flex md:w-[320px] lg:w-[380px]", // Desktop: always flex and fixed width
-        !selectedConversationId ? "flex w-full" : "" // Mobile: show if no conversation
+        "md:w-[320px] lg:w-[350px]",
+        selectedConversationId ? "hidden md:flex" : "flex w-full"
       )}>
         <ChatSidebar
           inboxItems={inboxItems}
@@ -1372,9 +1372,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
       {/* Chat Area - Right Section */}
       <div className={cn(
-        "h-full flex-1 min-w-0 bg-zinc-50 dark:bg-zinc-900/10",
-        "hidden md:flex", // Desktop: always flex
-        selectedConversationId ? "flex w-full" : "" // Mobile: show if conversation selected
+        "h-full flex-1 min-w-0 bg-zinc-50 dark:bg-zinc-900/10 transition-all duration-300",
+        selectedConversationId ? "flex w-full md:flex-1" : "hidden md:flex"
       )}>
         <ChatWindow
           selectedMsg={selectedMsg}
