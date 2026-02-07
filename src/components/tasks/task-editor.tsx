@@ -49,28 +49,29 @@ type JSONContent = any;
 type Editor = any;
 
 const TaskEditor = ({ content, onChange }: { content?: JSONContent, onChange?: (json: JSONContent) => void }) => {
-    // const [internalContent, setContent] = useState<JSONContent>(content || {
-    //   type: 'doc',
-    //   content: [
-    //     {
-    //       type: 'paragraph',
-    //       content: [{ type: 'text', text: 'Start typing...' }],
-    //     },
-    //   ],
-    // });
+  // const [internalContent, setContent] = useState<JSONContent>(content || {
+  //   type: 'doc',
+  //   content: [
+  //     {
+  //       type: 'paragraph',
+  //       content: [{ type: 'text', text: 'Start typing...' }],
+  //     },
+  //   ],
+  // });
 
-    // const handleUpdate = ({ editor }: { editor: Editor }) => {
-    //   const json = editor.getJSON();
-    //   setContent(json);
-    //   if (onChange) onChange(json);
-    // };
+  // const handleUpdate = ({ editor }: { editor: Editor }) => {
+  //   const json = editor.getJSON();
+  //   setContent(json);
+  //   if (onChange) onChange(json);
+  // };
 
-    return (
-        <div className="h-full w-full border rounded-md p-4 bg-background">
-            <p className="text-muted-foreground">Editor component is currently disabled pending installation of dependencies.</p>
-            {/* 
+  return (
+    <div className="h-full w-full border rounded-md p-4 bg-background">
+      <p className="text-muted-foreground">Editor component is currently disabled pending installation of dependencies.</p>
+      {/* 
     <EditorProvider
       className="h-full w-full overflow-y-auto rounded-lg border bg-background p-4"
+      data-lenis-prevent
       content={internalContent}
       onUpdate={handleUpdate}
       placeholder="Start typing..."
@@ -129,7 +130,7 @@ const TaskEditor = ({ content, onChange }: { content?: JSONContent, onChange?: (
       <EditorCharacterCount.Words>Words: </EditorCharacterCount.Words>
     </EditorProvider>
     */}
-        </div>
-    );
+    </div>
+  );
 };
 export default TaskEditor;

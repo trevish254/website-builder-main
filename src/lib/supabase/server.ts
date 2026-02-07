@@ -29,9 +29,25 @@ export function createClient() {
 }
 
 export async function getUser() {
-    const supabase = createClient()
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-    return user
+    try {
+        const supabase = createClient()
+        const {
+            data: { user },
+            error
+        } = await supabase.auth.getUser()
+
+        if (error) {
+            // Only log non-transient errors
+            if (!error.message.includes('fetch failed') && !error.message.includes('Already Used')) {
+                console.error('[Supabase Server] getUser error:', error.message)
+            }
+            return null
+        }
+        return user
+    } catch (e: any) {
+        if (!e.message?.includes('fetch failed')) {
+            console.error('[Supabase Server] getUser exception:', e.message || e)
+        }
+        return null
+    }
 }

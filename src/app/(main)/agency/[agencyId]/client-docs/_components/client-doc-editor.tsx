@@ -6,7 +6,20 @@ import PageSidebar, { DocumentPage } from './page-sidebar'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { upsertClientDoc } from '@/lib/client-docs-queries'
-import { Loader2, ArrowLeft, Save, Eye, ExternalLink, Download, FileText, File, Users as UsersIcon, RotateCcw } from 'lucide-react'
+// Force rebuild with lucide-react config change
+import {
+    Loader2,
+    ArrowLeft,
+    Save,
+    Eye,
+    EyeOff,
+    ExternalLink,
+    Download,
+    FileText,
+    File,
+    Users as UsersIcon,
+    RotateCcw
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'

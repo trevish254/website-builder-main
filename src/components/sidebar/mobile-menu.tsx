@@ -93,7 +93,7 @@ const MobileMenu = ({ details, id, sidebarLogo, sidebarOpt, subAccounts, user }:
                     </div>
 
                     {/* Menu Items */}
-                    <div className="flex-1 overflow-y-auto px-6 py-4">
+                    <div className="flex-1 overflow-y-auto px-6 py-4" data-lenis-prevent>
                         <div className="space-y-1">
                             {filteredOptions.map((option) => {
                                 const result = icons.find(icon => icon.value === option.icon)

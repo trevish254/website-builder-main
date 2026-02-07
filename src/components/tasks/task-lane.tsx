@@ -153,7 +153,7 @@ const TaskLane = ({ lane, index, agencyId, subAccountId, teamMembers, allLanes, 
                                 {...provided.droppableProps}
                                 className={`
                                     flex-1 flex flex-col gap-2 overflow-y-auto pb-2 px-1
-                                    transition-all duration-300 rounded-xl mt-2
+                                    data-lenis-prevent transition-all duration-300 rounded-xl mt-2
                                     ${snapshot.isDraggingOver
                                         ? 'bg-blue-500/[0.08] dark:bg-blue-500/[0.12] ring-2 ring-blue-500/20 ring-inset'
                                         : 'bg-transparent'}

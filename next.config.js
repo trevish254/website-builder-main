@@ -58,7 +58,7 @@ const nextConfig = {
     ],
   },
   reactStrictMode: false,
-  transpilePackages: ['@tremor/react', 'recharts', 'react-smooth', 'gsap'],
+  transpilePackages: ['@tremor/react', 'recharts', 'react-smooth', 'gsap', 'lucide-react', 'react-grid-layout'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

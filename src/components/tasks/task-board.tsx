@@ -399,11 +399,11 @@ const TaskBoard = ({ board, lanes, agencyId, subAccountId, teamMembers = [], tea
                             </Droppable>
                         </div>
                     ) : view === 'table' ? (
-                        <div className="h-full overflow-y-auto bg-neutral-50 dark:bg-zinc-950 p-4">
+                        <div className="h-full overflow-y-auto bg-neutral-50 dark:bg-zinc-950 p-4" data-lenis-prevent>
                             <TaskTable lanes={allLanes} teamMembers={teamMembers} />
                         </div>
                     ) : view === 'list' ? (
-                        <div className="h-full overflow-y-auto bg-neutral-50 dark:bg-zinc-950">
+                        <div className="h-full overflow-y-auto bg-neutral-50 dark:bg-zinc-950" data-lenis-prevent>
                             <TaskList lanes={allLanes} teamMembers={teamMembers} />
                         </div>
                     ) : (

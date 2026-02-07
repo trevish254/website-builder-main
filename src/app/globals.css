@@ -103,6 +103,130 @@ html {
   }
 }
 
+/* React Grid Layout Premium Styling */
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, right, bottom;
+}
+
+.react-grid-item.resizing {
+  z-index: 100 !important;
+  opacity: 0.8;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none !important;
+  z-index: 100 !important;
+  opacity: 0.9;
+  scale: 1.02;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.react-grid-placeholder {
+  background: hsl(var(--primary) / 0.05) !important;
+  border-radius: 0.75rem !important;
+  opacity: 1 !important;
+  border: 2px dashed hsl(var(--primary) / 0.2) !important;
+  z-index: 1 !important;
+  transition: all 200ms ease !important;
+}
+
+/* Custom Resize Handles */
+.react-resizable-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  background-image: none !important;
+  z-index: 30;
+  box-sizing: border-box;
+}
+
+/* Make handles visible only on card hover or selection */
+.react-grid-item:hover .react-resizable-handle,
+.react-grid-item.selected .react-resizable-handle {
+  border: 2px solid hsl(var(--primary) / 0.3);
+  background-color: var(--background);
+  border-radius: 50%;
+  transition: all 200ms ease;
+}
+
+.react-grid-item:hover .react-resizable-handle:hover {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  scale: 1.2;
+}
+
+.react-resizable-handle-s {
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+  width: 30px;
+  border-radius: 10px !important;
+}
+
+.react-resizable-handle-n {
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+  width: 30px;
+  border-radius: 10px !important;
+}
+
+.react-resizable-handle-e {
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+  height: 30px;
+  border-radius: 10px !important;
+}
+
+.react-resizable-handle-w {
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+  height: 30px;
+  border-radius: 10px !important;
+}
+
+.react-resizable-handle-se {
+  bottom: -5px;
+  right: -5px;
+  cursor: nwse-resize;
+}
+
+.react-resizable-handle-sw {
+  bottom: -5px;
+  left: -5px;
+  cursor: nesw-resize;
+}
+
+.react-resizable-handle-nw {
+  top: -5px;
+  left: -5px;
+  cursor: nwse-resize;
+}
+
+.react-resizable-handle-ne {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+}
+
+.drag-handle {
+  touch-action: none;
+}
+
+
 @layer utilities {
   .transform-3d {
     transform-style: preserve-3d;

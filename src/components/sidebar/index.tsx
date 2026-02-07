@@ -53,91 +53,17 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         updatedAt: new Date().toISOString(),
         SubAccountSidebarOption: [
           {
-            id: `sub-sidebar-${id}-1`,
-            name: 'Overview',
-            link: `/subaccount/${id}`,
-            icon: 'home',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          /*
-          {
-            id: `sub-sidebar-${id}-2`,
-            name: 'Funnels',
-            link: `/subaccount/${id}/funnels`,
-            icon: 'pipelines',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          */
-          {
-            id: `sub-sidebar-${id}-3`,
-            name: 'Pipelines',
-            link: `/subaccount/${id}/pipelines`,
-            icon: 'kanban',
+            id: `sub-sidebar-${id}-dashboard`,
+            name: 'Dashboard',
+            link: `/subaccount/${id}/inventory/dashboard`,
+            icon: 'category',
             subAccountId: id,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
           {
-            id: `sub-sidebar-${id}-4`,
-            name: 'Contacts',
-            link: `/subaccount/${id}/contacts`,
-            icon: 'person',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: `sub-sidebar-${id}-5`,
-            name: 'Media',
-            link: `/subaccount/${id}/media`,
-            icon: 'image',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: `sub-sidebar-${id}-campaigns`,
-            name: 'Campaigns',
-            link: `/subaccount/${id}/campaigns`,
-            icon: 'campaigns',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: `sub-sidebar-${id}-6`,
-            name: 'Automations',
-            link: `/subaccount/${id}/automations`,
-            icon: 'settings',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: `sub-sidebar-${id}-7`,
-            name: 'Settings',
-            link: `/subaccount/${id}/settings`,
-            icon: 'settings',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: `sub-sidebar-${id}-inventory-dash`,
-            name: 'product Dashboard',
-            link: `/subaccount/${id}/inventory`,
-            icon: 'chart',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: `sub-sidebar-${id}-inventory-main`,
-            name: 'Inventory',
+            id: `sub-sidebar-${id}-products`,
+            name: 'Products',
             link: `/subaccount/${id}/inventory`,
             icon: 'package',
             subAccountId: id,
@@ -145,26 +71,8 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
             updatedAt: new Date().toISOString(),
           },
           {
-            id: `sub-sidebar-${id}-inventory-order`,
-            name: 'Orders',
-            link: `/subaccount/${id}/orders`,
-            icon: 'receipt',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: `sub-sidebar-${id}-inventory-customers`,
-            name: 'Customer Details',
-            link: `/subaccount/${id}/inventory/customers`,
-            icon: 'person',
-            subAccountId: id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: `sub-sidebar-${id}-inventory-analytics`,
-            name: 'Revenue Analytics',
+            id: `sub-sidebar-${id}-analytics`,
+            name: 'Analytics',
             link: `/subaccount/${id}/inventory/analytics`,
             icon: 'analytics',
             subAccountId: id,
@@ -172,10 +80,64 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
             updatedAt: new Date().toISOString(),
           },
           {
-            id: `sub-sidebar-${id}-client-docs`,
-            name: 'Client Docs',
-            link: `/agency/${details?.agencyId || 'id'}/client-docs?subaccountId=${id}`,
-            icon: 'document',
+            id: `sub-sidebar-${id}-reports`,
+            name: 'Reports',
+            link: `/subaccount/${id}/inventory/analytics`,
+            icon: 'chart',
+            subAccountId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sub-sidebar-${id}-extensions`,
+            name: 'Extensions',
+            link: `/subaccount/${id}/settings`,
+            icon: 'extension',
+            subAccountId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sub-sidebar-${id}-companies`,
+            name: 'Companies',
+            link: `/subaccount/${id}/contacts`,
+            icon: 'briefcase',
+            subAccountId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sub-sidebar-${id}-people`,
+            name: 'People',
+            link: `/subaccount/${id}/contacts`,
+            icon: 'person',
+            subAccountId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sub-sidebar-${id}-store`,
+            name: 'My Store',
+            link: `/subaccount/${id}/websites`,
+            icon: 'cart',
+            subAccountId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sub-sidebar-${id}-sell-offer`,
+            name: 'Sell Offer',
+            link: `/subaccount/${id}/finance`,
+            icon: 'ticket',
+            subAccountId: id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: `sub-sidebar-${id}-settings`,
+            name: 'Settings',
+            link: `/subaccount/${id}/settings`,
+            icon: 'settings',
             subAccountId: id,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -340,7 +302,6 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
 
   if (!user.Agency) return
 
-  if (!user.Agency) return
 
   // Determine details and sidebar options based on type and id
   if (type === 'agency') {
@@ -355,7 +316,7 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
     }
   } else {
     // Subaccount logic
-    details = user?.Agency.SubAccount.find((subaccount) => subaccount.id === id)
+    details = user?.Agency.SubAccount.find((subaccount: any) => subaccount.id === id)
 
     if (!details) {
       // Check permissions for invited subaccounts
@@ -367,125 +328,50 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
 
     sidebarOpt = details?.SubAccountSidebarOption || []
 
+    // Customize Sidebar Options for new Subaccounts to match the Design
+    if (type === 'subaccount') {
+      const desiredOptions = [
+        { name: 'Dashboard', icon: 'category', link: `/subaccount/${details?.id}/inventory/dashboard` },
+        { name: 'Products', icon: 'package', link: `/subaccount/${details?.id}/inventory` },
+        { name: 'Analytics', icon: 'analytics', link: `/subaccount/${details?.id}/inventory/analytics` },
+        { name: 'Reports', icon: 'chart', link: `/subaccount/${details?.id}/inventory/analytics` }, // Map to analytics for now
+        { name: 'Extensions', icon: 'extension', link: `/subaccount/${details?.id}/settings` }, // Map to settings for now
+        { name: 'Companies', icon: 'briefcase', link: `/subaccount/${details?.id}/contacts` }, // Map to contacts
+        { name: 'People', icon: 'person', link: `/subaccount/${details?.id}/contacts` }, // Map to contacts
+        { name: 'My Store', icon: 'cart', link: `/subaccount/${details?.id}/websites` }, // Map to websites
+        { name: 'Sell Offer', icon: 'ticket', link: `/subaccount/${details?.id}/finance` }, // Map to finance
+        // Keep essential functional links accessible if needed, or rely on them being added if missing
+        { name: 'Settings', icon: 'settings', link: `/subaccount/${details?.id}/settings` },
+      ]
 
-    // Add Messages option if not present
-    if (!sidebarOpt.find((opt) => opt.name === 'Messages')) {
-      sidebarOpt.push({
-        id: `sidebar-${details?.id}-messages`,
-        name: 'Messages',
-        icon: 'messages',
-        link: `/subaccount/${details?.id}/messages`,
-        subAccountId: details?.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
-    }
+      desiredOptions.forEach(opt => {
+        if (!sidebarOpt.find(existing => existing.name === opt.name)) {
+          sidebarOpt.push({
+            id: `sidebar-${details?.id}-${opt.name.toLowerCase().replace(/\s+/g, '-')}`,
+            name: opt.name,
+            icon: opt.icon,
+            link: opt.link,
+            subAccountId: details?.id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          } as any)
+        }
+      })
 
-    // Add Websites option if not present
-    if (!sidebarOpt.find((opt) => opt.name === 'Websites')) {
-      sidebarOpt.push({
-        id: `sidebar-${details?.id}-websites`,
-        name: 'Websites',
-        icon: 'globe',
-        link: `/subaccount/${details?.id}/websites`,
-        subAccountId: details?.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
-    }
-
-    // Add Funnels option if not present
-    /*
-    if (!sidebarOpt.find((opt) => opt.name === 'Funnels')) {
-      sidebarOpt.push({
-        id: `sidebar-${details?.id}-funnels`,
-        name: 'Funnels',
-        icon: 'pipelines',
-        link: `/subaccount/${details?.id}/funnels`,
-        subAccountId: details?.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
-    }
-    */
-
-    // Add Pipelines option if not present
-    if (!sidebarOpt.find((opt) => opt.name === 'Pipelines')) {
-      sidebarOpt.push({
-        id: `sidebar-${details?.id}-pipelines`,
-        name: 'Pipelines',
-        icon: 'kanban',
-        link: `/subaccount/${details?.id}/pipelines`,
-        subAccountId: details?.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
-    }
-
-    // Add Media option if not present
-    if (!sidebarOpt.find((opt) => opt.name === 'Media')) {
-      sidebarOpt.push({
-        id: `sidebar-${details?.id}-media`,
-        name: 'Media',
-        icon: 'image',
-        link: `/subaccount/${details?.id}/media`,
-        subAccountId: details?.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
-    }
-
-    // Add Campaigns option if not present
-    if (!sidebarOpt.find((opt) => opt.name === 'Campaigns')) {
-      sidebarOpt.push({
-        id: `sidebar-${details?.id}-campaigns`,
-        name: 'Campaigns',
-        icon: 'campaigns',
-        link: `/subaccount/${details?.id}/campaigns`,
-        subAccountId: details?.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
-    }
-
-    // Add Client Docs option if not present
-    if (!sidebarOpt.find((opt) => opt.name === 'Client Docs')) {
-      sidebarOpt.push({
-        id: `sidebar-${details?.id}-client-docs`,
-        name: 'Client Docs',
-        icon: 'document',
-        link: `/agency/${user.Agency.id}/client-docs?subaccountId=${details?.id}`,
-        subAccountId: details?.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
-    }
-
-    // Add Inventory Management options
-    const inventoryOptions = [
-      { name: 'product Dashboard', icon: 'chart', link: `/subaccount/${details?.id}/inventory` },
-      { name: 'Inventory', icon: 'package', link: `/subaccount/${details?.id}/inventory` },
-      { name: 'Orders', icon: 'receipt', link: `/subaccount/${details?.id}/orders` },
-      { name: 'Customer Details', icon: 'person', link: `/subaccount/${details?.id}/inventory/customers` },
-      { name: 'Revenue Analytics', icon: 'analytics', link: `/subaccount/${details?.id}/inventory/analytics` },
-    ]
-
-    inventoryOptions.forEach(opt => {
-      if (!sidebarOpt.find(existing => existing.name.toLowerCase() === opt.name.toLowerCase())) {
-        sidebarOpt.push({
-          id: `sidebar-${details?.id}-${opt.name.toLowerCase().replace(/\s+/g, '-')}`,
-          name: opt.name,
-          icon: opt.icon,
-          link: opt.link,
-          subAccountId: details?.id,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        } as any)
+      // Ensure 'Dashboard' is first
+      const dashboardIdx = sidebarOpt.findIndex(o => o.name === 'Dashboard')
+      if (dashboardIdx > -1) {
+        const [dashboard] = sidebarOpt.splice(dashboardIdx, 1)
+        sidebarOpt.unshift(dashboard)
       } else {
-        // If it exists but with the wrong name/case (e.g. 'inventory' instead of 'Inventory'), 
-        // we can update it to the preferred case if needed, but for dock matching we'll trust case-insensitive matching.
+        // If Overview exists, rename it or ensure Dashboard is there
+        const overviewIdx = sidebarOpt.findIndex(o => o.name === 'Overview')
+        if (overviewIdx > -1) {
+          sidebarOpt[overviewIdx].name = 'Dashboard'
+          sidebarOpt[overviewIdx].icon = 'category'
+        }
       }
-    })
+    }
   }
 
   if (!details) return
@@ -502,7 +388,6 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
   if (type === 'agency') {
     // If no sidebar options exist, create them on the fly
     if (!sidebarOpt || sidebarOpt.length === 0) {
-      console.log('🔧 No sidebar options found, creating fallback options for agency:', id)
       sidebarOpt = [
         {
           id: `sidebar-${id}-1`,
@@ -612,14 +497,21 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           agencyId: id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+        },
+        {
+          id: `sidebar-${id}-reports`,
+          name: 'Reports',
+          link: `/agency/${id}/reports`,
+          icon: 'chart',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         }
       ]
-      console.log('✅ Created fallback sidebar options:', sidebarOpt)
     } else {
       // Check for billing subpages
       const hasCurrentPlan = sidebarOpt.some((option: any) => option.name === 'Current Plan')
       if (!hasCurrentPlan) {
-        console.log('🔧 Adding Current Plan to existing sidebar options')
         // Replace old Billing if it exists
         const billingIndex = sidebarOpt.findIndex((option: any) => option.name === 'Billing')
         const newOpt = {
@@ -636,7 +528,6 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         } else {
           sidebarOpt.push(newOpt)
         }
-        console.log('✅ Added Current Plan to sidebar options')
       }
 
       const hasAvailablePlans = sidebarOpt.some((option: any) => option.name === 'Available Plans')
@@ -717,12 +608,27 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         })
       }
 
+
+
+      // Check if Reports is missing from existing options
+      const hasReports = sidebarOpt.some((option: any) => option.name === 'Reports')
+      if (!hasReports) {
+        sidebarOpt.push({
+          id: `sidebar-${id}-reports`,
+          name: 'Reports',
+          link: `/agency/${id}/reports`,
+          icon: 'chart',
+          agencyId: id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+
       // Check if Messages is missing from existing options
 
       // Check if Tasks is missing from existing options
       const hasTasks = sidebarOpt.some((option: any) => option.name === 'Tasks')
       if (!hasTasks) {
-        console.log('🔧 Adding Tasks to existing sidebar options')
         sidebarOpt.push({
           id: `sidebar-${id}-tasks`,
           name: 'Tasks',
@@ -732,7 +638,6 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
-        console.log('✅ Added Tasks to sidebar options')
       }
 
 
@@ -740,7 +645,6 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
       // Check if Client Docs is missing from existing options
       const hasClientDocs = sidebarOpt.some((option: any) => option.name === 'Client Docs')
       if (!hasClientDocs) {
-        console.log('🔧 Adding Client Docs to existing sidebar options')
         sidebarOpt.push({
           id: `sidebar-${id}-client-docs`,
           name: 'Client Docs',
@@ -750,7 +654,6 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
-        console.log('✅ Added Client Docs to sidebar options')
       }
     }
   }
@@ -759,7 +662,6 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
     const targetSubaccount = user.Agency.SubAccount.find((subaccount: any) => subaccount.id === id)
     // If no sidebar options exist, create them on the fly
     if (!sidebarOpt || sidebarOpt.length === 0) {
-      console.log('🔧 No sidebar options found, creating fallback options for subaccount:', id)
       sidebarOpt = [
         {
           id: `sub-sidebar-${id}-1`,
@@ -894,7 +796,6 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
       { name: 'Customer Details', icon: 'person', link: `/subaccount/${id}/inventory/customers` },
       { name: 'Revenue Analytics', icon: 'analytics', link: `/subaccount/${id}/inventory/analytics` },
     ]
-    console.log('💉 Injecting Inventory items for subaccount:', id)
     invItems.forEach(item => {
       if (!sidebarOpt.find((o: any) => o.name.toLowerCase() === item.name.toLowerCase())) {
         sidebarOpt.push({
@@ -906,6 +807,19 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         } as any)
       }
     })
+
+    // Ensure Reports is present for Subaccount
+    if (!sidebarOpt.find((o: any) => o.name === 'Reports')) {
+      sidebarOpt.push({
+        id: `sidebar-${id}-reports-sub`,
+        name: 'Reports',
+        link: `/subaccount/${id}/reports`,
+        icon: 'chart',
+        subAccountId: id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any)
+    }
   }
 
   // Inject Client Submenu items
@@ -1026,6 +940,30 @@ const Sidebar = async ({ id, type, defaultUser, userDetails, dashboards }: Props
         id: `docs-sub-${item.name.toLowerCase().replace(/\s+/g, '-')}-${id}`,
         name: item.name,
         icon: item.icon || 'file',
+        link: item.link,
+        agencyId: type === 'agency' ? id : undefined,
+        subAccountId: type === 'subaccount' ? id : undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any)
+    }
+  })
+
+  // Inject Reports Submenu items
+  const reportsSubmenusList = [
+    { name: 'Dashboard', link: type === 'agency' ? `/agency/${id}/reports` : `/subaccount/${id}/reports`, icon: 'chart' },
+    { name: 'Analytics', link: type === 'agency' ? `/agency/${id}/reports/analytics` : `/subaccount/${id}/reports/analytics`, icon: 'analytics' },
+    { name: 'Templates', link: type === 'agency' ? `/agency/${id}/reports/templates` : `/subaccount/${id}/reports/templates`, icon: 'document' },
+    { name: 'Scheduled', link: type === 'agency' ? `/agency/${id}/reports/scheduled` : `/subaccount/${id}/reports/scheduled`, icon: 'calendar' },
+    { name: 'Exports', link: type === 'agency' ? `/agency/${id}/reports/exports` : `/subaccount/${id}/reports/exports`, icon: 'receipt' },
+  ]
+
+  reportsSubmenusList.forEach(item => {
+    if (sidebarOpt && !sidebarOpt.find((o: any) => o.name === item.name)) {
+      sidebarOpt.push({
+        id: `reports-sub-${item.name.toLowerCase().replace(/\s+/g, '-')}-${id}`,
+        name: item.name,
+        icon: item.icon || 'chart',
         link: item.link,
         agencyId: type === 'agency' ? id : undefined,
         subAccountId: type === 'subaccount' ? id : undefined,

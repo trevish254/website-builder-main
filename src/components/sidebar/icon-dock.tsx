@@ -47,6 +47,7 @@ const ALL_MENU_CATEGORIES = [
     { id: 'tasks', icon: 'pipelines', label: 'Tasks', matchNames: ['All Tasks', 'Assigned to Me', 'Private', 'Status', 'Priority', 'Subaccounts', 'Activity', 'Tasks'] },
     { id: 'websites', icon: 'globe', label: 'Websites', matchNames: ['Websites'] },
     { id: 'docs', icon: 'document', label: 'Docs', matchNames: ['All Docs', 'Shared', 'Assigned', 'Requests', 'Templates', 'Docs'] },
+    { id: 'reports', icon: 'analytics', label: 'Reports', matchNames: ['Reports', 'Dashboard', 'Analytics', 'Templates', 'Scheduled', 'Exports'] },
     { id: 'automation', icon: 'settings', label: 'Automation', matchNames: ['Automations'] },
     { id: 'finance', icon: 'payment', label: 'Finance', matchNames: ['Finance'] },
     { id: 'upgrade', icon: 'rocket', label: 'Upgrade', matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing'] },
@@ -244,7 +245,10 @@ const IconDock = ({ sidebarOptions, logo, user, type }: Props) => {
             </div>
 
             {/* Pinned Category Icons */}
-            <div className="flex-1 flex flex-col gap-2 w-full px-2 overflow-y-auto no-scrollbar relative">
+            <div
+                className="flex-1 flex flex-col gap-2 w-full px-2 overflow-y-auto no-scrollbar relative"
+                data-lenis-prevent
+            >
                 {/* Fixed Home Icon */}
                 {homeCategory && (
                     <button

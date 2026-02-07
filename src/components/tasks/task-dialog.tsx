@@ -31,7 +31,7 @@ const TaskDialog = ({ open, setOpen, laneId }: Props) => {
                     <DialogDescription>Add a new task to your board.</DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 flex flex-col gap-4 overflow-y-auto p-1">
+                <div className="flex-1 flex flex-col gap-4 overflow-y-auto p-1" data-lenis-prevent>
                     <div className="grid w-full items-center gap-1.5">
                         <Label htmlFor="title">Title</Label>
                         <Input

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { sendEmail, htmlToText } from '@/lib/mailersend'
+import { sendEmail, htmlToText } from '@/lib/resend'
 
 export async function POST(request: NextRequest) {
   console.log('📬 POST /api/send-invitation-email called')
@@ -76,38 +76,40 @@ export async function POST(request: NextRequest) {
     const emailText = htmlToText(emailBody)
 
     // Get sender email and name from environment or use defaults
-    const senderEmail = process.env.SMTP_FROM_EMAIL || process.env.MAILERSEND_FROM_EMAIL || process.env.FROM_EMAIL || 'info@yourdomain.com'
+    const senderEmail = process.env.SMTP_FROM_EMAIL || process.env.MAILERSEND_FROM_EMAIL || process.env.FROM_EMAIL || 'onboarding@resend.dev'
     const senderName = process.env.SMTP_FROM_NAME || process.env.MAILERSEND_FROM_NAME || process.env.FROM_NAME || 'Chapabiz'
 
-    // Send email using SMTP
-    console.log('📧 Attempting to send email via SMTP...', {
+    // Construct the "From" header
+    const fromAddress = senderEmail === 'onboarding@resend.dev' ? 'onboarding@resend.dev' : `${senderName} <${senderEmail}>`
+
+    // Send email using Resend
+    console.log('📧 Attempting to send email via Resend...', {
       to: email,
-      from: senderEmail,
+      from: fromAddress,
       subject: emailSubject,
     })
     try {
-      const result = await sendEmail({
+      const { data, error } = await sendEmail({
         to: email,
-        from: {
-          email: senderEmail,
-          name: senderName,
-        },
+        from: fromAddress,
         subject: emailSubject,
         html: emailBody,
         text: emailText,
-        replyTo: {
-          email: senderEmail,
-          name: senderName,
-        },
+        replyTo: fromAddress,
       })
 
+      if (error) {
+        console.error('❌ Resend API Error:', error)
+        throw new Error(error.message)
+      }
+
       console.log('✅ Invitation email sent successfully to:', email)
-      console.log('📧 Message ID:', result.messageId)
+      console.log('📧 Message ID:', data?.id)
 
       return NextResponse.json({
         success: true,
         message: 'Invitation email sent successfully',
-        messageId: result.messageId,
+        messageId: data?.id,
       })
     } catch (emailError: any) {
       console.error('❌ Error sending invitation email:', emailError)

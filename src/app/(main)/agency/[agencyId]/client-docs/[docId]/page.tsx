@@ -8,6 +8,8 @@ type Props = {
 
 const ClientDocEditorPage = async ({ params }: Props) => {
     const doc = await getClientDocDetails(params.docId)
+    // Force rebuild
+
 
     if (!doc) {
         return redirect(`/agency/${params.agencyId}/client-docs`)

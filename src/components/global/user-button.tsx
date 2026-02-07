@@ -121,7 +121,7 @@ const UserButton = ({ user: initialUser }: Props) => {
                     </div>
 
                     {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8" data-lenis-prevent>
 
                         {/* Preferences */}
                         <div className="space-y-4">

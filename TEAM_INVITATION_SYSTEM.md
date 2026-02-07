@@ -71,57 +71,31 @@ Once the invitation is accepted, the teammate:
 - ✅ Can view and manage based on their assigned role
 - ✅ Can be assigned to specific subaccounts if needed
 
-## 📧 Email Setup (Required)
+## 📧 Email Setup (Completed)
 
 ### Current Status
 - ✅ Email API route created: `src/app/api/send-invitation-email/route.ts`
 - ✅ Email template with invitation link ready
-- ⚠️ **Email service integration needed**
+- ✅ **Email service integration completed (Resend)**
 
-### Integration Options
+### Configuration
+- Provider: **Resend**
+- API Key: Configured in `.env`
+- Utility: `src/lib/resend.ts`
 
-#### Option 1: Resend (Recommended - Easy Setup)
-1. Sign up at [resend.com](https://resend.com)
-2. Get API key
-3. Install: `bun add resend`
-4. Update `src/app/api/send-invitation-email/route.ts`:
+### How it works
+The `send-invitation-email` API route uses the `src/lib/resend.ts` utility to send emails via Resend.
+It automatically handles:
+- HTML content (invitation template)
+- Plain text generation
+- Sending to the recipient
 
-```typescript
-import { Resend } from 'resend'
-const resend = new Resend(process.env.RESEND_API_KEY)
+### Environment Variables
+The `RESEND_API_KEY` is already set in your `.env` file.
+You can optionally configure:
+- `SMTP_FROM_EMAIL` or `FROM_EMAIL`: The sender email address (default: `onboarding@resend.dev`)
+- `SMTP_FROM_NAME` or `FROM_NAME`: The sender name (default: `Chapabiz`)
 
-await resend.emails.send({
-  from: 'noreply@yourdomain.com', // Must be verified domain
-  to: email,
-  subject: emailSubject,
-  html: emailBody,
-})
-```
-
-#### Option 2: SendGrid
-1. Sign up at [sendgrid.com](https://sendgrid.com)
-2. Get API key
-3. Install: `bun add @sendgrid/mail`
-4. Update API route similarly
-
-#### Option 3: AWS SES
-1. Configure AWS SES
-2. Use AWS SDK to send emails
-
-#### Option 4: Nodemailer (SMTP)
-1. Use any SMTP provider (Gmail, SendGrid SMTP, etc.)
-2. Install: `bun add nodemailer`
-3. Configure SMTP settings
-
-### Environment Variables Needed
-
-Add to your `.env.local`:
-```env
-RESEND_API_KEY=your_resend_api_key
-# OR
-SENDGRID_API_KEY=your_sendgrid_api_key
-# OR configure SMTP settings
-```
 
 ## 🎯 Where to Use the Invitation Form
 

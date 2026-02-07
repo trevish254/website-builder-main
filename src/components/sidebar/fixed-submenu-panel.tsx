@@ -44,17 +44,19 @@ type Props = {
 const ALL_MENU_CATEGORIES = [
     { id: 'home', label: 'Home', matchNames: ['Overview', 'Launchpad'] },
     { id: 'dashboard', label: 'Dashboard', matchNames: ['Dashboards'] },
-    { id: 'inventory', label: 'Inventory', matchNames: ['product Dashboard', 'Inventory', 'Orders', 'Order', 'Customer Details', 'Revenue Analytics'] },
-    { id: 'clients', label: 'Clients', matchNames: ['Assigned to me', 'Private', 'All Clients', 'Sub Accounts', 'Client Profiles', 'Engagement', 'Client Insights'] },
-    { id: 'team', label: 'Teams', matchNames: ['All Members', 'Roles & Permissions', 'Availability', 'Workload', 'Performance', 'Activity Logs', 'Invites', 'Team', 'Contacts'] },
+    { id: 'inventory', label: 'Products', matchNames: ['product Dashboard', 'Inventory', 'Products', 'Orders', 'Order', 'Customer Details', 'Revenue Analytics'] },
+    { id: 'clients', label: 'Communities', matchNames: ['Assigned to me', 'Private', 'All Clients', 'Sub Accounts', 'Client Profiles', 'Engagement', 'Client Insights', 'People', 'Companies', 'Contacts'] },
+    { id: 'team', label: 'Teams', matchNames: ['All Members', 'Roles & Permissions', 'Availability', 'Workload', 'Performance', 'Activity Logs', 'Invites', 'Team'] },
     { id: 'messages', label: 'Messages', matchNames: ['Inbox', 'Conversations', 'Internal', 'Subaccounts', 'Automated', 'Announcements', 'System', 'Messages'] },
     { id: 'pipelines', label: 'Pipelines', matchNames: ['Pipelines'] },
     { id: 'media', label: 'Media', matchNames: ['Media'] },
+    { id: 'campaigns', label: 'Campaigns', matchNames: ['Campaigns'] },
     { id: 'tasks', label: 'Tasks', matchNames: ['All Tasks', 'Assigned to Me', 'Private', 'Status', 'Priority', 'Subaccounts', 'Activity', 'Tasks'] },
-    { id: 'websites', label: 'Websites', matchNames: ['Websites'] },
+    { id: 'websites', label: 'Websites', matchNames: ['Websites', 'My Store'] },
     { id: 'docs', label: 'Docs', matchNames: ['All Docs', 'Shared', 'Assigned', 'Requests', 'Templates', 'Docs'] },
+    { id: 'reports', label: 'Reports', matchNames: ['Reports', 'Dashboard', 'Analytics', 'Templates', 'Scheduled', 'Exports'] },
     { id: 'automation', label: 'Automation', matchNames: ['Automations'] },
-    { id: 'finance', label: 'Finance', matchNames: ['Finance'] },
+    { id: 'finance', label: 'Finance', matchNames: ['Finance', 'Sell Offer'] },
     { id: 'upgrade', label: 'Upgrade', matchNames: ['Current Plan', 'Available Plans', 'Billing History', 'Invoices', 'Payment Methods', 'Add-ons', 'Billing'] },
     { id: 'calendar', label: 'Calendar', matchNames: ['Calendar'] }
 ]
@@ -501,7 +503,7 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
 
                         <div className="space-y-0.5">
                             {[
-                                { name: 'product Dashboard', icon: LayoutGrid, link: `/subaccount/${details?.id || 'id'}/inventory` },
+                                { name: 'product Dashboard', icon: LayoutGrid, link: `/subaccount/${details?.id || 'id'}/inventory/dashboard` },
                                 { name: 'Inventory', icon: Package, link: `/subaccount/${details?.id || 'id'}/inventory` },
                                 { name: 'Orders', icon: Receipt, link: `/subaccount/${details?.id || 'id'}/orders` },
                                 { name: 'Customer Details', icon: Users, link: `/subaccount/${details?.id || 'id'}/inventory/customers` },
@@ -532,6 +534,59 @@ const FixedSubmenuPanel = ({ sidebarOptions, subAccounts, user, details, agencyI
                                     </Link>
                                 )
                             })}
+                        </div>
+                    </div>
+                ) : displayCategory === 'reports' ? (
+                    <div className="space-y-3">
+                        <Link href={type === 'agency' ? `/agency/${currentAgencyId}/reports` : `/subaccount/${details?.id}/reports`} className="block">
+                            <Button
+                                className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                                size="sm"
+                            >
+                                <TrendingUp className="w-4 h-4" />
+                                <span className="text-sm font-medium">View All Reports</span>
+                            </Button>
+                        </Link>
+
+                        <div className="space-y-0.5">
+                            <div className="px-2 py-1">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Quick Access</p>
+                            </div>
+                            {filteredOptions.length > 0 ? (
+                                filteredOptions.map((option) => {
+                                    const result = icons.find(icon => icon.value === option.icon)
+                                    const IconComponent = result?.path || Settings
+                                    const isActive = pathname.includes(option.link)
+
+                                    return (
+                                        <Link
+                                            key={option.id}
+                                            href={option.link}
+                                            className={cn(
+                                                'flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-gray-100 dark:hover:bg-gray-800',
+                                                isActive && 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary'
+                                            )}
+                                        >
+                                            <IconComponent
+                                                className={cn(
+                                                    'w-4 h-4',
+                                                    isActive ? 'text-primary dark:text-primary' : 'text-gray-600 dark:text-gray-400'
+                                                )}
+                                            />
+                                            <span className={cn(
+                                                'text-sm',
+                                                isActive ? 'text-primary dark:text-primary font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            )}>
+                                                {option.name}
+                                            </span>
+                                        </Link>
+                                    )
+                                })
+                            ) : (
+                                <div className="p-4 text-center">
+                                    <p className="text-xs text-gray-500 italic">No report options found.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ) : displayCategory === 'upgrade' ? (

@@ -43,6 +43,9 @@ import {
   Rocket,
   Package,
   Megaphone,
+  ShoppingCart,
+  Puzzle,
+  Ticket,
 } from 'lucide-react'
 
 export const pricingCards = [
@@ -305,6 +308,21 @@ export const icons = [
     value: 'campaigns',
     label: 'Campaigns',
     path: Megaphone,
+  },
+  {
+    value: 'cart',
+    label: 'Cart',
+    path: ShoppingCart,
+  },
+  {
+    value: 'extension',
+    label: 'Extension',
+    path: Puzzle,
+  },
+  {
+    value: 'ticket',
+    label: 'Ticket',
+    path: Ticket,
   },
 ]
 

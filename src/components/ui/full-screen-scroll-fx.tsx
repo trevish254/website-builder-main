@@ -10,12 +10,12 @@ import React, {
     useRef,
     useState,
 } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+// Use type-only imports for TS safety without bundling
+import type { gsap as gsapType } from "gsap";
+import type { ScrollTrigger as STType } from "gsap/ScrollTrigger";
 
-if (typeof window !== "undefined") {
-    gsap.registerPlugin(ScrollTrigger);
-}
+let gsap: typeof gsapType;
+let ScrollTrigger: typeof STType;
 
 type Section = {
     id?: string;
@@ -231,67 +231,86 @@ export const FullScreenScrollFX = forwardRef<HTMLDivElement, FullScreenFXProps>(
         // ScrollTrigger for pinning + index step detection
         useLayoutEffect(() => {
             if (typeof window === "undefined") return;
-            const fixed = fixedRef.current;
-            const fs = fixedSectionRef.current;
-            if (!fixed || !fs || total === 0) return;
 
-            // initial bg states
-            gsap.set(bgRefs.current, { opacity: 0, scale: 1.04, yPercent: 0 });
-            if (bgRefs.current[0]) gsap.set(bgRefs.current[0], { opacity: 1, scale: 1 });
+            let isCancelled = false;
+            let resizeObserver: ResizeObserver | null = null;
 
-            // initial center words
-            wordRefs.current.forEach((words, sIdx) => {
-                words.forEach((w) => {
-                    gsap.set(w, {
-                        yPercent: sIdx === index ? 0 : 100,
-                        opacity: sIdx === index ? 1 : 0,
+            const init = async () => {
+                const gsapPkg = await import("gsap");
+                const STPkg = await import("gsap/ScrollTrigger");
+
+                if (isCancelled) return;
+
+                gsap = gsapPkg.gsap || gsapPkg.default || gsapPkg;
+                ScrollTrigger = STPkg.ScrollTrigger || STPkg.default || STPkg;
+
+                gsap.registerPlugin(ScrollTrigger);
+
+                const fixed = fixedRef.current;
+                const fs = fixedSectionRef.current;
+                if (!fixed || !fs || total === 0) return;
+
+                // initial bg states
+                gsap.set(bgRefs.current, { opacity: 0, scale: 1.04, yPercent: 0 });
+                if (bgRefs.current[0]) gsap.set(bgRefs.current[0], { opacity: 1, scale: 1 });
+
+                // initial center words
+                wordRefs.current.forEach((words, sIdx) => {
+                    words.forEach((w) => {
+                        gsap.set(w, {
+                            yPercent: sIdx === index ? 0 : 100,
+                            opacity: sIdx === index ? 1 : 0,
+                        });
                     });
                 });
-            });
 
-            computePositions();
-            measureAndCenterLists(index, false);
+                computePositions();
+                measureAndCenterLists(index, false);
 
-            const st = ScrollTrigger.create({
-                trigger: fs,
-                start: "top top",
-                end: "bottom bottom",
-                pin: fixed,
-                pinSpacing: true,
-                onUpdate: (self) => {
-                    if (motionOff || isSnappingRef.current) return;
-                    const prog = self.progress;
-                    const target = Math.min(total - 1, Math.floor(prog * total));
-                    if (target !== lastIndexRef.current && !isAnimatingRef.current) {
-                        const next = lastIndexRef.current + (target > lastIndexRef.current ? 1 : -1);
-                        // programmatic one-step snap without extra sound
-                        goTo(next, false);
-                    }
-                    if (progressFillRef.current) {
-                        const p = (lastIndexRef.current / (total - 1 || 1)) * 100;
-                        progressFillRef.current.style.width = `${p}%`;
-                    }
-                },
-            });
+                const st = ScrollTrigger.create({
+                    trigger: fs,
+                    start: "top top",
+                    end: "bottom bottom",
+                    pin: fixed,
+                    pinSpacing: true,
+                    onUpdate: (self) => {
+                        if (motionOff || isSnappingRef.current) return;
+                        const prog = self.progress;
+                        const target = Math.min(total - 1, Math.floor(prog * total));
+                        if (target !== lastIndexRef.current && !isAnimatingRef.current) {
+                            const next = lastIndexRef.current + (target > lastIndexRef.current ? 1 : -1);
+                            // programmatic one-step snap without extra sound
+                            goTo(next, false);
+                        }
+                        if (progressFillRef.current) {
+                            const p = (lastIndexRef.current / (total - 1 || 1)) * 100;
+                            progressFillRef.current.style.width = `${p}%`;
+                        }
+                    },
+                });
 
-            stRef.current = st;
+                stRef.current = st;
 
-            // initial jump if needed
-            if (initialIndex && initialIndex > 0 && initialIndex < total) {
-                requestAnimationFrame(() => goTo(initialIndex, false));
+                // initial jump if needed
+                if (initialIndex && initialIndex > 0 && initialIndex < total) {
+                    requestAnimationFrame(() => goTo(initialIndex, false));
+                }
+
+                // handle resize
+                resizeObserver = new ResizeObserver(() => {
+                    computePositions();
+                    measureAndCenterLists(lastIndexRef.current, false);
+                    (ScrollTrigger as any).refresh();
+                });
+                resizeObserver.observe(fs);
             }
 
-            // handle resize
-            const ro = new ResizeObserver(() => {
-                computePositions();
-                measureAndCenterLists(lastIndexRef.current, false);
-                ScrollTrigger.refresh();
-            });
-            ro.observe(fs);
+            init();
 
             return () => {
-                ro.disconnect();
-                st.kill();
+                isCancelled = true;
+                if (stRef.current) stRef.current.kill();
+                if (resizeObserver) resizeObserver.disconnect();
                 stRef.current = null;
             };
             // eslint-disable-next-line react-hooks/exhaustive-deps
