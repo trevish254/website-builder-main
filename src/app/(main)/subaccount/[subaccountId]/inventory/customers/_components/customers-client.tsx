@@ -33,6 +33,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import { useModal } from '@/providers/modal-provider'
+import CustomModal from '@/components/global/custom-modal'
+import CustomerDetailForm from '@/components/forms/customer-detail-form'
 
 type Customer = {
     id: string
@@ -51,6 +54,7 @@ type Props = {
 }
 
 const CustomersClient = ({ customers, subaccountId }: Props) => {
+    const { setOpen } = useModal()
     const [searchTerm, setSearchTerm] = useState('')
 
     const filteredCustomers = customers.filter(
@@ -217,11 +221,27 @@ const CustomersClient = ({ customers, subaccountId }: Props) => {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end items-center gap-2">
-                                            <Link href={`/subaccount/${subaccountId}/inventory/customers/${customer.id}`}>
-                                                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 font-bold hover:bg-primary/10 hover:text-primary">
-                                                    View Details <ArrowUpRight size={14} />
-                                                </Button>
-                                            </Link>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 font-bold hover:bg-primary/10 hover:text-primary"
+                                                onClick={() => {
+                                                    setOpen(
+                                                        <CustomModal
+                                                            title="Customer Profile"
+                                                            subheading="View and edit customer details, contact information, and account status."
+                                                            className="max-w-2xl"
+                                                        >
+                                                            <CustomerDetailForm
+                                                                subaccountId={subaccountId}
+                                                                customer={customer}
+                                                            />
+                                                        </CustomModal>
+                                                    )
+                                                }}
+                                            >
+                                                View Details <ArrowUpRight size={14} />
+                                            </Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
