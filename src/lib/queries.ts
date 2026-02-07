@@ -4084,22 +4084,30 @@ export const getCustomersWithStats = async (subAccountId: string) => {
 
   if (contactsError) {
     console.error('Error fetching contacts:', contactsError)
-    return []
+    // Don't return [], continue to try and get from orders
   }
 
   // 2. Fetch all orders to aggregate
   const { data: orders, error: ordersError } = await supabase
     .from('Order')
-    .select('customerEmail, totalPrice, paymentStatus, orderStatus, createdAt')
+    .select('customerEmail, customerName, totalPrice, paymentStatus, orderStatus, createdAt')
     .eq('subAccountId', subAccountId)
 
   if (ordersError) {
     console.error('Error fetching orders for stats:', ordersError)
   }
 
-  // 3. Aggregate data
-  const customers = contacts.map(contact => {
-    const contactOrders = orders?.filter(o => o.customerEmail === contact.email) || []
+  // 3. Get all unique emails from both contacts and orders
+  const contactEmails = contacts?.map(c => c.email.toLowerCase()) || []
+  const orderEmails = [...new Set(orders?.map(o => o.customerEmail?.toLowerCase()).filter(Boolean))] as string[]
+
+  const allEmails = [...new Set([...contactEmails, ...orderEmails])]
+
+  // 4. Map to customer objects
+  const customers = allEmails.map(email => {
+    const contact = contacts?.find(c => c.email.toLowerCase() === email)
+    const contactOrders = orders?.filter(o => o.customerEmail?.toLowerCase() === email) || []
+
     const totalSpent = contactOrders
       .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'Success' || o.paymentStatus === 'Completed')
       .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0)
@@ -4108,69 +4116,124 @@ export const getCustomersWithStats = async (subAccountId: string) => {
       ? contactOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt
       : null
 
+    // If no contact, use info from the latest order
+    const latestOrder = contactOrders.length > 0
+      ? contactOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+      : null
+
     return {
-      ...contact,
+      id: contact?.id || `temp-${email}`,
+      name: contact?.name || latestOrder?.customerName || email.split('@')[0],
+      email: email,
       totalSpent,
       orderCount: contactOrders.length,
       lastOrderDate,
-      status: contactOrders.length > 0 ? 'Active' : 'Lead'
+      status: contactOrders.length > 0 ? 'Active' : 'Lead',
+      createdAt: contact?.createdAt || latestOrder?.createdAt || new Date().toISOString()
     }
   })
 
-  return customers
+  // Sort by most recent interaction or creation
+  return customers.sort((a, b) => {
+    const dateA = a.lastOrderDate || a.createdAt
+    const dateB = b.lastOrderDate || b.createdAt
+    return new Date(dateB).getTime() - new Date(dateA).getTime()
+  })
 }
 
-export const getCustomerDetails = async (contactId: string) => {
-  // Fetch basic contact info
+
+export const getCustomerDetails = async (idOrEmail: string) => {
+  // Clean up ID if it's a temporary one
+  const cleanId = idOrEmail.startsWith('temp-') ? idOrEmail.replace('temp-', '') : idOrEmail
+
+  // 1. Try to find basic contact info
   const { data: contact, error: contactError } = await supabase
     .from('Contact')
     .select('*')
-    .or(`id.eq.${contactId},email.eq.${contactId}`)
-    .single()
+    .or(`id.eq.${cleanId},email.eq.${cleanId}`)
+    .maybeSingle()
 
-  if (contactError || !contact) {
-    console.error('Error fetching customer details:', contactError)
-    return null
+  if (contactError) {
+    console.error('Error fetching contact details:', contactError)
   }
 
-  // Fetch orders
-  const { data: orders, error: ordersError } = await supabase
-    .from('Order')
-    .select(`
-      *,
-      OrderItem (
-        *,
-        Product (*)
-      )
-    `)
-    .eq('customerEmail', contact.email)
-    .order('createdAt', { ascending: false })
+  // 2. Fetch orders (use email from contact or treat cleanId as email if no contact)
+  const lookupEmail = contact?.email || (cleanId.includes('@') ? cleanId : null)
 
-  // Fetch tickets
-  const { data: tickets, error: ticketsError } = await supabase
-    .from('Ticket')
-    .select(`
-      *,
-      Lane (
-        name,
-        Pipeline (name)
-      )
-    `)
-    .eq('customerId', contactId)
+  let orders: any[] = []
+  if (lookupEmail) {
+    const { data: ordersData } = await supabase
+      .from('Order')
+      .select(`
+        *,
+        OrderItem (
+          *,
+          Product (*)
+        )
+      `)
+      .eq('customerEmail', lookupEmail)
+      .order('createdAt', { ascending: false })
+    orders = ordersData || []
+  }
+
+  // 3. Fetch tickets
+  let tickets: any[] = []
+  if (contact?.id || !cleanId.includes('@')) {
+    const { data: ticketsData } = await supabase
+      .from('Ticket')
+      .select(`
+        *,
+        Lane (
+          name,
+          Pipeline (name)
+        )
+      `)
+      .eq('customerId', contact?.id || cleanId)
+    tickets = ticketsData || []
+  }
+
+  // 4. If no contact found but we have orders, create a virtual profile
+  if (!contact && orders.length > 0) {
+    const latestOrder = orders[0]
+    const virtualContact = {
+      id: `temp-${lookupEmail}`,
+      name: latestOrder.customerName || lookupEmail?.split('@')[0] || 'Unknown Customer',
+      email: lookupEmail || 'Unknown Email',
+      subAccountId: latestOrder.subAccountId,
+      createdAt: latestOrder.createdAt,
+      updatedAt: latestOrder.createdAt,
+    }
+
+    return {
+      ...virtualContact,
+      orders: orders,
+      tickets: tickets,
+      stats: {
+        totalSpent: orders
+          .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'Success')
+          .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0),
+        orderCount: orders.length,
+        openTickets: tickets.length,
+      }
+    }
+  }
+
+  if (!contact) return null
 
   return {
     ...contact,
-    orders: orders || [],
-    tickets: tickets || [],
+    orders: orders,
+    tickets: tickets,
     stats: {
-      totalSpent: (orders || [])
+      totalSpent: orders
         .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'Success')
         .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0),
-      orderCount: orders?.length || 0,
-      openTickets: tickets?.filter(t => t.laneId !== 'done').length || 0, // Fallback logic
+      orderCount: orders.length,
+      openTickets: tickets.length,
     }
   }
 }
+
 
 export const getRevenueAnalyticsData = async (subAccountId: string) => {
   const { data: orders, error } = await supabase

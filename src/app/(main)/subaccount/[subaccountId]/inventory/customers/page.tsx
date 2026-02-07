@@ -8,7 +8,7 @@ type Props = {
 }
 
 const CustomersPage = async ({ params }: Props) => {
-    const customers = await getCustomersWithStats(params.subaccountId)
+    const customers = (await getCustomersWithStats(params.subaccountId)) || []
 
     return (
         <BlurPage>
