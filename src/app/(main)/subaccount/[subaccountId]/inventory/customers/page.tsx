@@ -1,5 +1,5 @@
 import BlurPage from '@/components/global/blur-page'
-import { getCustomersWithStats } from '@/lib/queries'
+import { getCustomersWithStats, getRevenueAnalyticsData, getSubaccountDetails } from '@/lib/queries'
 import React from 'react'
 import CustomersClient from './_components/customers-client'
 
@@ -8,13 +8,19 @@ type Props = {
 }
 
 const CustomersPage = async ({ params }: Props) => {
-    const customers = (await getCustomersWithStats(params.subaccountId)) || []
+    const [customers, analytics, subaccount] = await Promise.all([
+        getCustomersWithStats(params.subaccountId),
+        getRevenueAnalyticsData(params.subaccountId),
+        getSubaccountDetails(params.subaccountId)
+    ])
 
     return (
         <BlurPage>
             <CustomersClient
-                customers={customers}
+                customers={customers || []}
                 subaccountId={params.subaccountId}
+                analytics={analytics}
+                subaccount={subaccount}
             />
         </BlurPage>
     )
