@@ -1,6 +1,6 @@
 
 import React from 'react'
-import { ReportsClient } from '../../agency/[agencyId]/reports/_components/reports-client'
+import { ReportsClient } from '@/app/(main)/agency/[agencyId]/reports/_components/reports-client'
 import { supabase } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 
