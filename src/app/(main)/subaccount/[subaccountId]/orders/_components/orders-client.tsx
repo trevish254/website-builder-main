@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import Link from 'next/link'
 import {
     Table,
     TableBody,
@@ -745,7 +746,12 @@ const OrdersClient = ({
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-sm"><User className="size-4" /></div>
                                                     <div className="flex flex-col gap-0.5">
-                                                        <span className="text-sm font-black text-foreground uppercase tracking-tight leading-none">{order.customerName || 'Anonymous Client'}</span>
+                                                        <Link
+                                                            href={`/subaccount/${subAccountId}/inventory/customers/${order.customerEmail}`} // We'll use email as fallback if id is missing, but better to fetch it
+                                                            className="hover:underline"
+                                                        >
+                                                            <span className="text-sm font-black text-foreground uppercase tracking-tight leading-none transition-colors hover:text-primary">{order.customerName || 'Anonymous Client'}</span>
+                                                        </Link>
                                                         <span className="text-[10px] font-bold text-primary/80 flex items-center gap-1.5 opacity-70 tracking-wider">#{order.orderId?.toUpperCase() || 'N/A'}</span>
                                                     </div>
                                                 </div>

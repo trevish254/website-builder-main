@@ -4125,7 +4125,7 @@ export const getCustomerDetails = async (contactId: string) => {
   const { data: contact, error: contactError } = await supabase
     .from('Contact')
     .select('*')
-    .eq('id', contactId)
+    .or(`id.eq.${contactId},email.eq.${contactId}`)
     .single()
 
   if (contactError || !contact) {
@@ -4169,5 +4169,75 @@ export const getCustomerDetails = async (contactId: string) => {
       orderCount: orders?.length || 0,
       openTickets: tickets?.filter(t => t.laneId !== 'done').length || 0, // Fallback logic
     }
+  }
+}
+
+export const getRevenueAnalyticsData = async (subAccountId: string) => {
+  const { data: orders, error } = await supabase
+    .from('Order')
+    .select(`
+      *,
+      OrderItem (
+        *,
+        Product (*)
+      )
+    `)
+    .eq('subAccountId', subAccountId)
+    .order('createdAt', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching analytics data:', error)
+    return null
+  }
+
+  // Process data for charts
+  const totalRevenue = orders
+    .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'Success')
+    .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0)
+
+  const orderCount = orders.length
+  const uniqueCustomers = new Set(orders.map(o => o.customerEmail)).size
+
+  // Revenue by month (last 6 months)
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - i)
+    return d.toLocaleString('default', { month: 'short' })
+  }).reverse()
+
+  const revenueByMonth = last6Months.map(month => {
+    const monthOrders = orders.filter(o => {
+      const d = new Date(o.createdAt)
+      return d.toLocaleString('default', { month: 'short' }) === month &&
+        (o.paymentStatus === 'Paid' || o.paymentStatus === 'Success')
+    })
+    return {
+      name: month,
+      value: monthOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0)
+    }
+  })
+
+  // Revenue by Category
+  const categoryMap: Record<string, number> = {}
+  orders.forEach(order => {
+    order.OrderItem?.forEach((item: any) => {
+      const category = item.Product?.category || 'Uncategorized'
+      categoryMap[category] = (categoryMap[category] || 0) + (Number(item.price) * (item.quantity || 1))
+    })
+  })
+
+  const revenueByCategory = Object.entries(categoryMap).map(([name, value]) => ({
+    name,
+    value,
+    percentage: totalRevenue > 0 ? Math.round((value / totalRevenue) * 100) : 0
+  })).sort((a, b) => b.value - a.value).slice(0, 4)
+
+  return {
+    totalRevenue,
+    orderCount,
+    uniqueCustomers,
+    revenueByMonth,
+    revenueByCategory,
+    rawOrders: orders.slice(-10) // last 10 for recent activity
   }
 }

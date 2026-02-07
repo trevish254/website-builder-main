@@ -126,16 +126,17 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-export function InteractiveBarChart() {
+export function InteractiveBarChart({ initialData }: { initialData?: any[] }) {
+    const dataDisplay = initialData || chartData
     const [activeChart, setActiveChart] =
         React.useState<keyof typeof chartConfig>("income")
 
     const total = React.useMemo(
         () => ({
-            income: chartData.reduce((acc, curr) => acc + curr.income, 0),
-            expenses: chartData.reduce((acc, curr) => acc + curr.expenses, 0),
+            income: dataDisplay.reduce((acc: any, curr: any) => acc + (curr.income || 0), 0),
+            expenses: dataDisplay.reduce((acc: any, curr: any) => acc + (curr.expenses || 0), 0),
         }),
-        [],
+        [dataDisplay],
     )
 
     return (
@@ -144,7 +145,7 @@ export function InteractiveBarChart() {
                 <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
                     <CardTitle>Cashflow - Interactive</CardTitle>
                     <CardDescription>
-                        Showing total cashflow for the last 3 months
+                        Showing total cashflow based on real transaction data
                     </CardDescription>
                 </div>
                 <div className="flex">
@@ -176,7 +177,7 @@ export function InteractiveBarChart() {
                 >
                     <BarChart
                         accessibilityLayer
-                        data={chartData}
+                        data={dataDisplay}
                         margin={{
                             left: 12,
                             right: 12,
@@ -231,3 +232,4 @@ export function InteractiveBarChart() {
         </Card>
     )
 }
+

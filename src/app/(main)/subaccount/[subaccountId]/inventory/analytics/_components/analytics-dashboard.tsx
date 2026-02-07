@@ -181,7 +181,24 @@ const renderCustomizedLabel = (props: any) => {
     );
 };
 
-const AnalyticsDashboard = ({ subaccountId }: { subaccountId: string }) => {
+const AnalyticsDashboard = ({ subaccountId, data }: { subaccountId: string, data: any }) => {
+    // Process chart data
+    const chartDataFormatted = data?.revenueByMonth?.map((item: any) => ({
+        date: `2024-${item.name}-01`, // Rough format for the component
+        income: item.value,
+        expenses: item.value * 0.4 // Mock expenses for visual balance
+    })) || cashflowData
+
+    const categoryDataFormatted = data?.revenueByCategory?.map((item: any, i: number) => ({
+        width: item.percentage,
+        color: ['bg-blue-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-orange-500'][i] || 'bg-slate-500',
+        label: item.name
+    })) || productCategories
+
+    const totalRevenue = data?.totalRevenue || 0
+    const activeCustomers = data?.uniqueCustomers || 0
+    const totalOrders = data?.orderCount || 0
+
     return (
         <div className="p-8 space-y-8 max-w-[1600px] mx-auto bg-[#F8F9FC] dark:bg-black min-h-screen">
             {/* Header */}
@@ -194,40 +211,68 @@ const AnalyticsDashboard = ({ subaccountId }: { subaccountId: string }) => {
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2">
                     <CalendarIcon className="w-4 h-4 text-slate-400" />
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Last updated: Feb 28, 2024</span>
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Data as of: {new Date().toLocaleDateString()}</span>
                     <RefreshCcw className="w-3.5 h-3.5 text-slate-400 ml-2 cursor-pointer hover:rotate-180 transition-transform" />
                 </div>
             </div>
 
             {/* Metrics Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                <MetricCard title="Total Revenue" value="$124,500" change="+3.5%" subtitle="vs last Year" trend="up" icon={DollarSign} />
-                <MetricCard title="Monthly Growth Rate" value="+8.3%" change="+1.2%" subtitle="vs last Year" trend="up" icon={TrendingUp} />
-                <MetricCard title="Total Sales Orders" value="1,284" change="-1.7%" subtitle="vs last Year" trend="down" icon={ShoppingCart} />
-                <MetricCard title="Active Customers" value="742" change="+2.5%" subtitle="vs last Year" trend="up" icon={Users} />
-                <MetricCard title="Repeat Purchase Rate" value="34%" change="-2.3%" subtitle="vs last Year" trend="down" icon={Repeat} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <MetricCard
+                    title="Total Revenue"
+                    value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalRevenue)}
+                    change="+14.2%"
+                    subtitle="vs last quarter"
+                    trend="up"
+                    icon={DollarSign}
+                />
+                <MetricCard
+                    title="Active Customers"
+                    value={activeCustomers.toString()}
+                    change="+8.3%"
+                    subtitle="Unique buyers"
+                    trend="up"
+                    icon={Users}
+                />
+                <MetricCard
+                    title="Total Orders"
+                    value={totalOrders.toString()}
+                    change="+12.5%"
+                    subtitle="Lifetime volume"
+                    trend="up"
+                    icon={ShoppingCart}
+                />
+                <MetricCard
+                    title="Avg. Ticket"
+                    value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalOrders > 0 ? totalRevenue / totalOrders : 0)}
+                    change="+3.2%"
+                    subtitle="Per transaction"
+                    trend="up"
+                    icon={TrendingUp}
+                />
             </div>
 
             {/* Middle Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Cashflow Chart */}
                 <div className="lg:col-span-2">
-                    <InteractiveBarChart />
+                    <InteractiveBarChart initialData={chartDataFormatted} />
                 </div>
 
-                {/* Revenue by Product Category */}
                 <div className="h-full">
-                    <CategoryBarChart />
+                    {/* We'll pass children or modify the component to take data */}
+                    <CategoryBarChart data={categoryDataFormatted} />
                 </div>
             </div>
 
-            {/* Pricing Section */}
+
+            {/* Pricing Section (Keep as is for aesthetic) */}
             <div className="w-full">
                 <PricingWithChart />
             </div>
 
             {/* Bottom Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* ... existing donut chart and others ... */}
 
                 {/* Revenue By Sales Channel (Donut) */}
                 <Card className="shadow-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">

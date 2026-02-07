@@ -47,8 +47,9 @@ const monthlyData = [
 
 export const CategoryBarChart = ({
     className,
+    data,
     ...props
-}: React.ComponentProps<"div">) => {
+}: React.ComponentProps<"div"> & { data?: any[] }) => {
     const [selectedPeriod, setSelectedPeriod] = React.useState<string>("weekly");
 
     const today = startOfToday();
@@ -62,8 +63,8 @@ export const CategoryBarChart = ({
     };
 
     const period = selectedPeriod === "weekly" ? weeklyRange : monthlyRange;
-    const salesData = selectedPeriod === "weekly" ? weeklyData : monthlyData;
-    const totalSales = selectedPeriod === "weekly" ? 246 : 1024;
+    const salesData = data || (selectedPeriod === "weekly" ? weeklyData : monthlyData);
+    const totalSalesNum = salesData.reduce((acc, curr) => acc + (curr.width || 0), 0);
 
     return (
         <Card
@@ -123,7 +124,7 @@ export const CategoryBarChart = ({
             <CardContent className="flex flex-col gap-4 p-0">
                 <div className="flex items-center gap-3">
                     <span className="text-3xl font-medium leading-none tracking-tight tabular-nums">
-                        {totalSales}
+                        {totalSalesNum.toFixed(0)}%
                     </span>
                     {selectedPeriod === "weekly" ? (
                         <p className="text-sm text-green-500 dark:text-green-600">
