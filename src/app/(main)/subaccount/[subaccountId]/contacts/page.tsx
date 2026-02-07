@@ -12,9 +12,10 @@ import {
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/database.types'
 import format from 'date-fns/format'
-import React from 'react'
+import Link from 'next/link'
 import CraeteContactButton from './_components/create-contact-btn'
 import RefreshButton from './_components/refresh-button'
+
 
 type Props = {
   params: { subaccountId: string }
@@ -23,7 +24,7 @@ type Props = {
 const ContactPage = async ({ params }: Props) => {
   type Contact = Database['public']['Tables']['Contact']['Row']
   type Ticket = Database['public']['Tables']['Ticket']['Row']
-  
+
   type ContactWithTickets = Contact & {
     Tickets: Ticket[]
   }
@@ -36,7 +37,7 @@ const ContactPage = async ({ params }: Props) => {
     .select('*')
     .eq('subAccountId', params.subaccountId)
     .order('createdAt', { ascending: true })
-  
+
   console.log('🔍 Fetched contacts:', contacts)
 
   if (contactsError) {
@@ -47,9 +48,9 @@ const ContactPage = async ({ params }: Props) => {
   const contactIds = contacts?.map(c => c.id) || []
   const { data: tickets, error: ticketsError } = contactIds.length > 0
     ? await supabase
-        .from('Ticket')
-        .select('id, customerId, value')
-        .in('customerId', contactIds)
+      .from('Ticket')
+      .select('id, customerId, value')
+      .in('customerId', contactIds)
     : { data: [], error: null }
 
   if (ticketsError) {
@@ -63,7 +64,7 @@ const ContactPage = async ({ params }: Props) => {
   }))
 
   const allContacts = contactsWithTickets
-  
+
   console.log('🔍 Contacts with tickets:', allContacts)
   console.log('✅ Total contacts found:', allContacts.length)
 
@@ -81,7 +82,7 @@ const ContactPage = async ({ params }: Props) => {
 
     return amt.format(laneAmt)
   }
-  
+
   if (!allContacts || allContacts.length === 0) {
     return (
       <BlurPage>
@@ -119,14 +120,21 @@ const ContactPage = async ({ params }: Props) => {
           {allContacts.map((contact) => (
             <TableRow key={contact.id}>
               <TableCell>
-                <Avatar>
-                  <AvatarImage alt="@shadcn" />
-                  <AvatarFallback className="bg-primary text-white">
-                    {contact.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <Link
+                  href={`/subaccount/${params.subaccountId}/inventory/customers/${contact.id}`}
+                  className="flex items-center gap-3 hover:text-primary transition-colors"
+                >
+                  <Avatar>
+                    <AvatarImage alt="@shadcn" />
+                    <AvatarFallback className="bg-primary text-white">
+                      {contact.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-bold underline-offset-4 hover:underline">{contact.name}</span>
+                </Link>
               </TableCell>
               <TableCell>{contact.email}</TableCell>
+
               <TableCell>
                 {formatTotal(contact.Tickets) === '$0.00' ? (
                   <Badge variant={'destructive'}>Inactive</Badge>

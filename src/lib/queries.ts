@@ -4066,3 +4066,108 @@ export const getSubAccountAgencyId = async (subAccountId: string) => {
 
   return data?.agencyId
 }
+
+
+// ============================================
+// CUSTOMER MANAGEMENT QUERIES
+// ============================================
+
+export const getCustomersWithStats = async (subAccountId: string) => {
+  console.log('🔍 Fetching customers with stats for:', subAccountId)
+
+  // 1. Fetch all contacts
+  const { data: contacts, error: contactsError } = await supabase
+    .from('Contact')
+    .select('*')
+    .eq('subAccountId', subAccountId)
+    .order('createdAt', { ascending: false })
+
+  if (contactsError) {
+    console.error('Error fetching contacts:', contactsError)
+    return []
+  }
+
+  // 2. Fetch all orders to aggregate
+  const { data: orders, error: ordersError } = await supabase
+    .from('Order')
+    .select('customerEmail, totalPrice, paymentStatus, orderStatus, createdAt')
+    .eq('subAccountId', subAccountId)
+
+  if (ordersError) {
+    console.error('Error fetching orders for stats:', ordersError)
+  }
+
+  // 3. Aggregate data
+  const customers = contacts.map(contact => {
+    const contactOrders = orders?.filter(o => o.customerEmail === contact.email) || []
+    const totalSpent = contactOrders
+      .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'Success' || o.paymentStatus === 'Completed')
+      .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0)
+
+    const lastOrderDate = contactOrders.length > 0
+      ? contactOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt
+      : null
+
+    return {
+      ...contact,
+      totalSpent,
+      orderCount: contactOrders.length,
+      lastOrderDate,
+      status: contactOrders.length > 0 ? 'Active' : 'Lead'
+    }
+  })
+
+  return customers
+}
+
+export const getCustomerDetails = async (contactId: string) => {
+  // Fetch basic contact info
+  const { data: contact, error: contactError } = await supabase
+    .from('Contact')
+    .select('*')
+    .eq('id', contactId)
+    .single()
+
+  if (contactError || !contact) {
+    console.error('Error fetching customer details:', contactError)
+    return null
+  }
+
+  // Fetch orders
+  const { data: orders, error: ordersError } = await supabase
+    .from('Order')
+    .select(`
+      *,
+      OrderItem (
+        *,
+        Product (*)
+      )
+    `)
+    .eq('customerEmail', contact.email)
+    .order('createdAt', { ascending: false })
+
+  // Fetch tickets
+  const { data: tickets, error: ticketsError } = await supabase
+    .from('Ticket')
+    .select(`
+      *,
+      Lane (
+        name,
+        Pipeline (name)
+      )
+    `)
+    .eq('customerId', contactId)
+
+  return {
+    ...contact,
+    orders: orders || [],
+    tickets: tickets || [],
+    stats: {
+      totalSpent: (orders || [])
+        .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'Success')
+        .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0),
+      orderCount: orders?.length || 0,
+      openTickets: tickets?.filter(t => t.laneId !== 'done').length || 0, // Fallback logic
+    }
+  }
+}
