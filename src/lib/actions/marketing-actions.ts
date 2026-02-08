@@ -1,7 +1,7 @@
 'use server'
 
 import { sms, voice } from '@/lib/africas-talking'
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { db } from '@/lib/db'
 
 export const sendBulkSMS = async (subaccountId: string, recipients: string[], message: string) => {

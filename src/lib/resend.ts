@@ -1,6 +1,5 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendEmailProps {
     to: string | string[];
@@ -20,6 +19,7 @@ export const sendEmail = async ({
     replyTo,
 }: SendEmailProps) => {
     try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
         const response = await resend.emails.send({
             from,
             to,
