@@ -1481,7 +1481,7 @@ export const getDomainContent = async (subDomainName: string) => {
     `)
     .eq('subDomainName', subDomainName)
     .eq('published', true)
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.error('Error fetching domain content:', error)

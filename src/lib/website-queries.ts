@@ -89,7 +89,7 @@ export const getWebsiteByDomain = async (domain: string) => {
         .from('Website')
         .select('*, WebsitePage(*)')
         .eq('subdomain', domainWithoutPort)
-        .single()
+        .maybeSingle()
 
     if (data) {
         console.log(`[getWebsiteByDomain] Found by exact subdomain: ${data.id} (published: ${data.published})`)
@@ -103,7 +103,7 @@ export const getWebsiteByDomain = async (domain: string) => {
         .from('Website')
         .select('*, WebsitePage(*)')
         .eq('domain', domainWithoutPort)
-        .single()
+        .maybeSingle()
 
     if (customData) {
         console.log(`[getWebsiteByDomain] Found by custom domain: ${customData.id} (published: ${customData.published})`)
@@ -126,7 +126,7 @@ export const getWebsiteByDomain = async (domain: string) => {
                 .from('Website')
                 .select('*, WebsitePage(*)')
                 .eq('subdomain', subdomainPart)
-                .single()
+                .maybeSingle()
 
             if (subdomainData) {
                 console.log(`[getWebsiteByDomain] Found match by internal subdomain: ${subdomainData.id} (published: ${subdomainData.published})`)
