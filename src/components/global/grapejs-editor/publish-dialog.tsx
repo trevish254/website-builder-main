@@ -22,7 +22,8 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { toast } from '@/components/ui/use-toast'
-import { Loader2, Share2, Globe, FileArchive, FileJson } from 'lucide-react'
+import { Loader2, Share2, Globe, FileArchive, FileJson, ExternalLink } from 'lucide-react'
+import { slugify } from '@/lib/utils'
 import {
     createTemplateFromWebsite,
     publishWebsite,
@@ -39,7 +40,10 @@ interface PublishDialogProps {
     websiteId: string
     websiteName: string
     userId: string
+    subaccountId: string
     currentDomain?: string
+    subdomain?: string
+    isPublished?: boolean
 }
 
 const TEMPLATE_CATEGORIES = [
@@ -64,12 +68,20 @@ export default function PublishDialog({
     websiteId,
     websiteName,
     userId,
+    subaccountId,
     currentDomain,
+    subdomain,
+    isPublished,
 }: PublishDialogProps) {
     console.log('!!! PUBLISH DIALOG MOUNTED !!! open:', open)
 
     const [activeTab, setActiveTab] = useState('template')
     const [loading, setLoading] = useState(false)
+
+    // Calculate effective subdomain for display
+    const effectiveSubdomain = subdomain || `${slugify(websiteName)}.${websiteId.substring(0, 7)}`
+    const mainDomain = process.env.NEXT_PUBLIC_DOMAIN || 'localhost:3000'
+    const fullDefaultDomain = `${effectiveSubdomain}.${mainDomain}`
 
     // Template form state
     const [templateName, setTemplateName] = useState(websiteName)
@@ -221,8 +233,17 @@ export default function PublishDialog({
 
             if (result.success) {
                 toast({
-                    title: 'Success',
-                    description: `Template "${templateName}" has been ${isPublicTemplate ? 'shared with the community' : 'saved'}!`,
+                    title: 'Success!',
+                    description: (
+                        <div className="flex flex-col gap-2">
+                            <p>Template "{templateName}" has been {isPublicTemplate ? 'shared with the community' : 'saved to your library'}!</p>
+                            {isPublicTemplate && (
+                                <Button variant="outline" size="sm" className="w-fit" asChild>
+                                    <a href={`/subaccount/${subaccountId}/websites`}>View in Community Gallery</a>
+                                </Button>
+                            )}
+                        </div>
+                    )
                 })
                 onOpenChange(false)
             } else {
@@ -250,6 +271,7 @@ export default function PublishDialog({
             const result = await publishWebsite({
                 websiteId,
                 domain: domain.trim() || undefined,
+                subdomain: effectiveSubdomain,
             })
 
             if (result.success) {
@@ -435,7 +457,7 @@ ${page.html}
                     <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="template" className="gap-2">
                             <Share2 className="w-4 h-4" />
-                            <span className="hidden sm:inline">Template</span>
+                            <span className="hidden sm:inline">Community</span>
                         </TabsTrigger>
                         <TabsTrigger value="publish" className="gap-2">
                             <Globe className="w-4 h-4" />
@@ -453,6 +475,16 @@ ${page.html}
 
                     {/* Share as Template Tab */}
                     <TabsContent value="template" className="space-y-4 mt-4">
+                        <div className="rounded-lg border p-4 bg-primary/5 border-primary/20 flex items-center justify-between">
+                            <div>
+                                <h4 className="font-semibold text-primary">Community Marketplace</h4>
+                                <p className="text-sm text-muted-foreground">Share your design with the Plura community or save as a private template.</p>
+                            </div>
+                            <Button variant="outline" size="sm" asChild>
+                                <a href={`/subaccount/${subaccountId}/websites`} target="_blank">Browse Community</a>
+                            </Button>
+                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="template-name">Template Name *</Label>
                             <Input
@@ -507,7 +539,7 @@ ${page.html}
                         <Button
                             onClick={handleShareAsTemplate}
                             disabled={loading}
-                            className="w-full"
+                            className={`w-full ${isPublicTemplate ? 'bg-primary hover:bg-primary/90' : ''}`}
                         >
                             {loading ? (
                                 <>
@@ -517,7 +549,7 @@ ${page.html}
                             ) : (
                                 <>
                                     <Share2 className="w-4 h-4 mr-2" />
-                                    Share Template
+                                    {isPublicTemplate ? 'Share to Community Gallery' : 'Save as Private Template'}
                                 </>
                             )}
                         </Button>
@@ -531,17 +563,40 @@ ${page.html}
                             </p>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="domain">Custom Domain (Optional)</Label>
-                            <Input
-                                id="domain"
-                                value={domain}
-                                onChange={(e) => setDomain(e.target.value)}
-                                placeholder="example.com"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Leave empty to use default domain
-                            </p>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="domain">Custom Domain (Optional)</Label>
+                                <Input
+                                    id="domain"
+                                    value={domain}
+                                    onChange={(e) => setDomain(e.target.value)}
+                                    placeholder="example.com"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Connect your own domain (e.g., example.com)
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Generated Domain</Label>
+                                <a
+                                    href={`http://${fullDefaultDomain}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-center justify-between group hover:bg-primary/10 transition-colors cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-2 truncate">
+                                        <Globe size={14} className="text-primary flex-shrink-0" />
+                                        <span className="text-sm font-medium text-primary break-all">
+                                            {fullDefaultDomain}
+                                        </span>
+                                    </div>
+                                    <ExternalLink size={14} className="text-primary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                                </a>
+                                <p className="text-xs text-muted-foreground">
+                                    Your website will be live at this address.
+                                </p>
+                            </div>
                         </div>
 
                         <Button
@@ -557,7 +612,7 @@ ${page.html}
                             ) : (
                                 <>
                                     <Globe className="w-4 h-4 mr-2" />
-                                    Publish Website
+                                    {isPublished ? 'Update Website' : 'Publish Website'}
                                 </>
                             )}
                         </Button>

@@ -53,10 +53,9 @@ const StylePanel = ({ editor, subaccountId }: Props) => {
             // Render StyleManager
             if (styleManagerRef.current && styleManagerRef.current.children.length === 0) {
                 try {
-                    // Try to get existing container or render new one
                     const sm = editor.StyleManager;
-                    const styleManager = sm.getContainer ? sm.getContainer() : sm.render();
-                    styleManagerRef.current.appendChild(styleManager)
+                    const styleManagerContainer = sm.render();
+                    styleManagerRef.current.appendChild(styleManagerContainer)
                 } catch (error) {
                     console.error('Error rendering StyleManager:', error)
                 }
@@ -106,84 +105,87 @@ const StylePanel = ({ editor, subaccountId }: Props) => {
     }, [styleMode, editor])
 
     return (
-        <div className="w-full overflow-x-hidden bg-background flex flex-col h-full" style={{ zoom: 0.8 }}>
+        <div className="w-full overflow-hidden bg-background flex flex-col h-full" style={{ zoom: 0.88 }}>
             {/* Header */}
-            <div className="p-3 border-b">
-                <h2 className="font-semibold text-base">Properties</h2>
+            <div className="px-3 py-2 border-b">
+                <h2 className="font-semibold text-sm">Properties</h2>
             </div>
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto flex-shrink-0">
+                <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-9 flex-shrink-0">
                     <TabsTrigger
                         value="styles"
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2 flex-1"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2 flex-1 text-xs h-9"
                     >
-                        <Paintbrush className="w-4 h-4" />
+                        <Paintbrush className="w-3.5 h-3.5" />
                         Styles
                     </TabsTrigger>
                     <TabsTrigger
                         value="settings"
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2 flex-1"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2 flex-1 text-xs h-9"
                     >
-                        <Settings className="w-4 h-4" />
+                        <Settings className="w-3.5 h-3.5" />
                         Settings
                     </TabsTrigger>
                 </TabsList>
 
-                <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4">
+                <div className="flex-1 overflow-hidden flex flex-col pt-4 min-h-0">
                     {/* Styles Tab */}
                     <div
                         style={{ display: activeTab === 'styles' ? 'flex' : 'none', flexDirection: 'column' }}
-                        className="flex-1"
+                        className="flex-1 min-h-0 overflow-hidden"
                     >
-                        {/* Selector Manager - Keep for class editing */}
-                        <div className="px-4 pb-4 border-b bg-muted/30 flex-shrink-0">
-                            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Selectors</h3>
-                            <div ref={selectorManagerRef} className="gjs-selector-manager-container"></div>
-                        </div>
+                        {/* Fixed Header Section (Selectors + Mode Toggles) */}
+                        <div className="flex-shrink-0 bg-background z-10 border-b">
+                            {/* Selector Manager */}
+                            <div className="px-3 py-1.5 bg-muted/30">
+                                <h3 className="text-[9px] font-bold uppercase tracking-tighter text-muted-foreground/70 mb-0.5">Selectors</h3>
+                                <div ref={selectorManagerRef} className="gjs-selector-manager-container min-h-[24px]"></div>
+                            </div>
 
-                        {/* Funnel Builder Settings Tab (The Redesigned Styles) */}
-                        <div className="flex-1 flex flex-col pt-2">
-                            <div className="px-4 mb-2">
+                            {/* Mode Toggles */}
+                            <div className="px-3 py-1.5 border-t">
                                 <Tabs
                                     value={styleMode}
                                     onValueChange={(v) => setStyleMode(v as 'basic' | 'advanced')}
                                     className="w-full"
                                 >
-                                    <TabsList className="grid w-full grid-cols-2 h-8 p-1 bg-muted/50 rounded-md">
+                                    <TabsList className="grid w-full grid-cols-2 h-6 p-0.5 bg-muted/50 rounded-md">
                                         <TabsTrigger
                                             value="basic"
-                                            className="text-[0.7rem] px-2 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                                            className="text-[0.6rem] px-2 h-[1.35rem] leading-none data-[state=active]:bg-background data-[state=active]:shadow-sm"
                                         >
                                             Basic
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="advanced"
-                                            className="text-[0.7rem] px-2 h-6 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                                            className="text-[0.6rem] px-2 h-[1.35rem] leading-none data-[state=active]:bg-background data-[state=active]:shadow-sm"
                                         >
                                             Advanced
                                         </TabsTrigger>
                                     </TabsList>
                                 </Tabs>
                             </div>
+                        </div>
 
-                            <div className="flex-1 overflow-y-auto">
+                        {/* Scrollable Content Section */}
+                        <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar relative bg-background">
+                            <div className="px-1 pb-4">
                                 <div style={{ display: styleMode === 'basic' ? 'block' : 'none' }}>
                                     <SettingsTab subaccountId={subaccountId} editor={editor} />
                                 </div>
-                                <div
-                                    style={{ display: styleMode === 'advanced' ? 'block' : 'none' }}
-                                    ref={styleManagerRef}
-                                    className="gjs-style-manager-container"
-                                ></div>
+                                <div style={{ display: styleMode === 'advanced' ? 'block' : 'none' }}>
+                                    <div ref={styleManagerRef} className="gjs-style-manager-container"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    {/* Settings/Traits Tab - Now Scrollable */}
                     <div
                         ref={traitManagerRef}
-                        className="gjs-trait-manager-container p-3"
+                        className="gjs-trait-manager-container p-3 flex-1 overflow-y-auto min-h-0 custom-scrollbar pb-20"
                         style={{ display: activeTab === 'settings' ? 'block' : 'none' }}
                     ></div>
                 </div>

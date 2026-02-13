@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation'
 import { v4 } from 'uuid'
 import { templates } from '@/components/global/grapejs-editor/templates'
 import { getWebsiteTemplate } from '@/lib/export-actions'
+import { slugify } from '@/lib/utils'
 
 type Props = {
     subaccountId: string
@@ -84,11 +85,15 @@ const CreateWebsiteForm = ({ subaccountId, templateId }: { subaccountId: string,
         setIsLoading(true)
         try {
             const websiteId = v4()
+            const uniqueId = websiteId.substring(0, 7) // Unique part of UUID
+            const subdomain = `${slugify(values.name)}.${uniqueId}`
+
             // Create Website
             const website = await upsertWebsite({
                 id: websiteId,
                 name: values.name,
                 subAccountId: subaccountId,
+                subdomain: subdomain, // This should map to 'subdomain' column or 'domain' if we repurpose it
                 published: false,
             })
 

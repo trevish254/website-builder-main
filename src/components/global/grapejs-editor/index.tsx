@@ -35,6 +35,7 @@ import EditorSidebar from './editor-sidebar'
 import PublishDialog from './publish-dialog'
 import EditorProvider from '@/providers/editor/editor-provider'
 import GjsEditorBridge from './gjs-editor-bridge'
+import CodeViewerDialog from './code-viewer-dialog'
 
 type Props = {
     subaccountId: string
@@ -113,6 +114,11 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
 
     // Publish Dialog State
     const [publishDialogOpen, setPublishDialogOpen] = useState(false)
+
+    // Code Viewer State
+    const [codeViewerOpen, setCodeViewerOpen] = useState(false)
+    const [viewerHtml, setViewerHtml] = useState('')
+    const [viewerCss, setViewerCss] = useState('')
 
     // Brand Kit State
     const [brandKit, setBrandKit] = useState<BrandKit>(() => {
@@ -1094,8 +1100,10 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
 
     const handleViewCode = () => {
         if (!editorInstanceRef.current) return
-        // Use GrapeJS's built-in code viewer
-        editorInstanceRef.current.runCommand('core:open-code')
+        const editor = editorInstanceRef.current
+        setViewerHtml(editor.getHtml() || '')
+        setViewerCss(editor.getCss() || '')
+        setCodeViewerOpen(true)
     }
 
     const handleToggleFullscreen = () => {
@@ -1292,7 +1300,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                         )}
                     </main>
                     {!previewMode && editorReady && editorInstanceRef.current && (
-                        <aside className="flex-shrink-0 w-[240px] border-l bg-background z-40 relative">
+                        <aside className="flex-shrink-0 w-[260px] border-l bg-background z-40 relative h-full overflow-hidden">
                             <StylePanel editor={editorInstanceRef.current} subaccountId={subaccountId} />
                         </aside>
                     )}
@@ -1307,12 +1315,25 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                             onOpenChange={setPublishDialogOpen}
                             editorInstance={editorInstanceRef.current}
                             websiteId={funnelId}
+                            subaccountId={subaccountId}
                             websiteName={websiteName || 'Untitled Website'}
                             userId={userId || ''}
                             currentDomain={currentDomain}
+                            subdomain={website?.subdomain || undefined}
+                            isPublished={website?.published}
                         />
                     )
                 }
+                {editorReady && editorInstanceRef.current && (
+                    <GjsEditorBridge editor={editorInstanceRef.current} />
+                )}
+
+                <CodeViewerDialog
+                    open={codeViewerOpen}
+                    onOpenChange={setCodeViewerOpen}
+                    html={viewerHtml}
+                    css={viewerCss}
+                />
             </div >
         </EditorProvider>
     )

@@ -27,6 +27,7 @@ export interface CreateTemplatePayload {
 export interface PublishWebsitePayload {
     websiteId: string
     domain?: string
+    subdomain?: string
 }
 
 /**
@@ -114,6 +115,10 @@ export async function publishWebsite(
 
         if (payload.domain) {
             updateData.domain = payload.domain
+        }
+
+        if (payload.subdomain) {
+            updateData.subdomain = payload.subdomain
         }
 
         const { error } = await supabase

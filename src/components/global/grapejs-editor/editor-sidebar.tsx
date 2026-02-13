@@ -168,7 +168,7 @@ const EditorSidebar = ({
                                     />
                                 </div>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-4">
+                            <div className="flex-1 overflow-y-auto p-4 min-h-0 pb-20 custom-scrollbar">
                                 <div className="grid grid-cols-2 gap-3">
                                     {blockCategories.map((category) => {
                                         const Icon = category.icon
@@ -199,7 +199,7 @@ const EditorSidebar = ({
                                 </Button>
                                 <span className="font-medium text-sm">{currentCategory?.label || 'Blocks'}</span>
                             </div>
-                            <div ref={blocksContainerRef} className="flex-1 overflow-y-auto gjs-blocks-container"></div>
+                            <div ref={blocksContainerRef} className="flex-1 overflow-y-auto gjs-blocks-container min-h-0 pb-20 custom-scrollbar"></div>
                         </div>
                     )
                 }
@@ -210,7 +210,7 @@ const EditorSidebar = ({
                         <div className="p-4 border-b">
                             <h3 className="font-semibold">Layers</h3>
                         </div>
-                        <div ref={layerManagerRef} className="flex-1 overflow-y-auto p-4 gjs-layer-manager-container"></div>
+                        <div ref={layerManagerRef} className="flex-1 overflow-y-auto p-4 gjs-layer-manager-container min-h-0 pb-20 custom-scrollbar"></div>
                     </div>
                 )
             case 'styles':
@@ -274,7 +274,7 @@ const EditorSidebar = ({
 
             {/* Content Area */}
             {!collapsed && (
-                <div className="flex-1 h-full overflow-hidden bg-background">
+                <div className="flex-1 h-full overflow-hidden bg-background min-h-0">
                     {renderContent()}
                 </div>
             )}

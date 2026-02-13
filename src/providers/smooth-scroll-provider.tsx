@@ -9,8 +9,8 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     const pathname = usePathname();
 
     useEffect(() => {
-        // Disable lenis on dashboards to allow native drag-and-drop scrolling
-        if (pathname.includes('/dashboards')) return;
+        // Disable lenis on dashboards and editor to allow native drag-and-drop scrolling and panel scrolling
+        if (pathname.includes('/dashboards') || pathname.includes('/editor')) return;
 
         let lenis: Lenis | null = null;
         let tickerFn: ((time: number) => void) | null = null;

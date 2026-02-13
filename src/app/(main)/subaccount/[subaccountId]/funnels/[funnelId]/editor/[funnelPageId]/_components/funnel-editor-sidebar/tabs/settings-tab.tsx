@@ -116,8 +116,91 @@ const SettingsTab = (props: Props) => {
     <Accordion
       type="multiple"
       className="w-full"
-      defaultValue={['Typography', 'Dimensions', 'Decorations', 'Flexbox']}
+      defaultValue={['Layout', 'Typography', 'Dimensions', 'Decorations', 'Flexbox']}
     >
+      <AccordionItem
+        value="Layout"
+        className="px-6 py-0 border-y-[1px]"
+      >
+        <AccordionTrigger className="!no-underline">Layout</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
+            <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Display</p>
+            <Select
+              onValueChange={(e) =>
+                handleOnChanges({
+                  target: {
+                    id: 'display',
+                    value: e,
+                  },
+                })
+              }
+              value={state.editor.selectedElement.styles.display || 'block'}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select display" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="block">Block</SelectItem>
+                <SelectItem value="inline">Inline</SelectItem>
+                <SelectItem value="inline-block">Inline Block</SelectItem>
+                <SelectItem value="flex">Flex</SelectItem>
+                <SelectItem value="none">None</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
+              <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Float</p>
+              <Select
+                onValueChange={(e) =>
+                  handleOnChanges({
+                    target: {
+                      id: 'float',
+                      value: e,
+                    },
+                  })
+                }
+                value={state.editor.selectedElement.styles.float || 'none'}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="left">Left</SelectItem>
+                  <SelectItem value="right">Right</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Position</p>
+              <Select
+                onValueChange={(e) =>
+                  handleOnChanges({
+                    target: {
+                      id: 'position',
+                      value: e,
+                    },
+                  })
+                }
+                value={state.editor.selectedElement.styles.position || 'static'}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="static">Static</SelectItem>
+                  <SelectItem value="relative">Relative</SelectItem>
+                  <SelectItem value="absolute">Absolute</SelectItem>
+                  <SelectItem value="fixed">Fixed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
       <AccordionItem
         value="Custom"
         className="px-6 py-0  "
@@ -515,7 +598,7 @@ const SettingsTab = (props: Props) => {
                 <AlignHorizontalSpaceBetween size={18} />
               </TabsTrigger>
               <TabsTrigger
-                value="space-evenly"
+                value="space-around"
                 className="w-10 h-10 p-0 data-[state=active]:bg-muted"
               >
                 <AlignHorizontalSpaceAround size={18} />
@@ -527,13 +610,13 @@ const SettingsTab = (props: Props) => {
                 <AlignHorizontalJustifyCenterIcon size={18} />
               </TabsTrigger>
               <TabsTrigger
-                value="start"
+                value="flex-start"
                 className="w-10 h-10 p-0 data-[state=active]:bg-muted "
               >
                 <AlignHorizontalJustifyStart size={18} />
               </TabsTrigger>
               <TabsTrigger
-                value="end"
+                value="flex-end"
                 className="w-10 h-10 p-0 data-[state=active]:bg-muted "
               >
                 <AlignHorizontalJustifyEndIcon size={18} />
@@ -560,7 +643,7 @@ const SettingsTab = (props: Props) => {
                 <AlignVerticalJustifyCenter size={18} />
               </TabsTrigger>
               <TabsTrigger
-                value="normal"
+                value="flex-start"
                 className="w-10 h-10 p-0 data-[state=active]:bg-muted "
               >
                 <AlignVerticalJustifyStart size={18} />

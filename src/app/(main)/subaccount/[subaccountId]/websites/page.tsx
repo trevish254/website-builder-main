@@ -93,61 +93,78 @@ const WebsitesPage = async ({ params, searchParams }: Props) => {
 
                     {existingProjects.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {existingProjects.map((project) => (
-                                <Card key={project.id} className="group overflow-hidden border-muted hover:border-primary/50 hover:shadow-md transition-all">
-                                    <div className="relative aspect-[16/9] bg-muted flex items-center justify-center overflow-hidden border-b">
-                                        {(() => {
-                                            // Find the home page or the first page to use for the thumbnail
-                                            const homePage = project.WebsitePage.find((page: any) => page.pathName === '/') || project.WebsitePage[0]
-                                            const previewImage = homePage?.previewImage || project.previewImage
+                            {existingProjects.map((project) => {
+                                const mainDomain = process.env.NEXT_PUBLIC_DOMAIN || 'localhost:3000'
+                                const effectiveSubdomain = project.subdomain || `${slugify(project.name)}.${project.id.substring(0, 7)}`
+                                const defaultDomain = `${effectiveSubdomain}.${mainDomain}`
+                                const displayDomain = project.domain || defaultDomain
+                                return (
+                                    <Card key={project.id} className="group overflow-hidden border-muted hover:border-primary/50 hover:shadow-md transition-all">
+                                        <div className="relative aspect-[16/9] bg-muted flex items-center justify-center overflow-hidden border-b">
+                                            {(() => {
+                                                // Find the home page or the first page to use for the thumbnail
+                                                const homePage = project.WebsitePage.find((page: any) => page.pathName === '/') || project.WebsitePage[0]
+                                                const previewImage = homePage?.previewImage || project.previewImage
 
-                                            return previewImage ? (
-                                                <img src={previewImage} alt={project.name} className="w-full h-full object-cover object-top" />
-                                            ) : project.favicon ? (
-                                                <img src={project.favicon} alt={project.name} className="w-full h-full object-cover object-top" />
-                                            ) : (
-                                                <Globe className="w-12 h-12 text-muted-foreground/20" />
-                                            )
-                                        })()}
+                                                return previewImage ? (
+                                                    <img src={previewImage} alt={project.name} className="w-full h-full object-cover object-top" />
+                                                ) : project.favicon ? (
+                                                    <img src={project.favicon} alt={project.name} className="w-full h-full object-cover object-top" />
+                                                ) : (
+                                                    <Globe className="w-12 h-12 text-muted-foreground/20" />
+                                                )
+                                            })()}
 
-                                        {/* Overlay Actions */}
-                                        <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
-                                            <Link href={`/subaccount/${params.subaccountId}/websites/editor/${project.id}`}>
-                                                <Button size="sm" variant="secondary" className="gap-2">
-                                                    <Edit size={14} /> Edit
-                                                </Button>
-                                            </Link>
-
-                                            {project.domain && (
-                                                <a href={`http://${project.domain}`} target="_blank" rel="noopener noreferrer">
-                                                    <Button size="sm" variant="outline" className="gap-2">
-                                                        <ExternalLink size={14} /> Visit
+                                            {/* Overlay Actions */}
+                                            <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                                                <Link href={`/subaccount/${params.subaccountId}/websites/editor/${project.id}`}>
+                                                    <Button size="sm" variant="secondary" className="gap-2">
+                                                        <Edit size={14} /> Edit
                                                     </Button>
+                                                </Link>
+
+                                                {displayDomain && (
+                                                    <a href={`http://${displayDomain}`} target="_blank" rel="noopener noreferrer">
+                                                        <Button size="sm" variant="outline" className="gap-2">
+                                                            <ExternalLink size={14} /> Visit
+                                                        </Button>
+                                                    </a>
+                                                )}
+                                                <DeleteWebsiteBtn websiteId={project.id} />
+                                            </div>
+                                        </div>
+                                        <CardHeader className="p-4">
+                                            <CardTitle className="text-lg flex justify-between items-center">
+                                                <span className="truncate">{project.name}</span>
+                                                {project.published ? (
+                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full dark:bg-green-900/30 dark:text-green-400">Live</span>
+                                                ) : (
+                                                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full dark:bg-gray-800 dark:text-gray-400">Draft</span>
+                                                )}
+                                            </CardTitle>
+                                            <CardDescription>
+                                                Last updated {new Date(project.updatedAt).toLocaleDateString()}
+                                            </CardDescription>
+                                            {defaultDomain && (
+                                                <a
+                                                    href={`http://${defaultDomain}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-xs text-primary hover:underline break-all mt-1 flex items-center gap-1"
+                                                >
+                                                    <Globe size={12} />
+                                                    {defaultDomain}
                                                 </a>
                                             )}
-                                            <DeleteWebsiteBtn websiteId={project.id} />
-                                        </div>
-                                    </div>
-                                    <CardHeader className="p-4">
-                                        <CardTitle className="text-lg flex justify-between items-center">
-                                            <span className="truncate">{project.name}</span>
-                                            {project.published ? (
-                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full dark:bg-green-900/30 dark:text-green-400">Live</span>
-                                            ) : (
-                                                <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full dark:bg-gray-800 dark:text-gray-400">Draft</span>
+                                            {project.domain && project.domain !== defaultDomain && (
+                                                <div className="text-xs text-muted-foreground break-all mt-1 opacity-70">
+                                                    Custom: {project.domain}
+                                                </div>
                                             )}
-                                        </CardTitle>
-                                        <CardDescription>
-                                            Last updated {new Date(project.updatedAt).toLocaleDateString()}
-                                        </CardDescription>
-                                        {project.domain && (
-                                            <div className="text-xs text-muted-foreground truncate mt-1">
-                                                {project.domain}
-                                            </div>
-                                        )}
-                                    </CardHeader>
-                                </Card>
-                            ))}
+                                        </CardHeader>
+                                    </Card>
+                                )
+                            })}
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-12 text-muted-foreground bg-muted/20 hover:bg-muted/30 transition-colors">
