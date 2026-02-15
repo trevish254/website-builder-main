@@ -98,7 +98,7 @@ const PagesTab = ({ pages, subaccountId, funnelId, activePageId }: Props) => {
         const newPageOrder = localPages.length
         try {
             setLoading(true)
-            const response = await upsertWebsitePage({
+            await upsertWebsitePage({
                 id: newPageId,
                 name: newPageName,
                 order: newPageOrder,
@@ -110,16 +110,37 @@ const PagesTab = ({ pages, subaccountId, funnelId, activePageId }: Props) => {
             toast({ title: 'Success', description: 'Created new page' })
             setNewPageName('')
             setIsCreating(false)
+            router.refresh()
+        } catch (error) {
+            console.error(error)
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not create page' })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleRename = async (id: string) => {
+        if (!editingName.trim()) return
+
+        const page = localPages.find(p => p.id === id)
+        if (!page) return
+
+        try {
+            setLoading(true)
             await upsertWebsitePage({
                 ...page,
                 name: editingName,
-                pathName: editingName.toLowerCase().replace(/\s+/g, '-') // Auto-generate path
+                pathName: editingName.toLowerCase().replace(/\s+/g, '-')
             })
-            setEditingPageId(null)
+
             toast({ title: 'Success', description: 'Page renamed' })
+            setEditingPageId(null)
             router.refresh()
         } catch (error) {
+            console.error(error)
             toast({ variant: 'destructive', title: 'Error', description: 'Could not rename page' })
+        } finally {
+            setLoading(false)
         }
     }
 

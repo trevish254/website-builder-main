@@ -1208,3 +1208,107 @@
     background-color: #4b5563 !important;
     border-radius: 4px !important;
 }
+
+/* ===== CANVAS SELECTION & TOOLBAR REDESIGN ===== */
+
+/* 1. Selection Highlighter & Hover State */
+/* 1. Selection Highlighter & Hover State */
+.gjs-cv-canvas .gjs-highlighter {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: -2px;
+}
+
+.gjs-cv-canvas .gjs-highlighter-sel {
+    outline: 2px solid #3b82f6 !important;
+}
+
+/* 2. Component Label & Toolbar - CLEAN & STABLE */
+body .gjs-badge,
+body .gjs-toolbar {
+    display: flex !important;
+    position: absolute !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 100000 !important;
+    box-sizing: border-box !important;
+    height: 30px !important;
+    top: -30px !important;
+    pointer-events: auto !important;
+}
+
+body .gjs-toolbar {
+    background-color: #1e3a8a !important;
+    min-width: 140px !important;
+    /* Force enough space for all icons */
+    padding: 0 4px !important;
+    border-radius: 4px !important;
+}
+
+body .gjs-badge {
+    background-color: #3b82f6 !important;
+    min-width: 80px !important;
+    padding: 0 16px !important;
+    border-radius: 4px !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    font-size: 10px !important;
+    letter-spacing: 1px !important;
+}
+
+/* Toolbar Hover Effects */
+.gjs-toolbar-item {
+    cursor: pointer !important;
+    transition: background 0.2s ease !important;
+}
+
+.gjs-toolbar-item:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.gjs-toolbar-item.gjs-toolbar-item-tlb-delete:hover {
+    background-color: #ef4444 !important;
+}
+
+/* Hide only the brittle default systems, leave our injected SVGs alone */
+.gjs-toolbar-item::before,
+.gjs-toolbar-item i,
+.gjs-toolbar-item .fa {
+    display: none !important;
+}
+
+.gjs-toolbar-item {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.gjs-toolbar-item svg {
+    display: block !important;
+    visibility: visible !important;
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* Hidden by previous blocks */
+
+/* 5. Resizer Handles */
+.gjs-cv-canvas .gjs-resizer-h {
+    border-color: hsl(var(--primary)) !important;
+    background-color: white !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    border-width: 2px !important;
+}
+
+/* Fixed sizing for different handle types */
+.gjs-cv-canvas .gjs-resizer-h-tl,
+.gjs-cv-canvas .gjs-resizer-h-tr,
+.gjs-cv-canvas .gjs-resizer-h-bl,
+.gjs-cv-canvas .gjs-resizer-h-br {
+    width: 10px !important;
+    height: 10px !important;
+}

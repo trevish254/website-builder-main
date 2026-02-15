@@ -75,11 +75,11 @@ const BlocksPanel = ({ editor }: Props) => {
                 const categoryId = typeof blockCategory === 'object' ? blockCategory.id : blockCategory
                 const label = block.get('label')
 
-                const normCategoryId = String(categoryId).toLowerCase()
-                const normCurrentId = String(category.id).toLowerCase()
+                const normCategoryId = String(categoryId || '').toLowerCase()
+                const normCurrentId = String(category.id || '').toLowerCase()
 
                 const matchesCategory = normCategoryId === normCurrentId
-                const matchesSearch = searchQuery === '' || label.toLowerCase().includes(searchQuery.toLowerCase())
+                const matchesSearch = searchQuery === '' || (label || '').toString().toLowerCase().includes(searchQuery.toLowerCase())
 
                 return matchesCategory && matchesSearch
             })

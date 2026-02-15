@@ -7,7 +7,7 @@ import grapesjs from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft, Code, FileUp, Maximize } from 'lucide-react'
+import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft, Code, FileUp, Maximize, Trash, BoxSelect } from 'lucide-react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { customBlocks, blockCategories } from './blocks-config'
 
@@ -114,6 +114,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
 
     // Publish Dialog State
     const [publishDialogOpen, setPublishDialogOpen] = useState(false)
+    const [outlinesActive, setOutlinesActive] = useState(true)
 
     // Code Viewer State
     const [codeViewerOpen, setCodeViewerOpen] = useState(false)
@@ -254,7 +255,6 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                 ]
             },
             plugins: [
-                gjsForms,
                 gjsForms,
                 gjsCountdown,
                 gjsCustomCode,
@@ -704,16 +704,20 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                     // Slight delay to ensure editor state is ready for selection override
                     setTimeout(() => {
                         try {
-                            if (typeof selectorManager.select === 'function') {
-                                selectorManager.select(firstSelector);
-                            } else {
-                                selectorManager.addSelected(firstSelector);
+                            if (firstSelector && selectorManager) {
+                                // Instead of .select(), use .addSelected() which is safer in modern GJS
+                                // and doesn't trigger the StyleManager internal rules cycle as aggressively
+                                if (typeof selectorManager.addSelected === 'function') {
+                                    selectorManager.addSelected(firstSelector);
+                                } else if (typeof selectorManager.select === 'function') {
+                                    selectorManager.select(firstSelector);
+                                }
+                                editor.StyleManager.render();
                             }
-                            editor.StyleManager.render();
                         } catch (e) {
                             console.warn('Selector selection failed:', e);
                         }
-                    }, 50);
+                    }, 100);
                 }
             }
         });
@@ -938,6 +942,33 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         editorInstanceRef.current.runCommand('core:preview')
     }
 
+    const handleClearCanvas = () => {
+        if (!editorInstanceRef.current) return
+        if (window.confirm('Are you sure you want to clear the entire canvas? This action cannot be undone.')) {
+            const editor = editorInstanceRef.current
+            editor.DomComponents.clear()
+            // Clear CSS too if needed, though DomComponents.clear() usually enough for content
+            editor.CssComposer.clear()
+            toast({
+                title: 'Canvas Cleared',
+                description: 'All components and styles have been removed.',
+            })
+        }
+    }
+
+    const handleToggleOutlines = () => {
+        if (!editorInstanceRef.current) return
+        const editor = editorInstanceRef.current
+        const command = 'sw-visibility'
+        if (editor.Commands.isActive(command)) {
+            editor.stopCommand(command)
+            setOutlinesActive(false)
+        } else {
+            editor.runCommand(command)
+            setOutlinesActive(true)
+        }
+    }
+
     const handleSave = async () => {
         if (!editorInstanceRef.current) return
 
@@ -1157,7 +1188,8 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         // Manual Type Registration (Force)
         console.log('Force registering smart-bg-type inside useEffect...');
         editor.StyleManager.addType('smart-bg-type', {
-            create({ props, change }: any) {
+            create(options: any = {}) {
+                const { props, change } = options;
                 const el = document.createElement('div');
                 el.className = 'smart-bg-wrapper';
                 el.style.width = '100%';
@@ -1167,13 +1199,16 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                 el.innerHTML = '<div style="color: cyan; font-weight: bold; padding: 4px;">ADVANCED MODE DIAGNOSTIC</div>';
                 return el;
             },
-            emit({ props, change }: any) {
+            emit(options: any = {}) {
                 // No-op
             },
-            update({ el, props }: any) {
+            update(options: any) {
+                if (!options || !options.el) return;
                 // No-op, handled by React
             },
-            onRender({ el, props }: any) {
+            onRender(options: any) {
+                if (!options || !options.el) return;
+                const { el, props } = options;
                 if (!el._root) {
                     el._root = createRoot(el);
                 }
@@ -1192,8 +1227,14 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
         customBlocks.forEach((block) => {
             try {
                 const categoryLabel = blockCategories.find(c => c.id === block.category)?.label || block.category
-                const IconComponent = block.icon
-                const mediaHtml = renderToStaticMarkup(<IconComponent size={24} strokeWidth={1.5} />)
+                let mediaHtml = ''
+
+                if (block.mediaImage) {
+                    mediaHtml = `<img src="${block.mediaImage}" style="width: 100%; height: auto; max-height: 80px; object-fit: cover; border-radius: 4px; display: block; margin: 0 auto;" />`
+                } else if (block.icon) {
+                    const IconComponent = block.icon
+                    mediaHtml = renderToStaticMarkup(<IconComponent size={24} strokeWidth={1.5} />)
+                }
 
                 editor.BlockManager.add(block.id, {
                     label: block.label,
@@ -1217,9 +1258,6 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             funnelId={funnelId}
             pageDetails={pageDetails}
         >
-            {editorInstanceRef.current && (
-                <GjsEditorBridge editor={editorInstanceRef.current} />
-            )}
             <div className="h-screen w-full flex flex-col bg-background">
                 {!previewMode && (
                     <div className="h-[60px] border-b bg-background flex items-center justify-between px-4 gap-4 flex-shrink-0">
@@ -1255,6 +1293,24 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                             <div className="w-px h-6 bg-border mx-1" />
                             <Button variant="ghost" size="sm" onClick={handleToggleFullscreen} title="Toggle Fullscreen">
                                 <Maximize className="w-4 h-4" />
+                            </Button>
+                            <Button
+                                variant={outlinesActive ? 'secondary' : 'ghost'}
+                                size="sm"
+                                onClick={handleToggleOutlines}
+                                title="Toggle Outlines"
+                                className="px-2"
+                            >
+                                <BoxSelect className="w-4 h-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleClearCanvas}
+                                title="Clear Canvas"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
+                            >
+                                <Trash className="w-4 h-4" />
                             </Button>
                             <Button variant="ghost" size="sm" onClick={handlePreview}><Eye className="w-4 h-4 mr-2" />Preview</Button>
                             <Button variant="ghost" size="sm" onClick={handleFullPreview}><ExternalLink className="w-4 h-4 mr-2" />Full Site</Button>

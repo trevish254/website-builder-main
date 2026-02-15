@@ -26,13 +26,16 @@ import {
     ChevronLeft,
     ChevronRight,
     Search,
-    Plus
+    Plus,
+    X,
+    Image as ImageIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { blockCategories } from './blocks-config' // Blocks configuration
 import Link from 'next/link'
 import PagesTab from './pages-tab'
 import BrandKitTab from './brand-kit-tab'
+import MediaTab from './media-tab'
 import { BrandKit } from './index'
 import { Website } from '@/lib/website-queries'
 
@@ -76,27 +79,37 @@ const EditorSidebar = ({
         if (!editor || !blocksContainerRef.current || activeTab !== 'blocks' || collapsed) return
 
         const updateBlocks = () => {
+            if (!blocksContainerRef.current) return
             const allBlocks = editor.BlockManager.getAll()
             const filteredBlocks = allBlocks.filter((block: any) => {
                 const blockCategory = block.get('category')
                 const categoryId = typeof blockCategory === 'object' ? blockCategory.id : blockCategory
-                const label = block.get('label')
-                const normCategoryId = String(categoryId).toLowerCase()
+                const categoryLabel = (typeof blockCategory === 'object' ? (blockCategory.label || blockCategory.id || '') : (blockCategory || '')).toString()
+                const label = (block.get('label') || block.get('id') || '').toString()
+
+                const normCategoryId = String(categoryId || '').toLowerCase()
                 const normSelected = selectedCategory ? String(selectedCategory).toLowerCase() : null
+
+                // Matches category if one is selected
                 const matchesCategory = !normSelected || normCategoryId === normSelected
-                const matchesSearch = searchQuery === '' || label.toLowerCase().includes(searchQuery.toLowerCase())
+
+                // Matches search if query is in label OR category label
+                const matchesSearch = searchQuery === '' ||
+                    label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    categoryLabel.toLowerCase().includes(searchQuery.toLowerCase())
+
                 return matchesCategory && matchesSearch
             })
 
-            blocksContainerRef.current!.innerHTML = ''
+            blocksContainerRef.current.innerHTML = ''
             if (filteredBlocks.length > 0) {
                 const blocksEl = editor.BlockManager.render(filteredBlocks, {
                     external: true,
-                    ignoreCategories: !!selectedCategory
+                    ignoreCategories: !!selectedCategory || !!searchQuery // Flat list for search/category view
                 })
-                blocksContainerRef.current!.appendChild(blocksEl)
+                blocksContainerRef.current.appendChild(blocksEl)
             } else {
-                blocksContainerRef.current!.innerHTML = `<div class="p-4 text-center text-muted-foreground text-sm">No blocks found</div>`
+                blocksContainerRef.current.innerHTML = `<div class="p-8 text-center text-muted-foreground"><p class="text-sm font-medium">No elements found</p><p class="text-xs opacity-70 mt-1">Try a different search term</p></div>`
             }
         }
 
@@ -128,6 +141,7 @@ const EditorSidebar = ({
     const menuItems = [
         { id: 'pages', label: 'Pages', icon: Files },
         { id: 'blocks', label: 'Blocks', icon: LayoutGrid },
+        { id: 'media', label: 'Media', icon: ImageIcon },
         { id: 'layers', label: 'Layers', icon: Layers }, // Placeholder
         { id: 'styles', label: 'Styles', icon: Palette }, // Placeholder
         { id: 'settings', label: 'Settings', icon: Settings },
@@ -151,23 +165,53 @@ const EditorSidebar = ({
                         activePageId={activePageId}
                     />
                 )
+            case 'media':
+                return (
+                    <MediaTab
+                        subaccountId={subaccountId}
+                        editor={editor}
+                    />
+                )
             case 'blocks':
-                // If category logic is needed, implement back navigation here
-                if (!selectedCategory) {
-                    return (
-                        <div className="flex flex-col h-full">
-                            <div className="p-4 border-b space-y-2">
-                                <h3 className="font-semibold">Elements</h3>
+                return (
+                    <div className="flex flex-col h-full">
+                        <div className="p-4 border-b space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-semibold text-sm">
+                                    {selectedCategory
+                                        ? blockCategories.find(c => c.id === selectedCategory)?.label
+                                        : (searchQuery ? 'Search Results' : 'Elements')}
+                                </h3>
+                                {(selectedCategory || searchQuery) && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-[10px] gap-1 hover:bg-muted"
+                                        onClick={() => {
+                                            setSelectedCategory(null)
+                                            setSearchQuery('')
+                                        }}
+                                    >
+                                        {selectedCategory ? <ChevronLeft className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                        {selectedCategory ? 'Back' : 'Clear'}
+                                    </Button>
+                                )}
+                            </div>
+
+                            {!selectedCategory && (
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Search elements..."
+                                        placeholder="Search components..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-9 h-8 text-xs"
+                                        className="pl-9 h-8 text-xs focus-visible:ring-primary"
                                     />
                                 </div>
-                            </div>
+                            )}
+                        </div>
+
+                        {!selectedCategory && !searchQuery ? (
                             <div className="flex-1 overflow-y-auto p-4 min-h-0 pb-20 custom-scrollbar">
                                 <div className="grid grid-cols-2 gap-3">
                                     {blockCategories.map((category) => {
@@ -176,33 +220,25 @@ const EditorSidebar = ({
                                             <button
                                                 key={category.id}
                                                 onClick={() => setSelectedCategory(category.id)}
-                                                className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg border bg-card hover:bg-accent hover:border-primary transition-all cursor-pointer"
+                                                className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl border bg-card hover:bg-accent hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer group"
                                             >
-                                                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center text-primary">
-                                                    <Icon className="w-4 h-4" />
+                                                <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                                    <Icon className="w-5 h-5" />
                                                 </div>
-                                                <span className="text-xs font-medium text-center">{category.label}</span>
+                                                <span className="text-[11px] font-medium text-center">{category.label}</span>
                                             </button>
                                         )
                                     })}
                                 </div>
                             </div>
-                        </div>
-                    )
-                } else {
-                    const currentCategory = blockCategories.find(c => c.id === selectedCategory)
-                    return (
-                        <div className="flex flex-col h-full">
-                            <div className="p-4 border-b flex items-center gap-2">
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedCategory(null)}>
-                                    <ChevronLeft className="h-4 w-4" />
-                                </Button>
-                                <span className="font-medium text-sm">{currentCategory?.label || 'Blocks'}</span>
-                            </div>
-                            <div ref={blocksContainerRef} className="flex-1 overflow-y-auto gjs-blocks-container min-h-0 pb-20 custom-scrollbar"></div>
-                        </div>
-                    )
-                }
+                        ) : (
+                            <div
+                                ref={blocksContainerRef}
+                                className="flex-1 overflow-y-auto gjs-blocks-container p-4 min-h-0 pb-20 custom-scrollbar"
+                            ></div>
+                        )}
+                    </div>
+                )
 
             case 'layers':
                 return (
