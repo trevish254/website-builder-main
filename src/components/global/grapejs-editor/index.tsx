@@ -7,7 +7,7 @@ import grapesjs from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft, Code, FileUp, Maximize, Trash, BoxSelect } from 'lucide-react'
+import { Monitor, Tablet, Smartphone, Undo, Redo, Eye, Save, Upload, ArrowLeft, ExternalLink, PanelLeft, Code, FileUp, Maximize, Trash, BoxSelect, Zap } from 'lucide-react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { customBlocks, blockCategories } from './blocks-config'
 
@@ -36,6 +36,7 @@ import PublishDialog from './publish-dialog'
 import EditorProvider from '@/providers/editor/editor-provider'
 import GjsEditorBridge from './gjs-editor-bridge'
 import CodeViewerDialog from './code-viewer-dialog'
+import { debounce, throttle, rafThrottle, MemoryManager, PerformanceMonitor, PERFORMANCE_CONFIG } from './performance-config'
 
 type Props = {
     subaccountId: string
@@ -107,6 +108,36 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
     const [editorReady, setEditorReady] = useState(false)
     const [showBlocks, setShowBlocks] = useState(true)
     const [previewMode, setPreviewMode] = useState(false) // Preview mode state
+    const subaccountIdRef = useRef(subaccountId)
+
+    useEffect(() => {
+        subaccountIdRef.current = subaccountId
+        if (editorInstanceRef.current) {
+            editorInstanceRef.current.subaccountId = subaccountId
+        }
+
+        // Set global referrer policy for the editor page to allow loading external AI images
+        let wasCreated = false
+        let meta = document.querySelector('meta[name="referrer"]') as HTMLMetaElement
+        if (!meta) {
+            meta = document.createElement('meta')
+            meta.name = 'referrer'
+            document.head.appendChild(meta)
+            wasCreated = true
+        }
+        const originalContent = meta.content
+        meta.content = 'no-referrer'
+
+        return () => {
+            if (wasCreated) {
+                if (meta.parentNode === document.head) {
+                    document.head.removeChild(meta)
+                }
+            } else {
+                meta.content = originalContent
+            }
+        }
+    }, [subaccountId])
 
     // Sidebar State
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
@@ -238,6 +269,17 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             height: 'calc(100vh - 60px)',
             fromElement: false,
             storageManager: false,
+
+            // Performance Optimizations
+            avoidInlineStyle: PERFORMANCE_CONFIG.GRAPESJS.AVOID_INLINE_STYLE,
+            avoidFrameOffset: PERFORMANCE_CONFIG.GRAPESJS.AVOID_FRAME_OFFSET,
+            noticeOnUnload: false, // Disable unload warning for better UX
+            showOffsets: PERFORMANCE_CONFIG.GRAPESJS.SHOW_OFFSETS,
+
+            // Undo Manager - Limit history to prevent memory bloat
+            undoManager: {
+                trackSelection: false, // Don't track selection changes in undo
+            },
             selectorManager: {
                 escapeName,
                 // Add states for different interaction types (hover, active, etc)
@@ -264,12 +306,18 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             ],
             canvas: {
                 styles: [
-                    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Lora:wght@400;500;600;700&display=swap'
+                    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;500;600;700&family=Lora:wght@400;500;600;700&display=swap'
                 ],
                 scripts: [
                     'https://cdn.tailwindcss.com',
                     // Navigation handler for page links
                     `(function() {
+                        // Add no-referrer policy to canvas head
+                        const meta = document.createElement('meta');
+                        meta.name = 'referrer';
+                        meta.content = 'no-referrer';
+                        document.head.appendChild(meta);
+
                         document.addEventListener('click', function(e) {
                             let target = e.target;
                             while (target && target !== document) {
@@ -724,16 +772,17 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
 
         editorInstanceRef.current = editor
 
-        // Setup Resize Observer using the component-level function
-        const resizeObserver = new ResizeObserver(() => {
-            updateCanvasZoom()
-        })
+        // Setup Resize Observer with throttling for performance
+        const throttledZoomUpdate = rafThrottle(updateCanvasZoom)
+        const resizeObserver = new ResizeObserver(throttledZoomUpdate)
 
         if (editorRef.current) {
             resizeObserver.observe(editorRef.current)
         }
 
-        editor.on('device:select', updateCanvasZoom)
+        // Throttle device select event as well
+        const throttledDeviceZoom = rafThrottle(updateCanvasZoom)
+        editor.on('device:select', throttledDeviceZoom)
 
 
         // Preview Mode Listeners
@@ -763,11 +812,40 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             }
         }, 150)
 
+        // Register memory cleanup callback
+        const cleanupCallback = () => {
+            if (!editor) return
+
+            // Limit undo history
+            const um = editor.UndoManager
+            if (um && um.getStack) {
+                const stack = um.getStack()
+                if (stack.length > PERFORMANCE_CONFIG.MEMORY.MAX_UNDO_STEPS) {
+                    // Remove oldest undo steps
+                    stack.splice(0, stack.length - PERFORMANCE_CONFIG.MEMORY.MAX_UNDO_STEPS)
+                }
+            }
+
+            // Clear unused components from memory
+            if (editor.DomComponents) {
+                const wrapper = editor.getWrapper()
+                if (wrapper) {
+                    // Force garbage collection of detached components
+                    editor.trigger('component:update')
+                }
+            }
+        }
+
+        MemoryManager.registerCleanup(cleanupCallback)
+
         return () => {
             resizeObserver.disconnect()
+            MemoryManager.unregisterCleanup(cleanupCallback)
             setEditorReady(false)
             editorInstanceRef.current = null
-            editor.destroy()
+            if (editor && typeof editor.destroy === 'function') {
+                editor.destroy()
+            }
         }
     }, [])
 
@@ -853,6 +931,20 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             body.appendChild(brandStyle)
         }
 
+        // Helper to get contrast color (white or black)
+        const getContrastColor = (hex: string) => {
+            if (!hex) return '#ffffff'
+            const r = parseInt(hex.slice(1, 3), 16)
+            const g = parseInt(hex.slice(3, 5), 16)
+            const b = parseInt(hex.slice(5, 7), 16)
+            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000
+            return (yiq >= 128) ? '#000000' : '#ffffff'
+        }
+
+        const primaryFg = getContrastColor(brandKit.colors.primary)
+        const secondaryFg = getContrastColor(brandKit.colors.secondary)
+        const accentFg = getContrastColor(brandKit.colors.accent)
+
         const cssVariables = `
             :root {
                 --brand-primary: ${brandKit.colors.primary};
@@ -866,17 +958,165 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                 --brand-radius: ${brandKit.uiStyle.borderRadius};
                 --brand-btn-radius: ${brandKit.uiStyle.buttonRadius};
                 --brand-shadow: ${brandKit.uiStyle.shadowStrength};
+                --brand-primary-fg: ${primaryFg};
+                --brand-secondary-fg: ${secondaryFg};
+                --brand-accent-fg: ${accentFg};
             }
 
             body {
-                font-family: var(--brand-body-font), sans-serif;
+                font-family: var(--brand-body-font), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 background-color: var(--brand-bg);
                 color: var(--brand-text);
                 font-size: var(--brand-base-size);
+                line-height: 1.5;
+                margin: 0;
             }
 
             h1, h2, h3, h4, h5, h6 {
-                font-family: var(--brand-heading-font), sans-serif;
+                font-family: var(--brand-heading-font), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                margin-top: 0;
+            }
+
+            /* Global UI Overrides */
+            .btn, button, [role="button"] {
+                border-radius: var(--brand-btn-radius) !important;
+            }
+
+            input, select, textarea, .card, .rounded {
+                border-radius: var(--brand-radius) !important;
+            }
+
+            /* GLOBAL NUCLEAR RESPONSIVE AUTO-LAYOUT */
+            *, *::before, *::after {
+                box-sizing: border-box !important;
+            }
+
+            body {
+                overflow-x: hidden !important;
+                width: 100% !important;
+                position: relative !important;
+            }
+
+            @media (max-width: 768px) {
+                /* Force everything to fit */
+                * {
+                    max-width: 100% !important;
+                    overflow-wrap: break-word !important;
+                }
+
+                /* Fluid Typography - Scales with base but caps large headers */
+                h1 { font-size: clamp(2rem, 8vw, 3.5rem) !important; line-height: 1.1 !important; margin-bottom: 0.5em !important; }
+                h2 { font-size: clamp(1.75rem, 6vw, 2.5rem) !important; line-height: 1.2 !important; }
+                h3 { font-size: clamp(1.5rem, 5vw, 2rem) !important; }
+                p, span, div, li { font-size: clamp(0.9rem, 4vw, 1.1rem) !important; }
+
+                /* Auto-Stacking Grids & Flexbox */
+                .grid, [style*="display: grid"], [style*="display: flex"], [class*="grid"], [class*="flex"] {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    grid-template-columns: 1fr !important;
+                    width: 100% !important;
+                    height: auto !important;
+                    gap: var(--brand-base-size, 20px) !important;
+                }
+
+                /* Container Resilience - Prevents horizontal bleed */
+                section, .container, [class*="container"], [class*="section"], .row {
+                    padding-left: 1.5rem !important;
+                    padding-right: 1.5rem !important;
+                    width: 100% !important;
+                    margin-left: 0 !important;
+                    margin-right: 0 !important;
+                    height: auto !important;
+                    min-height: auto !important;
+                }
+
+                /* Image & Media Safety Search */
+                img, video, canvas, iframe {
+                    max-width: 100% !important;
+                    height: auto !important;
+                    object-fit: cover !important;
+                }
+
+                /* Fix for negative margins common in "creative" desktop designs */
+                * {
+                    margin-left: 0 !important;
+                    margin-right: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    transform: none !important;
+                }
+
+                /* Maintain some essential spacing */
+                .pb-hero, .bw-hero, .agn-hero, .lp-hero {
+                    padding-top: 80px !important;
+                    padding-bottom: 60px !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    justify-content: center !important;
+                    text-align: center !important;
+                }
+
+                /* SMART HAMBURGER LOGIC */
+                /* If not forced to hamburger, hide common hamburger elements */
+                header:not(.force-hamburger) .nav-toggle,
+                header:not(.force-hamburger) .nav-toggle span,
+                header:not(.force-hamburger) #nav-checkbox,
+                nav:not(.force-hamburger) .nav-toggle,
+                #mkt-menu-check:not(.force-hamburger) ~ .mkt-toggle,
+                #cns-menu-check:not(.force-hamburger) ~ .cns-toggle,
+                #tch-menu-check:not(.force-hamburger) ~ .tch-toggle,
+                #fin-menu-check:not(.force-hamburger) ~ .fin-toggle,
+                #lp-menu-check:not(.force-hamburger) ~ .lp-toggle {
+                    display: none !important;
+                }
+
+                /* If not forced to hamburger, ensure links are stacked and visible */
+                header:not(.force-hamburger) .nav-links,
+                header:not(.force-hamburger) .nav-modern .nav-links,
+                header:not(.force-hamburger) .mkt-nav,
+                header:not(.force-hamburger) .cns-nav,
+                header:not(.force-hamburger) .tch-nav,
+                header:not(.force-hamburger) .fin-nav,
+                header:not(.force-hamburger) .lp-nav {
+                    position: static !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    width: 100% !important;
+                    height: auto !important;
+                    background: transparent !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    box-shadow: none !important;
+                    padding: 20px 0 !important;
+                    transform: none !important;
+                }
+
+                /* Force hamburger state if class is present */
+                header.force-hamburger .nav-links,
+                header.force-hamburger .pb-nav-links,
+                header.force-hamburger .bw-nav,
+                header.force-hamburger .agn-nav,
+                header.force-hamburger .mkt-nav,
+                header.force-hamburger .cns-nav,
+                header.force-hamburger .tch-nav,
+                header.force-hamburger .fin-nav,
+                header.force-hamburger .lp-nav,
+                header.force-hamburger .bw-cta,
+                header.force-hamburger .agn-contact,
+                header.force-hamburger .mkt-cta,
+                header.force-hamburger .tch-cta,
+                header.force-hamburger .fin-cta,
+                header.force-hamburger .lp-cta {
+                    display: none !important;
+                }
+                
+                header.force-hamburger .nav-toggle,
+                header.force-hamburger .pb-nav-toggle,
+                header.force-hamburger [class*="-toggle"],
+                header.force-hamburger [id*="-menu-"] ~ [class*="-toggle"] {
+                    display: flex !important;
+                }
             }
         `
         brandStyle.innerHTML = cssVariables
@@ -897,6 +1137,18 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
             fontLink.href = `https://fonts.googleapis.com/css2?family=${uniqueFonts.join('&family=')}:wght@300;400;500;600;700&display=swap`
         }
 
+        // Sync Brand Kit with GrapesJS Style Manager
+        // This adds the colors as "swatches" or at least makes them available in the property
+        const sm = editor.StyleManager;
+        const colorProp = sm.getProperty('Typography', 'color');
+        if (colorProp) {
+            colorProp.set('defaults', brandKit.colors.text);
+        }
+
+        const bgProp = sm.getProperty('Decorations', 'background-color');
+        if (bgProp) {
+            bgProp.set('defaults', brandKit.colors.background);
+        }
     }, [brandKit, editorReady])
 
     // Update navigation trait options when pages change
@@ -907,14 +1159,16 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
 
         // Update trait options for all existing components
         const updateNavigationTraits = () => {
+            if (!editor) return
             const wrapper = editor.getWrapper()
             if (!wrapper) return
 
             const allComponents = wrapper.find('*')
             allComponents.forEach((component: any) => {
-                const trait = component.getTrait('data-navigate-page')
-                if (trait) {
-                    trait.set('options', [
+                // 1. Handle Navigation Traits
+                const navTrait = component.getTrait('data-navigate-page')
+                if (navTrait) {
+                    navTrait.set('options', [
                         { id: '', name: 'None' },
                         ...websitePages.map(page => ({
                             id: page.pathName,
@@ -922,10 +1176,86 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                         }))
                     ])
                 }
+
+                // 2. Handle Header/Mobile Menu Traits
+                const tagName = component.get('tagName')?.toLowerCase()
+                if (tagName === 'header' || tagName === 'nav' || component.get('name')?.toLowerCase().includes('nav')) {
+                    // Force inject the Mobile Menu trait if it doesn't exist
+                    if (!component.getTrait('mobile-menu')) {
+                        component.get('traits').add({
+                            type: 'select',
+                            name: 'mobile-menu',
+                            label: 'Mobile Menu',
+                            options: [
+                                { value: 'standard', name: 'Standard (Stack)' },
+                                { value: 'hamburger', name: 'Hamburger' },
+                            ],
+                        }, { at: 0 })
+                    }
+
+                    // Attach real-time listener for the trait change
+                    component.off('change:mobile-menu') // Avoid multi-binding
+
+                    // Apply immediately on load/find
+                    const currentVal = component.get('mobile-menu')
+                    if (currentVal === 'hamburger') {
+                        component.addClass('force-hamburger')
+                    } else {
+                        component.removeClass('force-hamburger')
+                    }
+
+                    component.on('change:mobile-menu', () => {
+                        const val = component.get('mobile-menu')
+                        if (val === 'hamburger') {
+                            component.addClass('force-hamburger')
+                        } else {
+                            component.removeClass('force-hamburger')
+                        }
+                    })
+                }
             })
         }
 
+        // AGGRESSIVE SELECTION LISTENER: ensure traits appear on click
+        const onSelect = (component: any) => {
+            if (!component) return
+            const tagName = component.get('tagName')?.toLowerCase()
+            const isHeader = tagName === 'header' || tagName === 'nav' || component.get('name')?.toLowerCase().includes('nav')
+
+            if (isHeader) {
+                if (!component.getTrait('mobile-menu')) {
+                    component.addTrait({
+                        type: 'select',
+                        name: 'mobile-menu',
+                        label: 'Mobile Menu',
+                        options: [
+                            { value: 'standard', name: 'Standard (Stack)' },
+                            { value: 'hamburger', name: 'Hamburger' },
+                        ],
+                    }, { at: 0 })
+                }
+
+                // Sync class with current trait value immediately
+                const val = component.get('mobile-menu')
+                if (val === 'hamburger') {
+                    component.addClass('force-hamburger')
+                } else {
+                    component.removeClass('force-hamburger')
+                }
+
+                // Force refresh the segments/traits panel
+                editor.trigger('component:toggled')
+            }
+        }
+
         updateNavigationTraits()
+        editor.on('component:add', updateNavigationTraits)
+        editor.on('component:selected', onSelect)
+
+        return () => {
+            editor.off('component:add', updateNavigationTraits)
+            editor.off('component:selected', onSelect)
+        }
     }, [websitePages, editorReady])
 
     const handleDeviceChange = (device: string) => {
@@ -953,6 +1283,68 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                 title: 'Canvas Cleared',
                 description: 'All components and styles have been removed.',
             })
+        }
+    }
+
+    const handleCleanMobileStyles = () => {
+        if (!editorInstanceRef.current) return
+        const editor = editorInstanceRef.current
+        const selected = editor.getSelected()
+        if (!selected) {
+            toast({
+                title: 'No Component Selected',
+                description: 'Please select a component on the canvas to clean its mobile styles.',
+                variant: 'destructive'
+            })
+            return
+        }
+
+        const currentDevice = editor.getDevice()
+        if (currentDevice === 'desktop') {
+            toast({
+                title: 'Base Styles',
+                description: 'You are currently editing base (Desktop) styles. Cleaning here would remove core styling.',
+                variant: 'destructive'
+            })
+            return
+        }
+
+        const deviceModel = editor.Devices.get(currentDevice)
+        const mediaQuery = deviceModel.get('widthMedia')
+
+        if (mediaQuery) {
+            const cssComposer = editor.CssComposer
+            const rules = cssComposer.getAll()
+            let cleanedCount = 0
+
+            // GrapesJS stores rules with selectors. We need to find rules that match the selected component's selectors 
+            // AND the current media query.
+            const componentSelectors = selected.getSelectors().getFullString()
+
+            rules.forEach((rule: any) => {
+                if (rule.get('mediaText') === mediaQuery) {
+                    // Check if this rule applies to the selected component
+                    // This is a simplified check; GrapesJS styling can be complex
+                    if (rule.getSelectors().getFullString() === componentSelectors) {
+                        cssComposer.remove(rule)
+                        cleanedCount++
+                    }
+                }
+            })
+
+            if (cleanedCount > 0) {
+                toast({
+                    title: 'Mobile Styles Cleaned',
+                    description: `Successfully removed ${cleanedCount} device-specific style rules.`,
+                })
+                // Force a re-render/refresh of the canvas
+                editor.refresh()
+            } else {
+                toast({
+                    title: 'Already Clean',
+                    description: 'No device-specific styles found for this component.',
+                })
+            }
         }
     }
 
@@ -1214,7 +1606,7 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                 }
                 el._root.render(
                     <div style={{ width: '100%', marginBottom: '10px' }}>
-                        <BackgroundLayers editor={editor} property={props} />
+                        <BackgroundLayers editor={editor} property={props} subaccountId={subaccountIdRef.current} />
                     </div>
                 );
             },
@@ -1315,10 +1707,18 @@ const GrapeJsEditor = ({ subaccountId, funnelId, pageDetails, websitePages, user
                             <Button variant="ghost" size="sm" onClick={handlePreview}><Eye className="w-4 h-4 mr-2" />Preview</Button>
                             <Button variant="ghost" size="sm" onClick={handleFullPreview}><ExternalLink className="w-4 h-4 mr-2" />Full Site</Button>
                             <div className="w-px h-6 bg-border mx-1" />
-                            <Button variant="outline" size="sm" onClick={handleImport} className="gap-2">
-                                <FileUp className="w-4 h-4" />
-                                <span className="hidden sm:inline">Import</span>
-                            </Button>
+                            {activeDevice !== 'desktop' && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleCleanMobileStyles}
+                                    title={`Reset ${activeDevice} layout for selected element`}
+                                    className="gap-2 border-orange-200 bg-orange-50/50 hover:bg-orange-100 dark:border-orange-900 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400"
+                                >
+                                    <Zap className="w-4 h-4" />
+                                    <span className="hidden lg:inline">Clean {activeDevice} Styles</span>
+                                </Button>
+                            )}
                             <Button variant="outline" size="sm" onClick={handleSave}><Save className="w-4 h-4 mr-2" />Save</Button>
                             <Button size="sm" onClick={handlePublish}><Upload className="w-4 h-4 mr-2" />Publish</Button>
                         </div>

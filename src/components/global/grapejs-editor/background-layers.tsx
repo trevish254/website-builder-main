@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Plus, X, GripVertical, Image as ImageIcon, Square, Layers, ChevronDown, ChevronRight, Pipette } from 'lucide-react'
 import { HexColorPicker } from 'react-colorful'
+import RedesignedImageModal from '@/components/media/redesigned-image-modal'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 declare global {
     interface Window {
@@ -30,9 +32,10 @@ interface BackgroundLayer {
 interface BackgroundLayersProps {
     editor: any
     property: any
+    subaccountId: string
 }
 
-const BackgroundLayers = ({ editor, property }: BackgroundLayersProps) => {
+const BackgroundLayers = ({ editor, property, subaccountId }: BackgroundLayersProps) => {
     // Start with a default color layer so it's not "blank"
     const [layers, setLayers] = useState<BackgroundLayer[]>([
         {
@@ -42,6 +45,8 @@ const BackgroundLayers = ({ editor, property }: BackgroundLayersProps) => {
         }
     ])
     const [expandedLayerId, setExpandedLayerId] = useState<string | null>(null)
+    const [imageModalOpen, setImageModalOpen] = useState(false)
+    const [activeLayerId, setActiveLayerId] = useState<string | null>(null)
     const isInternalUpdate = useRef(false)
 
     useEffect(() => {
@@ -135,20 +140,8 @@ const BackgroundLayers = ({ editor, property }: BackgroundLayersProps) => {
     }
 
     const openAssetManager = (layerId: string) => {
-        if (!editor) return
-        try {
-            editor.runCommand('open-assets', {
-                types: ['image'],
-                accept: 'image/*',
-                onSelect: (asset: any) => {
-                    const url = asset.get('src')
-                    updateLayer(layerId, { imageUrl: url, type: 'image' })
-                    editor.Modal.close()
-                }
-            })
-        } catch (e) {
-            console.error('Asset Manager error:', e);
-        }
+        setActiveLayerId(layerId)
+        setImageModalOpen(true)
     }
 
     const openEyeDropper = async (layerId: string) => {
@@ -362,6 +355,21 @@ const BackgroundLayers = ({ editor, property }: BackgroundLayersProps) => {
                     </div>
                 ))}
             </div>
+            <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
+                <DialogContent className="max-w-[900px] p-0 border-none bg-transparent">
+                    <RedesignedImageModal
+                        key={editor.subaccountId || subaccountId}
+                        subaccountId={editor.subaccountId || subaccountId}
+                        onSelect={(url) => {
+                            if (activeLayerId) {
+                                updateLayer(activeLayerId, { imageUrl: url, type: 'image' })
+                            }
+                            setImageModalOpen(false)
+                        }}
+                        onClose={() => setImageModalOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

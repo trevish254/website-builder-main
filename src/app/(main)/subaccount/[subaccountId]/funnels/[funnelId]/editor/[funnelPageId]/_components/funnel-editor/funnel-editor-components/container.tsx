@@ -3,18 +3,18 @@ import { Badge } from '@/components/ui/badge'
 import { EditorBtns, defaultStyles } from '@/lib/constants'
 import { EditorElement, useEditor } from '@/providers/editor/editor-provider'
 import clsx from 'clsx'
-import React from 'react'
+import React, { memo, useCallback, useMemo } from 'react'
 import { v4 } from 'uuid'
 import Recursive from './recursive'
 import { Trash } from 'lucide-react'
 
 type Props = { element: EditorElement }
 
-const Container = ({ element }: Props) => {
+const Container = memo(({ element }: Props) => {
   const { id, content, name, styles, type } = element
   const { dispatch, state } = useEditor()
 
-  const handleOnDrop = (e: React.DragEvent, type: string) => {
+  const handleOnDrop = useCallback((e: React.DragEvent, type: string) => {
     e.stopPropagation()
     const componentType = e.dataTransfer.getData('componentType') as EditorBtns
 
@@ -323,18 +323,18 @@ const Container = ({ element }: Props) => {
         })
         break
     }
-  }
+  }, [dispatch, id])
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-  }
+  }, [])
 
-  const handleDragStart = (e: React.DragEvent, type: string) => {
+  const handleDragStart = useCallback((e: React.DragEvent, type: string) => {
     if (type === '__body') return
     e.dataTransfer.setData('componentType', type)
-  }
+  }, [])
 
-  const handleOnClickBody = (e: React.MouseEvent) => {
+  const handleOnClickBody = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     dispatch({
       type: 'CHANGE_CLICKED_ELEMENT',
@@ -342,16 +342,16 @@ const Container = ({ element }: Props) => {
         elementDetails: element,
       },
     })
-  }
+  }, [dispatch, element])
 
-  const handleDeleteElement = () => {
+  const handleDeleteElement = useCallback(() => {
     dispatch({
       type: 'DELETE_ELEMENT',
       payload: {
         elementDetails: element,
       },
     })
-  }
+  }, [dispatch, element])
 
   return (
     <div
@@ -413,6 +413,8 @@ const Container = ({ element }: Props) => {
         )}
     </div>
   )
-}
+})
+
+Container.displayName = 'Container'
 
 export default Container

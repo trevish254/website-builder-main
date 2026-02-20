@@ -25,20 +25,45 @@ export const personalBrandTemplates = [
         content: `
             <div class="pb-container">
                 <style>
-                    .pb-container { font-family: 'Outfit', sans-serif; color: #1a1a1a; background: #fff; line-height: 1.6; }
-                    .pb-nav { display: flex; justify-content: space-between; align-items: center; padding: 30px 8%; position: sticky; top: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); z-index: 100; }
-                    .pb-logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
-                    .pb-nav-links { display: flex; gap: 40px; font-weight: 500; font-size: 0.95rem; }
+                    .pb-container { font-family: var(--brand-body-font); color: var(--brand-text); background: var(--brand-bg); line-height: 1.6; }
+                    .pb-nav { display: flex; justify-content: space-between; align-items: center; padding: 24px 8%; position: sticky; top: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); z-index: 1000; border-bottom: 1px solid rgba(0,0,0,0.05); }
+                    .pb-logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; font-family: var(--brand-heading-font); }
+                    .pb-nav-links { display: flex; gap: 40px; font-weight: 500; font-size: 0.95rem; align-items: center; }
+                    .pb-nav-links a { text-decoration: none; color: var(--brand-text); opacity: 0.7; transition: 0.2s; }
+                    .pb-nav-links a:hover { opacity: 1; }
                     
+                    .pb-nav-toggle { display: none; cursor: pointer; flex-direction: column; gap: 6px; }
+                    .pb-nav-toggle span { width: 24px; height: 1.5px; background: var(--brand-text); transition: 0.3s; }
+                    #pb-nav-check { display: none; }
+
+                    @media (max-width: 768px) {
+                        .pb-nav-toggle { display: flex; }
+                        .pb-nav-links { 
+                            position: absolute; top: 100%; left: 0; width: 100%; background: var(--brand-bg); 
+                            flex-direction: column; padding: 40px; gap: 30px; 
+                            transform: translateY(-20px); opacity: 0; visibility: hidden; transition: 0.3s;
+                            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                        }
+                        #pb-nav-check:checked ~ .pb-nav-links { transform: translateY(0); opacity: 1; visibility: visible; }
+                        #pb-nav-check:checked ~ .pb-nav-toggle span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+                        #pb-nav-check:checked ~ .pb-nav-toggle span:nth-child(2) { opacity: 0; }
+                        #pb-nav-check:checked ~ .pb-nav-toggle span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+                    }
+
                     .pb-hero { padding: 120px 8% 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
-                    .pb-hero-tag { display: inline-block; padding: 6px 16px; background: #f0f0f0; border-radius: 100px; font-size: 0.85rem; font-weight: 600; margin-bottom: 24px; }
-                    .pb-hero-title { font-size: 4.5rem; font-weight: 800; line-height: 1.1; margin-bottom: 32px; letter-spacing: -0.04em; }
-                    .pb-hero-title span { color: #6366f1; }
-                    .pb-hero-desc { font-size: 1.25rem; color: #4b5563; margin-bottom: 40px; max-width: 500px; }
+                    @media (max-width: 1024px) { .pb-hero { grid-template-columns: 1fr; text-align: center; padding: 60px 8%; } .pb-hero-flex { justify-content: center; } }
+                    .pb-hero-tag { display: inline-block; padding: 6px 16px; background: var(--brand-primary); color: var(--brand-primary-fg); border-radius: 100px; font-size: 0.85rem; font-weight: 600; margin-bottom: 24px; }
+                    .pb-hero-title { font-size: 4.5rem; font-weight: 800; line-height: 1.1; margin-bottom: 32px; letter-spacing: -0.04em; font-family: var(--brand-heading-font); }
+                    @media (max-width: 640px) { .pb-hero-title { font-size: 3rem; } }
+                    .pb-hero-title span { color: var(--brand-primary); }
+                    .pb-hero-desc { font-size: 1.25rem; opacity: 0.7; margin-bottom: 40px; max-width: 500px; }
+                    @media (max-width: 1024px) { .pb-hero-desc { margin-left: auto; margin-right: auto; } }
                     .pb-hero-btns { display: flex; gap: 20px; }
-                    .pb-btn-primary { background: #1a1a1a; color: #fff; padding: 16px 32px; border-radius: 12px; font-weight: 600; text-decoration: none; transition: 0.3s; }
+                    @media (max-width: 1024px) { .pb-hero-btns { justify-content: center; } }
+                    .pb-btn-primary { background: var(--brand-primary); color: var(--brand-primary-fg); padding: 16px 32px; border-radius: var(--brand-btn-radius); font-weight: 600; text-decoration: none; transition: 0.3s; }
                     .pb-btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-                    .pb-btn-secondary { background: transparent; color: #1a1a1a; padding: 16px 32px; border-radius: 12px; font-weight: 600; text-decoration: none; border: 1px solid #e5e7eb; transition: 0.3s; }
+                    .pb-btn-secondary { background: transparent; color: var(--brand-text); padding: 16px 32px; border-radius: var(--brand-btn-radius); font-weight: 600; text-decoration: none; border: 1px solid var(--brand-text); transition: 0.3s; opacity: 0.5; }
+                    .pb-btn-secondary:hover { opacity: 1; }
                     
                     .pb-hero-visual { position: relative; }
                     .pb-hero-img { width: 100%; aspect-ratio: 1; background: #f3f4f6; border-radius: 30px; object-fit: cover; }
@@ -60,7 +85,15 @@ export const personalBrandTemplates = [
                     .pb-footer-title { font-size: 3rem; font-weight: 800; margin-bottom: 40px; }
                 </style>
                 <nav class="pb-nav">
-                    <div class="pb-logo">ALEX.DESIGN</div>
+                    <a href="/" class="pb-logo">ALEX.DESIGN</a>
+                    
+                    <input type="checkbox" id="pb-nav-check">
+                    <label for="pb-nav-check" class="pb-nav-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </label>
+
                     <div class="pb-nav-links">
                         <a href="#">Work</a>
                         <a href="#">About</a>

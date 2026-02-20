@@ -1,13 +1,13 @@
 'use client'
 
 import React from 'react'
+import { useModal } from '@/providers/modal-provider'
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover'
+    Dialog,
+    DialogContent,
+} from '@/components/ui/dialog'
 import { Image as ImageIcon } from 'lucide-react'
-import MediaPicker from '@/components/media/media-picker'
+import RedesignedImageModal from '@/components/media/redesigned-image-modal'
 import { Input } from '@/components/ui/input'
 
 type Props = {
@@ -17,39 +17,47 @@ type Props = {
 }
 
 const BackgroundImagePicker = ({ background, subaccountId, onChange }: Props) => {
+    const { setOpen, setClose } = useModal()
     // Extract the raw URL from url('...') if present
     const rawUrl = background?.replace(/^url\(["']?/, '').replace(/["']?\)$/, '') || ''
+
+    const handleOpenModal = () => {
+        setOpen(
+            <Dialog open={true} onOpenChange={() => setClose()}>
+                <DialogContent className="max-w-[900px] p-0 border-none bg-transparent">
+                    <RedesignedImageModal
+                        subaccountId={subaccountId}
+                        onSelect={(url) => {
+                            onChange(`url(${url})`)
+                            setClose()
+                        }}
+                        onClose={setClose}
+                    />
+                </DialogContent>
+            </Dialog>
+        )
+    }
 
     return (
         <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <div className="w-12 h-12 relative border rounded-md cursor-pointer overflow-hidden bg-slate-100 dark:bg-slate-900 hover:opacity-80 transition-opacity">
-                            {rawUrl ? (
-                                <img
-                                    src={rawUrl}
-                                    alt="Background"
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                    <ImageIcon className="text-muted-foreground w-6 h-6" />
-                                </div>
-                            )}
+                <div
+                    onClick={handleOpenModal}
+                    className="w-12 h-12 relative border rounded-md cursor-pointer overflow-hidden bg-slate-100 dark:bg-slate-900 hover:opacity-80 transition-opacity"
+                >
+                    {rawUrl ? (
+                        <img
+                            src={rawUrl}
+                            alt="Background"
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="text-muted-foreground w-6 h-6" />
                         </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[400px] p-0" align="start">
-                        <div className="p-4">
-                            <MediaPicker
-                                subaccountId={subaccountId}
-                                onSelect={(media) => {
-                                    onChange(`url(${media.link})`)
-                                }}
-                            />
-                        </div>
-                    </PopoverContent>
-                </Popover>
+                    )}
+                </div>
                 <div className="flex-1">
                     <Input
                         placeholder="https://image.com"

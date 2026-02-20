@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import { z } from 'zod'
+import { Loader2 } from 'lucide-react'
 import { useToast } from '../ui/use-toast'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -32,8 +33,10 @@ type Props = {
 }
 
 const formSchema = z.object({
-  link: z.string().min(1, { message: 'Media File is required' }),
-  name: z.string().min(1, { message: 'Name is required' }),
+  files: z.array(z.object({
+    link: z.string(),
+    name: z.string()
+  })).min(1, { message: 'At least one file is required' }),
 })
 
 const UploadMediaForm = ({ subaccountId, onSuccess }: Props) => {
@@ -44,69 +47,82 @@ const UploadMediaForm = ({ subaccountId, onSuccess }: Props) => {
     resolver: zodResolver(formSchema),
     mode: 'onSubmit',
     defaultValues: {
-      link: '',
-      name: '',
+      files: [],
     },
   })
 
+  const [isUploading, setIsUploading] = React.useState(false)
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsUploading(true)
     try {
-      console.log('📤 Uploading media:', values)
-      const response = await createMedia(subaccountId, {
-        name: values.name,
-        link: values.link,
+      console.log('📤 Bulk uploading media files:', values.files.length)
+
+      const uploadPromises = values.files.map(async (file) => {
+        const response = await createMedia(subaccountId, {
+          name: file.name,
+          link: file.link,
+        })
+
+        if (response) {
+          await saveActivityLogsNotification({
+            agencyId: undefined,
+            description: `Uploaded a media file | ${response.name}`,
+            subaccountId,
+          })
+          return response
+        }
+        return null
       })
 
-      if (!response) {
-        throw new Error('Failed to create media - no response from database')
+      const results = await Promise.all(uploadPromises)
+      const successCount = results.filter(Boolean).length
+
+      if (successCount === 0) {
+        throw new Error('Failed to upload any media files')
       }
 
-      console.log('✅ Media uploaded successfully:', response)
+      console.log(`✅ ${successCount} media files uploaded successfully`)
 
-      await saveActivityLogsNotification({
-        agencyId: undefined,
-        description: `Uploaded a media file | ${response.name}`,
-        subaccountId,
+      toast({
+        title: 'Success',
+        description: `${successCount} media file(s) uploaded successfully!`
       })
 
-      toast({ 
-        title: 'Success', 
-        description: 'Media uploaded successfully!' 
-      })
-      
       // Reset form
       form.reset({
-        link: '',
-        name: '',
+        files: [],
       })
-      
+
       // Close modal immediately
       setClose()
-      
+
       // Trigger refresh callback if provided
       if (onSuccess) {
         console.log('🔄 Calling onSuccess callback')
         await onSuccess()
       }
-      
+
       // Refresh page
       router.refresh()
     } catch (error) {
-      console.error('❌ Error uploading media:', error)
+      console.error('❌ Error bulk uploading media:', error)
       toast({
         variant: 'destructive',
         title: 'Failed',
-        description: 'Could not upload media. Please try again.',
+        description: 'Could not upload media files. Please try again.',
       })
+    } finally {
+      setIsUploading(false)
     }
   }
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Media Information</CardTitle>
+        <CardTitle>Bulk Upload Media</CardTitle>
         <CardDescription>
-          Please enter the details for your file
+          Select multiple files to upload at once. File names will be preserved from your device.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -114,32 +130,29 @@ const UploadMediaForm = ({ subaccountId, onSuccess }: Props) => {
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <FormField
               control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>File Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Your agency name"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="link"
+              name="files"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Media File</FormLabel>
+                  <FormLabel>Media Files</FormLabel>
                   <FormControl>
                     <FileUpload
                       apiEndpoint="media"
-                      value={field.value}
-                      onChange={field.onChange}
+                      multiple={true}
+                      value={field.value.map(f => f.link)}
+                      onChange={(urls) => {
+                        // This onChange is called when files are REMOVED from the preview
+                        if (Array.isArray(urls)) {
+                          field.onChange(field.value.filter(f => urls.includes(f.link)))
+                        } else if (!urls) {
+                          field.onChange([])
+                        }
+                      }}
+                      onUploadComplete={(files) => {
+                        // This is called when new files are UPLOADED
+                        const currentFiles = field.value
+                        const newFiles = files.filter(f => !currentFiles.some(cf => cf.link === f.url))
+                        field.onChange([...currentFiles, ...newFiles.map(f => ({ link: f.url, name: f.name }))])
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -148,9 +161,17 @@ const UploadMediaForm = ({ subaccountId, onSuccess }: Props) => {
             />
             <Button
               type="submit"
-              className="mt-4"
+              className="mt-4 w-full h-11 shadow-lg shadow-primary/20"
+              disabled={isUploading || form.getValues('files').length === 0}
             >
-              Upload Media
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading {form.getValues('files').length} files...
+                </>
+              ) : (
+                `Upload ${form.getValues('files').length} Media File(s)`
+              )}
             </Button>
           </form>
         </Form>

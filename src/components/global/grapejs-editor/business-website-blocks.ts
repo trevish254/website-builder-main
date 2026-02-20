@@ -20,22 +20,45 @@ export const businessWebsiteTemplates = [
         content: `
             <div class="bw-container">
                 <style>
-                    .bw-container { font-family: 'Inter', sans-serif; color: #1a1a1a; background: #fff; line-height: 1.6; }
-                    .bw-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 8%; background: #fff; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
-                    .bw-logo { font-size: 1.5rem; font-weight: 800; color: #000; letter-spacing: -0.02em; }
+                    .bw-container { font-family: var(--brand-body-font); color: var(--brand-text); background: var(--brand-bg); line-height: 1.6; }
+                    .bw-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 8%; background: var(--brand-bg); border-bottom: 1px solid rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+                    .bw-logo { font-size: 1.5rem; font-weight: 800; color: var(--brand-text); letter-spacing: -0.02em; font-family: var(--brand-heading-font); }
                     .bw-nav { display: flex; gap: 40px; }
-                    .bw-nav a { text-decoration: none; color: #444; font-weight: 500; font-size: 0.95rem; transition: color 0.2s; }
-                    .bw-nav a:hover { color: #000; }
-                    .bw-cta { background: #000; color: #fff; padding: 12px 24px; border-radius: 4px; font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+                    .bw-nav a { text-decoration: none; color: var(--brand-text); font-weight: 500; font-size: 0.95rem; transition: opacity 0.2s; opacity: 0.7; }
+                    .bw-nav a:hover { opacity: 1; }
                     
-                    .bw-hero { padding: 120px 8%; background: #fcfcfc; display: flex; align-items: center; min-height: 80vh; }
+                    /* Hamburger Logic */
+                    .bw-toggle { display: none; cursor: pointer; flex-direction: column; gap: 6px; }
+                    .bw-toggle span { width: 24px; height: 1.5px; background: var(--brand-text); transition: 0.3s; }
+                    #bw-menu-toggle { display: none; }
+
+                    @media (max-width: 768px) {
+                        .bw-header { padding: 18px 5%; }
+                        .bw-toggle { display: flex; }
+                        .bw-nav { 
+                            position: absolute; top: 100%; left: 0; width: 100%; background: var(--brand-bg); 
+                            flex-direction: column; padding: 40px; gap: 30px; 
+                            border-bottom: 1px solid rgba(0,0,0,0.05);
+                            transform: translateY(-10px); opacity: 0; visibility: hidden; transition: 0.3s;
+                            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+                        }
+                        #bw-menu-toggle:checked ~ .bw-nav { transform: translateY(0); opacity: 1; visibility: visible; }
+                        #bw-menu-toggle:checked ~ .bw-toggle span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+                        #bw-menu-toggle:checked ~ .bw-toggle span:nth-child(2) { opacity: 0; }
+                        #bw-menu-toggle:checked ~ .bw-toggle span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+                        .bw-cta { display: none; }
+                    }
+
+                    .bw-cta { background: var(--brand-primary); color: var(--brand-primary-fg); padding: 12px 24px; border-radius: var(--brand-btn-radius); font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+                    
+                    .bw-hero { padding: 120px 8%; background: var(--brand-bg); display: flex; align-items: center; min-height: 80vh; }
                     .bw-hero-content { max-width: 700px; }
-                    .bw-hero-label { font-weight: 700; color: #666; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px; display: block; }
-                    .bw-hero-title { font-size: 4.5rem; font-weight: 800; line-height: 1.1; margin-bottom: 32px; letter-spacing: -0.03em; }
-                    .bw-hero-desc { font-size: 1.25rem; color: #555; margin-bottom: 48px; max-width: 580px; }
+                    .bw-hero-label { font-weight: 700; color: var(--brand-primary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px; display: block; }
+                    .bw-hero-title { font-size: 4.5rem; font-weight: 800; line-height: 1.1; margin-bottom: 32px; letter-spacing: -0.03em; font-family: var(--brand-heading-font); }
+                    .bw-hero-desc { font-size: 1.25rem; color: var(--brand-text); opacity: 0.8; margin-bottom: 48px; max-width: 580px; }
                     .bw-btn-group { display: flex; gap: 20px; }
-                    .bw-btn-primary { background: #000; color: #fff; padding: 16px 36px; border-radius: 4px; font-weight: 700; text-decoration: none; }
-                    .bw-btn-secondary { border: 1px solid #ddd; color: #000; padding: 16px 36px; border-radius: 4px; font-weight: 700; text-decoration: none; }
+                    .bw-btn-primary { background: var(--brand-primary); color: var(--brand-primary-fg); padding: 16px 36px; border-radius: var(--brand-btn-radius); font-weight: 700; text-decoration: none; }
+                    .bw-btn-secondary { border: 1px solid var(--brand-text); color: var(--brand-text); padding: 16px 36px; border-radius: var(--brand-btn-radius); font-weight: 700; text-decoration: none; }
                     
                     .bw-stats { padding: 100px 8%; background: #fff; display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; text-align: center; }
                     .bw-stat-item { display: flex; flex-direction: column; gap: 8px; }
@@ -65,6 +88,14 @@ export const businessWebsiteTemplates = [
                 </style>
                 <header class="bw-header">
                     <div class="bw-logo">GLOBAL.CORP</div>
+                    
+                    <input type="checkbox" id="bw-menu-toggle" />
+                    <label for="bw-menu-toggle" class="bw-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </label>
+
                     <nav class="bw-nav">
                         <a href="#">Solutions</a>
                         <a href="#">Industries</a>
@@ -181,25 +212,50 @@ export const businessWebsiteTemplates = [
         content: `
             <div class="agency-container">
                 <style>
-                    .agency-container { font-family: 'Outfit', sans-serif; color: #000; background: #fff; line-height: 1.5; }
-                    .agn-header { border-bottom: 1px solid #000; padding: 24px 5%; display: flex; justify-content: space-between; align-items: center; }
-                    .agn-logo { font-size: 1.5rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
+                    .agency-container { font-family: var(--brand-body-font); color: var(--brand-text); background: var(--brand-bg); line-height: 1.5; }
+                    .agn-header { border-bottom: 1px solid var(--brand-text); padding: 24px 5%; display: flex; justify-content: space-between; align-items: center; background: var(--brand-primary); }
+                    .agn-logo { font-size: 1.5rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--brand-primary-fg); font-family: var(--brand-heading-font); }
                     .agn-nav { display: flex; gap: 40px; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; }
-                    .agn-nav a { text-decoration: none; color: #000; }
-                    .agn-contact { border: 2px solid #000; padding: 10px 24px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; text-decoration: none; color: #000; }
+                    .agn-nav a { text-decoration: none; color: var(--brand-primary-fg); }
                     
-                    .agn-hero { padding: 120px 5%; border-bottom: 1px solid #000; }
-                    .agn-hero-title { font-size: 9rem; font-weight: 900; line-height: 0.9; text-transform: uppercase; letter-spacing: -0.04em; margin-bottom: 40px; }
+                    /* Hamburger Menu */
+                    .agn-toggle { display: none; cursor: pointer; flex-direction: column; gap: 6px; }
+                    .agn-toggle span { width: 28px; height: 2px; background: var(--brand-primary-fg); transition: 0.3s; }
+                    #agn-menu-check { display: none; }
+
+                    @media (max-width: 768px) {
+                        .agn-header { padding: 20px 5%; }
+                        .agn-toggle { display: flex; }
+                        .agn-nav { 
+                            position: fixed; top: 0; right: -100%; width: 85%; height: 100vh; 
+                            background: var(--brand-primary); flex-direction: column; 
+                            justify-content: center; align-items: center; gap: 40px; 
+                            transition: 0.5s cubic-bezier(0.7, 0, 0.3, 1); 
+                            box-shadow: -20px 0 50px rgba(0,0,0,0.2);
+                            z-index: 1000;
+                        }
+                        #agn-menu-check:checked ~ .agn-nav { right: 0; }
+                        #agn-menu-check:checked ~ .agn-toggle { position: fixed; right: 5%; z-index: 1100; }
+                        #agn-menu-check:checked ~ .agn-toggle span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+                        #agn-menu-check:checked ~ .agn-toggle span:nth-child(2) { opacity: 0; }
+                        #agn-menu-check:checked ~ .agn-toggle span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+                        .agn-contact { display: none; }
+                    }
+
+                    .agn-contact { border: 2px solid var(--brand-primary-fg); padding: 10px 24px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; text-decoration: none; color: var(--brand-primary-fg); border-radius: var(--brand-btn-radius); }
+                    
+                    .agn-hero { padding: 120px 5%; border-bottom: 1px solid var(--brand-text); }
+                    .agn-hero-title { font-size: 9rem; font-weight: 900; line-height: 0.9; text-transform: uppercase; letter-spacing: -0.04em; margin-bottom: 40px; font-family: var(--brand-heading-font); }
                     .agn-hero-flex { display: flex; justify-content: space-between; align-items: flex-end; }
                     .agn-hero-desc { font-size: 1.5rem; max-width: 500px; font-weight: 500; }
                     .agn-scroll { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
                     
-                    .agn-work { padding: 0; display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #000; }
-                    .agn-work-item { border-right: 1px solid #000; padding: 80px 10%; min-height: 600px; display: flex; flex-direction: column; justify-content: space-between; transition: background 0.4s; }
+                    .agn-work { padding: 0; display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--brand-text); background: var(--brand-bg); }
+                    .agn-work-item { border-right: 1px solid var(--brand-text); padding: 80px 10%; min-height: 600px; display: flex; flex-direction: column; justify-content: space-between; transition: background 0.4s; }
                     .agn-work-item:last-child { border-right: none; }
-                    .agn-work-item:hover { background: #f5f5f5; }
-                    .agn-work-cat { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #666; margin-bottom: 20px; display: block; }
-                    .agn-work-title { font-size: 3rem; font-weight: 800; line-height: 1; margin-bottom: 24px; }
+                    .agn-work-item:hover { background: var(--brand-accent); color: var(--brand-accent-fg); }
+                    .agn-work-cat { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--brand-primary); margin-bottom: 20px; display: block; }
+                    .agn-work-title { font-size: 3rem; font-weight: 800; line-height: 1; margin-bottom: 24px; font-family: var(--brand-heading-font); }
                     .agn-work-img { background: #eee; height: 350px; width: 100%; border-radius: 4px; overflow: hidden; position: relative; }
                     .agn-work-img::after { content: 'Project Preview'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #999; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
                     
@@ -210,13 +266,21 @@ export const businessWebsiteTemplates = [
                     .agn-svc-name { font-size: 1.5rem; font-weight: 700; text-transform: uppercase; }
                     .agn-svc-arrow { font-size: 1.5rem; font-weight: 400; }
                     
-                    .agn-footer { padding: 120px 5%; display: flex; flex-direction: column; align-items: center; text-align: center; }
-                    .agn-footer-title { font-size: 6rem; font-weight: 900; line-height: 1; text-transform: uppercase; margin-bottom: 60px; }
-                    .agn-footer-email { font-size: 2rem; font-weight: 700; text-decoration: underline; color: #000; margin-bottom: 80px; }
-                    .agn-footer-bottom { width: 100%; border-top: 1px solid #000; padding-top: 40px; display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+                    .agn-footer { padding: 120px 5%; display: flex; flex-direction: column; align-items: center; text-align: center; background: var(--brand-text); color: var(--brand-bg); }
+                    .agn-footer-title { font-size: 6rem; font-weight: 900; line-height: 1; text-transform: uppercase; margin-bottom: 60px; font-family: var(--brand-heading-font); color: var(--brand-bg); }
+                    .agn-footer-email { font-size: 2rem; font-weight: 700; text-decoration: underline; color: var(--brand-primary); margin-bottom: 80px; }
+                    .agn-footer-bottom { width: 100%; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 40px; display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; opacity: 0.6; }
                 </style>
                 <header class="agn-header">
                     <div class="agn-logo">STUDIO.X</div>
+                    
+                    <input type="checkbox" id="agn-menu-check" />
+                    <label for="agn-menu-check" class="agn-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </label>
+
                     <nav class="agn-nav">
                         <a href="#">Work</a>
                         <a href="#">Services</a>
@@ -297,6 +361,28 @@ export const businessWebsiteTemplates = [
                     .mkt-nav { display: flex; gap: 32px; }
                     .mkt-nav a { text-decoration: none; color: #64748b; font-weight: 500; font-size: 0.9375rem; }
                     .mkt-nav a:hover { color: #4f46e5; }
+                    
+                    /* Hamburger */
+                    .mkt-toggle { display: none; cursor: pointer; flex-direction: column; gap: 6px; }
+                    .mkt-toggle span { width: 24px; height: 2px; background: #4f46e5; transition: 0.3s; }
+                    #mkt-menu-check { display: none; }
+
+                    @media (max-width: 768px) {
+                        .mkt-toggle { display: flex; }
+                        .mkt-nav { 
+                            position: absolute; top: 100%; left: 0; width: 100%; background: #fff; 
+                            flex-direction: column; padding: 32px; gap: 24px; 
+                            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+                            transform: translateY(-10px); opacity: 0; visibility: hidden; transition: 0.3s;
+                        }
+                        #mkt-menu-check:checked ~ .mkt-nav { transform: translateY(0); opacity: 1; visibility: visible; }
+                        #mkt-menu-check:checked ~ .mkt-toggle span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+                        #mkt-menu-check:checked ~ .mkt-toggle span:nth-child(2) { opacity: 0; }
+                        #mkt-menu-check:checked ~ .mkt-toggle span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+                        .mkt-cta { display: none; }
+                        .mkt-hero-title { font-size: 2.5rem; }
+                    }
+
                     .mkt-cta { background: #4f46e5; color: #fff; padding: 12px 24px; border-radius: 99px; font-weight: 600; text-decoration: none; font-size: 0.9375rem; }
                     
                     .mkt-hero { padding: 80px 5% 100px; text-align: center; background: radial-gradient(circle at top right, #eef2ff 0%, #fff 50%); }
@@ -321,6 +407,14 @@ export const businessWebsiteTemplates = [
                 </style>
                 <header class="mkt-header">
                     <div class="mkt-logo">UPWARD</div>
+                    
+                    <input type="checkbox" id="mkt-menu-check" />
+                    <label for="mkt-menu-check" class="mkt-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </label>
+
                     <nav class="mkt-nav">
                         <a href="#">Services</a>
                         <a href="#">Case Studies</a>
@@ -381,6 +475,27 @@ export const businessWebsiteTemplates = [
                     .cns-nav { display: flex; gap: 48px; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; }
                     .cns-nav a { text-decoration: none; color: #666; }
                     
+                    /* Menu Burger */
+                    .cns-toggle { display: none; cursor: pointer; flex-direction: column; gap: 6px; }
+                    .cns-toggle span { width: 22px; height: 1.5px; background: #000; transition: 0.3s; }
+                    #cns-menu-check { display: none; }
+
+                    @media (max-width: 768px) {
+                        .cns-header { padding: 24px 5%; }
+                        .cns-toggle { display: flex; }
+                        .cns-nav { 
+                            position: absolute; top: 100%; left: 0; width: 100%; background: #fff; 
+                            flex-direction: column; padding: 40px; gap: 24px; border-top: 1px solid #eee;
+                            opacity: 0; visibility: hidden; transform: translateY(-10px); transition: 0.3s;
+                        }
+                        #cns-menu-check:checked ~ .cns-nav { opacity: 1; visibility: visible; transform: translateY(0); }
+                        #cns-menu-check:checked ~ .cns-toggle span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+                        #cns-menu-check:checked ~ .cns-toggle span:nth-child(2) { opacity: 0; }
+                        #cns-menu-check:checked ~ .cns-toggle span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+                        .cns-hero { grid-template-columns: 1fr; text-align: center; padding: 60px 8%; gap: 40px; }
+                        .cns-hero-title { font-size: 2.25rem; }
+                    }
+                    
                     .cns-hero { padding: 120px 8%; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
                     .cns-hero-label { font-family: 'Inter', sans-serif; font-weight: 600; color: #999; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.25em; margin-bottom: 24px; display: block; }
                     .cns-hero-title { font-size: 3.5rem; font-weight: 500; line-height: 1.2; margin-bottom: 32px; color: #000; }
@@ -401,6 +516,14 @@ export const businessWebsiteTemplates = [
                 </style>
                 <header class="cns-header">
                     <div class="cns-logo">SYNERGY.ADVISORY</div>
+                    
+                    <input type="checkbox" id="cns-menu-check" />
+                    <label for="cns-menu-check" class="cns-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </label>
+
                     <nav class="cns-nav">
                         <a href="#">Expertise</a>
                         <a href="#">Perspectives</a>
@@ -462,6 +585,28 @@ export const businessWebsiteTemplates = [
                     .tch-nav { display: flex; gap: 32px; }
                     .tch-nav a { text-decoration: none; color: #888; font-weight: 500; transition: color 0.2s; }
                     .tch-nav a:hover { color: #fff; }
+
+                    /* Tech Menu */
+                    .tch-toggle { display: none; cursor: pointer; flex-direction: column; gap: 6px; }
+                    .tch-toggle span { width: 24px; height: 2px; background: #fff; transition: 0.3s; }
+                    #tch-menu-check { display: none; }
+
+                    @media (max-width: 768px) {
+                        .tch-toggle { display: flex; }
+                        .tch-nav { 
+                            position: absolute; top: 100%; left: 0; width: 100%; background: #050505; 
+                            flex-direction: column; padding: 40px; gap: 32px; align-items: center;
+                            border-bottom: 1px solid rgba(255,255,255,0.05);
+                            opacity: 0; visibility: hidden; transform: translateY(-10px); transition: 0.3s;
+                        }
+                        #tch-menu-check:checked ~ .tch-nav { opacity: 1; visibility: visible; transform: translateY(0); }
+                        #tch-menu-check:checked ~ .tch-toggle span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+                        #tch-menu-check:checked ~ .tch-toggle span:nth-child(2) { opacity: 0; }
+                        #tch-menu-check:checked ~ .tch-toggle span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+                        .tch-cta { display: none; }
+                        .tch-hero-title { font-size: 3rem; }
+                        .tch-grid { grid-template-columns: repeat(2, 1fr); }
+                    }
                     .tch-cta { background: #fff; color: #000; padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; }
                     
                     .tch-hero { padding: 120px 5%; position: relative; overflow: hidden; height: 90vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
@@ -485,6 +630,14 @@ export const businessWebsiteTemplates = [
                 </style>
                 <header class="tch-header">
                     <div class="tch-logo">QUANTUM.IO</div>
+                    
+                    <input type="checkbox" id="tch-menu-check" />
+                    <label for="tch-menu-check" class="tch-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </label>
+
                     <nav class="tch-nav">
                         <a href="#">Platform</a>
                         <a href="#">Network</a>
@@ -542,6 +695,31 @@ export const businessWebsiteTemplates = [
                     .fin-nav { display: flex; gap: 40px; }
                     .fin-nav a { text-decoration: none; color: #64748b; font-weight: 500; font-size: 0.9rem; }
                     .fin-login { font-weight: 600; color: #1e293b; text-decoration: none; font-size: 0.9rem; }
+
+                    /* Fin Menu */
+                    .fin-toggle { display: none; cursor: pointer; flex-direction: column; gap: 6px; }
+                    .fin-toggle span { width: 22px; height: 2px; background: #1e293b; transition: 0.3s; }
+                    #fin-menu-check { display: none; }
+
+                    @media (max-width: 768px) {
+                        .fin-header { padding: 16px 5%; }
+                        .fin-toggle { display: flex; }
+                        .fin-nav { 
+                            position: absolute; top: 100%; left: 0; width: 100%; background: #fff; 
+                            flex-direction: column; padding: 32px; gap: 24px; border-bottom: 1px solid #f1f5f9;
+                            opacity: 0; visibility: hidden; transform: translateY(-10px); transition: 0.3s;
+                            z-index: 100;
+                        }
+                        #fin-menu-check:checked ~ .fin-nav { opacity: 1; visibility: visible; transform: translateY(0); }
+                        #fin-menu-check:checked ~ .fin-toggle span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+                        #fin-menu-check:checked ~ .fin-toggle span:nth-child(2) { opacity: 0; }
+                        #fin-menu-check:checked ~ .fin-toggle span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+                        .fin-login, .fin-cta { display: none; }
+                        .fin-hero { flex-direction: column; padding: 60px 5%; text-align: center; }
+                        .fin-hero-title { font-size: 2.5rem; }
+                        .fin-hero-form { width: 100%; margin-top: 40px; }
+                        .fin-trust { flex-direction: column; gap: 30px; text-align: center; }
+                    }
                     .fin-cta { background: #1e293b; color: #fff; padding: 10px 24px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 0.875rem; }
                     
                     .fin-hero { padding: 100px 8%; display: flex; gap: 80px; align-items: center; }
@@ -563,6 +741,14 @@ export const businessWebsiteTemplates = [
                 </style>
                 <header class="fin-header">
                     <div class="fin-logo">MERIDIAN<span>CAPITAL</span></div>
+                    
+                    <input type="checkbox" id="fin-menu-check" />
+                    <label for="fin-menu-check" class="fin-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </label>
+
                     <nav class="fin-nav">
                         <a href="#">Wealth Management</a>
                         <a href="#">Private Banking</a>
@@ -609,6 +795,59 @@ export const businessWebsiteTemplates = [
                     </div>
                 </div>
             </div>
+        `
+    },
+    {
+        id: 'bw-nav-modern',
+        label: 'Modern Navigation',
+        icon: Globe,
+        category: 'business-websites',
+        content: `
+            <header class="nav-modern">
+                <style>
+                    .nav-modern { display: flex; justify-content: space-between; align-items: center; padding: 20px 5%; background: var(--brand-bg); border-bottom: 1px solid rgba(0,0,0,0.05); position: relative; z-index: 1000; font-family: var(--brand-body-font); }
+                    .nav-logo { font-size: 1.25rem; font-weight: 800; color: var(--brand-text); text-decoration: none; font-family: var(--brand-heading-font); }
+                    .nav-links { display: flex; gap: 32px; align-items: center; }
+                    .nav-links a { text-decoration: none; color: var(--brand-text); font-weight: 500; font-size: 0.9rem; transition: opacity 0.2s; opacity: 0.8; }
+                    .nav-links a:hover { opacity: 1; }
+                    .nav-cta { background: var(--brand-primary); color: var(--brand-primary-fg); padding: 10px 20px; border-radius: var(--brand-btn-radius); font-weight: 700; text-decoration: none; font-size: 0.85rem; }
+                    
+                    .nav-toggle { display: none; cursor: pointer; flex-direction: column; gap: 5px; z-index: 1100; }
+                    .nav-toggle span { width: 25px; height: 2px; background: var(--brand-text); border-radius: 2px; transition: 0.3s; }
+                    
+                    #nav-checkbox { display: none; }
+
+                    @media (max-width: 768px) {
+                        .nav-toggle { display: flex; }
+                        .nav-links { 
+                            position: fixed; top: 0; right: -100%; width: 80%; height: 100vh; 
+                            background: var(--brand-bg); flex-direction: column; 
+                            justify-content: center; transition: 0.4s ease-in-out; 
+                            box-shadow: -10px 0 30px rgba(0,0,0,0.1); 
+                        }
+                        #nav-checkbox:checked ~ .nav-links { right: 0; }
+                        #nav-checkbox:checked ~ .nav-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+                        #nav-checkbox:checked ~ .nav-toggle span:nth-child(2) { opacity: 0; }
+                        #nav-checkbox:checked ~ .nav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+                    }
+                </style>
+                <a href="/" class="nav-logo">BRAND.</a>
+                
+                <input type="checkbox" id="nav-checkbox">
+                <label for="nav-checkbox" class="nav-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </label>
+                
+                <nav class="nav-links">
+                    <a href="#">Solutions</a>
+                    <a href="#">Showcase</a>
+                    <a href="#">Pricing</a>
+                    <a href="#">About</a>
+                    <a href="#" class="nav-cta">Get Started</a>
+                </nav>
+            </header>
         `
     }
 ]

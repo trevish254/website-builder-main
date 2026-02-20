@@ -17,22 +17,47 @@ export const landingPageTemplates = [
         content: `
             <div class="lp-container">
                 <style>
-                    .lp-container { font-family: 'Inter', sans-serif; color: #111827; background: #fff; line-height: 1.5; }
+                    .lp-container { font-family: var(--brand-body-font); color: var(--brand-text); background: var(--brand-bg); line-height: 1.5; }
                     .lp-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 5%; border-bottom: 1px solid #f3f4f6; }
                     .lp-logo { font-weight: 700; font-size: 1.25rem; letter-spacing: -0.025em; }
                     .lp-nav { display: flex; gap: 32px; font-size: 0.875rem; font-weight: 500; color: #4b5563; }
-                    .lp-cta-btn { background: #111827; color: #fff; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 0.875rem; }
+                    .lp-cta-btn { background: var(--brand-primary); color: var(--brand-primary-fg); padding: 10px 20px; border-radius: var(--brand-btn-radius); font-weight: 600; text-decoration: none; font-size: 0.875rem; }
+                    
+                    /* Smart Burger */
+                    .lp-toggle { display: none; cursor: pointer; flex-direction: column; gap: 6px; }
+                    .lp-toggle span { width: 22px; height: 1.5px; background: #000; transition: 0.3s; }
+                    #lp-menu-check { display: none; }
+
+                    @media (max-width: 768px) {
+                        .lp-toggle { display: flex; }
+                        .lp-nav { 
+                            position: absolute; top: 100%; left: 0; width: 100%; background: #fff; 
+                            flex-direction: column; padding: 32px; gap: 20px; align-items: center;
+                            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+                            opacity: 0; visibility: hidden; transform: translateY(-10px); transition: 0.3s;
+                        }
+                        #lp-menu-check:checked ~ .lp-nav { opacity: 1; visibility: visible; transform: translateY(0); }
+                        #lp-menu-check:checked ~ .lp-toggle span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+                        #lp-menu-check:checked ~ .lp-toggle span:nth-child(2) { opacity: 0; }
+                        #lp-menu-check:checked ~ .lp-toggle span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+                        .lp-cta-btn { display: none; }
+                        .lp-hero { grid-template-columns: 1fr; text-align: center; padding: 60px 5%; }
+                        .lp-hero-title { font-size: 2.5rem; }
+                        .lp-hero-desc { margin: 0 auto; }
+                        .lp-hero-btns { justify-content: center; }
+                        .lp-features-grid, .lp-pricing-grid { grid-template-columns: 1fr; }
+                    }
                     
                     .lp-hero { padding: 100px 5% 120px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
                     .lp-hero-content { display: flex; flex-direction: column; gap: 24px; }
-                    .lp-hero-title { font-size: 4rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.05em; color: #000; }
+                    .lp-hero-title { font-size: 4rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.05em; color: var(--brand-text); font-family: var(--brand-heading-font); }
                     .lp-hero-desc { font-size: 1.25rem; color: #4b5563; max-width: 480px; }
                     .lp-hero-btns { display: flex; gap: 16px; margin-top: 12px; }
                     .lp-hero-mockup { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; height: 400px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
                     .lp-hero-mockup::after { content: 'Platform View'; color: #9ca3af; font-weight: 500; font-size: 0.875rem; }
 
                     .lp-features { padding: 100px 5%; background: #f9fafb; }
-                    .lp-section-label { color: #4f46e5; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 12px; text-align: center; }
+                    .lp-section-label { color: var(--brand-primary); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 12px; text-align: center; }
                     .lp-section-title { font-size: 2.25rem; font-weight: 800; text-align: center; color: #111827; margin-bottom: 60px; letter-spacing: -0.025em; }
                     .lp-features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; max-width: 1200px; margin: 0 auto; }
                     .lp-feature-card { background: #fff; padding: 40px; border-radius: 12px; border: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 16px; }
@@ -52,6 +77,14 @@ export const landingPageTemplates = [
 
                 <header class="lp-header">
                     <div class="lp-logo">MODERN.SAAS</div>
+                    
+                    <input type="checkbox" id="lp-menu-check" />
+                    <label for="lp-menu-check" class="lp-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </label>
+
                     <nav class="lp-nav">
                         <span>Product</span>
                         <span>Solutions</span>

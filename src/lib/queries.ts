@@ -1582,37 +1582,36 @@ export const updateSubAccountDetails = async (
 
 export const createMedia = async (subAccountId: string, mediaFile: CreateMediaType) => {
   try {
+    console.log('🚀 Attempting to create media for subaccount:', subAccountId)
+
+    // We strictly use subAccountId as defined in the known schema document (MEDIA_UPLOAD_FIX.md)
     const mediaData: any = {
-      id: v4(), // Generate unique ID for the media file
+      id: v4(),
       name: mediaFile.name,
       link: mediaFile.link,
-      type: mediaFile.type || null,
+      type: mediaFile.type || 'image',
+      subAccountId, // CAMELCASE ONLY
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
 
-    // Add subAccountId with correct casing - try both versions
-    // Supabase might be case-sensitive depending on how the table was created
-    mediaData.subAccountId = subAccountId
-
-    console.log('📤 Creating media with data:', mediaData)
+    console.log('📤 Sending to Supabase:', mediaData)
 
     const { data, error } = await supabase
       .from('Media')
-      .insert(mediaData as AnyRecord)
-      .select()
+      .insert([mediaData] as AnyRecord[])
+      .select('*')
       .single()
 
     if (error) {
-      console.error('❌ Error creating media:', error)
-      console.error('❌ Error details:', JSON.stringify(error, null, 2))
+      console.error('❌ Supabase Error in createMedia:', error)
       return null
     }
 
-    console.log('✅ Media created successfully:', data)
+    console.log('✅ Media created successfully in DB:', data)
     return data
   } catch (error) {
-    console.error('❌ Exception creating media:', error)
+    console.error('❌ Exception in createMedia:', error)
     return null
   }
 }
@@ -1632,7 +1631,11 @@ export const deleteMedia = async (mediaId: string) => {
 }
 
 export const getMedia = async (subAccountId: string) => {
-  console.log('📤 Fetching media for subaccount:', subAccountId)
+  console.log('📤 [DEBUG] getMedia called with subAccountId:', {
+    value: subAccountId,
+    type: typeof subAccountId,
+    length: subAccountId?.length
+  })
 
   // Try fetching with different column name formats
   let { data, error } = await supabase
@@ -1641,9 +1644,11 @@ export const getMedia = async (subAccountId: string) => {
     .eq('subAccountId', subAccountId)
     .order('createdAt', { ascending: false })
 
+  console.log('🔍 [DEBUG] First attempt (subAccountId):', { count: data?.length, error })
+
   // If no data with camelCase, try lowercase
   if ((!data || data.length === 0) && !error) {
-    console.log('⚠️ No data with subAccountId, trying subaccountId...')
+    console.log('⚠️ [DEBUG] No data with camelCase, trying lowercase subaccountId...')
     const result = await supabase
       .from('Media')
       .select('*')
@@ -1651,19 +1656,15 @@ export const getMedia = async (subAccountId: string) => {
       .order('createdAt', { ascending: false })
     data = result.data
     error = result.error
+    console.log('🔍 [DEBUG] Second attempt (subaccountId):', { count: data?.length, error: result.error })
   }
 
   if (error) {
-    console.error('❌ Error fetching media:', error)
-    console.error('❌ Error details:', JSON.stringify(error, null, 2))
+    console.error('❌ [ERROR] getMedia failed:', error)
     return { Media: [] }
   }
 
-  console.log('✅ Fetched media:', data?.length || 0, 'files')
-  if (data && data.length > 0) {
-    console.log('📸 First file:', data[0])
-  }
-
+  console.log('✅ [SUCCESS] Returning', data?.length || 0, 'media files')
   return { Media: data || [] }
 }
 

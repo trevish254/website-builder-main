@@ -568,6 +568,7 @@ const SettingsTab = (props: Props) => {
             <BackgroundLayers
               editor={props.editor}
               property={null}
+              subaccountId={props.subaccountId}
             />
           </div>
         </AccordionContent>

@@ -35,7 +35,7 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       console.log('✅ Agency logo uploaded:', file.url)
     }),
-  media: f({ image: { maxFileSize: '4MB', maxFileCount: 1 } })
+  media: f({ image: { maxFileSize: '16MB', maxFileCount: 50 } })
     .middleware(authenticateUser)
     .onUploadComplete(async ({ metadata, file }) => {
       console.log('✅ Media uploaded:', file.url)
@@ -46,12 +46,12 @@ export const ourFileRouter = {
       console.log('✅ Product image uploaded:', file.url)
     }),
   subaccountFile: f({
-    image: { maxFileSize: '64MB', maxFileCount: 1 },
-    video: { maxFileSize: '64MB', maxFileCount: 1 },
-    audio: { maxFileSize: '64MB', maxFileCount: 1 },
-    pdf: { maxFileSize: '64MB', maxFileCount: 1 },
-    blob: { maxFileSize: '64MB', maxFileCount: 1 },
-    text: { maxFileSize: '64MB', maxFileCount: 1 }
+    image: { maxFileSize: '128MB', maxFileCount: 50 },
+    video: { maxFileSize: '128MB', maxFileCount: 10 },
+    audio: { maxFileSize: '128MB', maxFileCount: 50 },
+    pdf: { maxFileSize: '128MB', maxFileCount: 50 },
+    blob: { maxFileSize: '128MB', maxFileCount: 50 },
+    text: { maxFileSize: '128MB', maxFileCount: 50 }
   })
     .middleware(authenticateUser)
     .onUploadComplete(async ({ metadata, file }) => {
