@@ -22,11 +22,22 @@ type Props = {
     searchParams: { template?: string }
 }
 
+export const dynamic = 'force-dynamic'
+
 const WebsitesPage = async ({ params, searchParams }: Props) => {
-    console.log('🖥️ Rendering WebsitesPage for:', params.subaccountId)
+    // DIAGNOSTIC LOGGING
+    const subaccountId = params.subaccountId
+    console.log('--- 🔍 WEBSITES PAGE DIAGNOSTICS ---')
+    console.log('Target SubAccount ID:', subaccountId)
+
     // Fetch real data
-    const existingProjects = await getWebsites(params.subaccountId)
-    console.log('✅ Fetched websites:', existingProjects?.length || 0)
+    const existingProjects = await getWebsites(subaccountId)
+    console.log('Projects Fetched:', existingProjects?.length || 0)
+
+    if (existingProjects.length === 0) {
+        console.log('⚠️ No projects found. Possible reasons: RLS blockage, empty database table, or incorrect subaccountId filter.')
+    }
+    console.log('-----------------------------------')
 
 
     // Fetch community templates

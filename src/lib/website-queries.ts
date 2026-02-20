@@ -37,18 +37,56 @@ export type WebsitePage = {
 }
 
 export const getWebsites = async (subaccountId: string) => {
-    const supabase = createClient()
-    const { data, error } = await supabase
-        .from('Website')
-        .select('*, WebsitePage(*)')
-        .eq('subAccountId', subaccountId)
-        .order('createdAt', { ascending: false })
+    try {
+        const supabase = createClient()
+        console.log(`🔍 [getWebsites] Fetching for subaccount: ${subaccountId}`)
 
-    if (error) {
-        console.error('Error fetching websites:', error)
+        // Try primary column name: subAccountId
+        let { data, error } = await supabase
+            .from('Website')
+            .select('*, WebsitePage(*)')
+            .eq('subAccountId', subaccountId)
+            .order('createdAt', { ascending: false })
+
+        // Fallback 1: Try subaccount_id (standard Postgres snake_case)
+        if (error || !data) {
+            console.log('🔄 [getWebsites] Trying subaccount_id fallback...')
+            const result = await supabase
+                .from('Website')
+                .select('*, WebsitePage(*)')
+                .eq('subaccount_id', subaccountId)
+                .order('createdAt', { ascending: false })
+            if (!result.error) {
+                data = result.data
+                error = null
+            }
+        }
+
+        // Fallback 2: Try subaccountid (lowercase)
+        if (error || !data) {
+            console.log('🔄 [getWebsites] Trying subaccountid fallback...')
+            const result = await supabase
+                .from('Website')
+                .select('*, WebsitePage(*)')
+                .eq('subaccountid', subaccountId)
+                .order('createdAt', { ascending: false })
+            if (!result.error) {
+                data = result.data
+                error = null
+            }
+        }
+
+        if (error) {
+            console.error('❌ [getWebsites] All fetch attempts failed:', JSON.stringify(error, null, 2))
+            return []
+        }
+
+        console.log(`✅ [getWebsites] Successfully fetched ${data?.length || 0} websites`)
+        return (data || []) as (Website & { WebsitePage: WebsitePage[] })[]
+    } catch (err) {
+        console.error('💥 [getWebsites] Unexpected exception in getWebsites:', err)
         return []
     }
-    return data as (Website & { WebsitePage: WebsitePage[] })[]
 }
 
 export const getWebsite = async (websiteId: string) => {
