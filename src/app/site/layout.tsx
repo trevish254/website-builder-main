@@ -1,4 +1,3 @@
-import Navigation from '@/components/site/navigation'
 import React from 'react'
 import { ThemeProvider } from '@/providers/theme-provider'
 import ModalProvider from '@/providers/modal-provider'
@@ -15,7 +14,6 @@ const layout = ({ children }: { children: React.ReactNode }) => {
     >
       <ModalProvider>
         <main className="h-full">
-          <Navigation />
           {children}
           <Toaster />
           <SonnarToaster position="bottom-left" />
