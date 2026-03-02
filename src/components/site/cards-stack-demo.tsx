@@ -1,4 +1,5 @@
 "use client"
+import { motion } from "framer-motion"
 import { ContainerScroll, CardSticky } from "@/components/ui/cards-stack"
 
 const PROCESS_PHASES = [
@@ -92,29 +93,36 @@ const Process = () => {
                         </p>
                     </div>
 
-                    {/* Integrated Achievements in Cascade View */}
-                    <ContainerScroll className="mt-20 relative">
-                        {ACHIEVEMENTS.map((achievement, index) => (
-                            <CardSticky
-                                key={achievement.id}
-                                index={index}
-                                incrementY={60} // Vertical offset for each card in the stack
-                                incrementZ={10}
-                                className="w-full max-w-sm rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md p-6 md:mb-[40vh] mb-[15vh] last:mb-[10vh]"
-                                style={{
-                                    background: achievement.bg,
-                                    top: 300 + (index * 60) // Starting sticky position below the header
-                                }}
-                            >
-                                <h4 className="text-4xl font-bold text-white mb-2">
-                                    {achievement.title}
-                                </h4>
-                                <p className="text-sm font-medium uppercase tracking-tight text-white/90">
-                                    {achievement.description}
-                                </p>
-                            </CardSticky>
-                        ))}
-                    </ContainerScroll>
+                    <div className="sticky top-[450px] w-full max-w-md aspect-[4/5] rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl relative group">
+                        <img
+                            src="https://images.unsplash.com/photo-1542626991-cbc4e32524cc?q=80&w=1000&auto=format&fit=crop"
+                            alt="Project Planning"
+                            className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-transparent opacity-80" />
+
+                        {/* Connecting Line SVG */}
+                        <div className="absolute top-1/2 -right-24 md:-right-32 w-48 h-96 hidden md:block pointer-events-none z-10">
+                            <svg width="200" height="400" viewBox="0 0 200 400" fill="none" xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
+                                <motion.path
+                                    d="M0 200 C 100 200, 100 0, 200 0"
+                                    stroke="url(#line-gradient)"
+                                    strokeWidth="2"
+                                    strokeDasharray="4 4"
+                                    initial={{ pathLength: 0, opacity: 0 }}
+                                    animate={{ pathLength: 1, opacity: 1 }}
+                                    transition={{ duration: 1.5, repeat: Infinity, repeatType: "loop", ease: "linear" }}
+                                />
+                                <defs>
+                                    <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="rgb(99,102,241)" stopOpacity="0" />
+                                        <stop offset="50%" stopColor="rgb(99,102,241)" stopOpacity="1" />
+                                        <stop offset="100%" stopColor="rgb(99,102,241)" stopOpacity="0" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Right Side: Main Process Phases */}
@@ -124,19 +132,28 @@ const Process = () => {
                             key={phase.id}
                             index={index}
                             incrementY={80}
-                            className="rounded-2xl border p-8 shadow-md backdrop-blur-md bg-white/80 dark:bg-stone-800/80 md:mb-[20vh] mb-[10vh]"
+                            className="rounded-[2rem] border border-white/5 p-10 shadow-2xl backdrop-blur-xl bg-white/5 dark:bg-stone-900/60 md:mb-[20vh] mb-[10vh] group/card hover:border-primary/20 transition-colors"
                             style={{ top: 100 + (index * 20) }}
                         >
-                            <div className="flex items-center justify-between gap-4">
-                                <h2 className="my-6 text-2xl font-bold tracking-tighter">
+                            <div className="flex items-center justify-between gap-4 mb-6">
+                                <h2 className="text-3xl font-bold tracking-tight group-hover/card:text-primary transition-colors">
                                     {phase.title}
                                 </h2>
-                                <h3 className="text-2xl font-bold text-indigo-500">
+                                <h3 className="text-4xl font-black text-indigo-500/20 group-hover/card:text-indigo-500/100 transition-all">
                                     {String(index + 1).padStart(2, "0")}
                                 </h3>
                             </div>
 
-                            <p className="text-foreground">{phase.description}</p>
+                            <p className="text-muted-foreground text-sm leading-relaxed">{phase.description}</p>
+
+                            <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-primary">Priority Phase</span>
+                                <div className="flex -space-x-2">
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="w-6 h-6 rounded-full border border-white/10 bg-zinc-800" />
+                                    ))}
+                                </div>
+                            </div>
                         </CardSticky>
                     ))}
                 </ContainerScroll>

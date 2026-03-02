@@ -26,10 +26,11 @@ import { TextCarouselDemo } from '@/components/site/text-carousel'
 import { MorphingText } from '@/components/ui/morphing-text'
 import { BigStackDemo } from '@/components/site/big-stack-demo'
 import { DisplayCardsDemo } from '@/components/site/display-cards-demo'
-import AnimatedCardStack from '@/components/ui/animate-card-animation'
 import { Process } from '@/components/site/cards-stack-demo'
-import { TrustHero } from '@/components/ui/glassmorphism-trust-hero'
+import { CyberneticBentoGrid } from '@/components/ui/cybernetic-bento-grid'
+import { OrderPerformance } from '@/components/blocks/features-9'
 import { IntroductionVideoDemo } from '@/components/site/introduction-video'
+import { TrustHero } from '@/components/ui/glassmorphism-trust-hero'
 import ReleaseTimeLineDemo from '@/components/site/release-time-line-demo'
 import ContactCardDemo from '@/components/site/contact-card-demo'
 import BentoCardsAbout from '@/components/site/bento-cards-about'
@@ -112,24 +113,50 @@ export default async function Home() {
         <SectionWithMockup
           title={
             <>
-              Agency Intelligence,
+              Instant Communication,
               <br />
-              delivered to you.
+              Accelerated Delivery.
             </>
           }
           description={
             <>
-              Get a tailored Monday morning brief directly in
+              Stay perfectly synced with your clients and team.
               <br />
-              your inbox, crafted by your virtual personal
+              Our real-time messaging hub ensures that every
               <br />
-              analyst, spotlighting essential lead stories
+              decision is captured, and every update is delivered
               <br />
-              and conversion trends for the week ahead.
+              instantly, keeping your projects moving at light speed.
             </>
           }
           primaryImageSrc="/assets/preview.png"
           secondaryImageSrc="https://www.fey.com/marketing/_next/static/media/newsletter-desktop-1_4x.9cc114e6.png"
+          type="direct"
+        />
+
+        <SectionWithMockup
+          title={
+            <>
+              Team Sync,
+              <br />
+              Silo-Free Success.
+            </>
+          }
+          description={
+            <>
+              Unite your organization with dedicated team channels.
+              <br />
+              From rapid dev-ops syncs to creative design reviews,
+              <br />
+              Chapabiz makes group collaboration feel as effortless
+              <br />
+              and organized as a 1-on-1 conversation.
+            </>
+          }
+          primaryImageSrc="/assets/preview.png"
+          secondaryImageSrc="https://www.fey.com/marketing/_next/static/media/newsletter-desktop-1_4x.9cc114e6.png"
+          reverseLayout={true}
+          type="group"
         />
       </section>
 
@@ -139,9 +166,11 @@ export default async function Home() {
         <Process />
       </div>
 
-      <section className="w-full py-20">
-        <AnimatedCardStack />
-      </section>
+      <div id="features">
+        <CyberneticBentoGrid />
+      </div>
+
+      <OrderPerformance />
 
       <section className="mt-[-60px] w-full">
         <ZoomParallaxDemo />
