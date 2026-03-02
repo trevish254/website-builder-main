@@ -49,7 +49,7 @@ export function AboutSection() {
                                 animationNum={0}
                                 timelineRef={heroRef}
                                 customVariants={revealVariants}
-                                className="text-sm font-bold uppercase tracking-widest text-muted-foreground"
+                                className="text-sm font-medium uppercase tracking-widest text-muted-foreground"
                             >
                                 OUR LEGACY
                             </TimelineContent>
@@ -120,13 +120,13 @@ export function AboutSection() {
                             className="flex gap-8"
                         >
                             <div className="flex items-center gap-3">
-                                <span className="text-primary font-bold text-2xl">10+</span>
-                                <span className="text-muted-foreground uppercase tracking-wider font-semibold">Years of Excellence</span>
+                                <span className="text-primary font-medium text-2xl">10+</span>
+                                <span className="text-muted-foreground uppercase tracking-wider font-medium">Years of Excellence</span>
                                 <span className="text-border">|</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="text-primary font-bold text-2xl">300+</span>
-                                <span className="text-muted-foreground uppercase tracking-wider font-semibold">Projecs Delivered</span>
+                                <span className="text-primary font-medium text-2xl">300+</span>
+                                <span className="text-muted-foreground uppercase tracking-wider font-medium">Projects Delivered</span>
                             </div>
                         </TimelineContent>
                         <div className="lg:absolute right-0 bottom-16 flex lg:flex-col flex-row-reverse lg:gap-0 gap-6">
@@ -137,8 +137,8 @@ export function AboutSection() {
                                 customVariants={revealVariants}
                                 className="flex lg:text-5xl sm:text-3xl text-2xl items-center gap-4 mb-2"
                             >
-                                <span className="text-primary font-bold">100+</span>
-                                <span className="text-foreground uppercase font-black italic tracking-tighter">Global Brands</span>
+                                <span className="text-primary font-medium">100+</span>
+                                <span className="text-foreground uppercase font-medium tracking-tight">Global Brands</span>
                             </TimelineContent>
                             <TimelineContent
                                 as="div"
@@ -147,8 +147,8 @@ export function AboutSection() {
                                 customVariants={revealVariants}
                                 className="flex items-center gap-2 mb-2 sm:text-base text-xs"
                             >
-                                <span className="text-primary font-bold">40%</span>
-                                <span className="text-muted-foreground uppercase tracking-wider font-semibold">Faster Deployment</span>
+                                <span className="text-primary font-medium">40%</span>
+                                <span className="text-muted-foreground uppercase tracking-wider font-medium">Faster Deployment</span>
                             </TimelineContent>
                         </div>
                     </div>
@@ -156,7 +156,7 @@ export function AboutSection() {
                 {/* Main Content */}
                 <div className="grid lg:grid-cols-12 gap-16 mt-12">
                     <div className="lg:col-span-8">
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl !leading-[1.05] font-black text-foreground mb-12 tracking-tight">
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl !leading-[1.05] font-semibold text-foreground mb-12 tracking-tight">
                             <VerticalCutReveal
                                 splitBy="words"
                                 staggerDuration={0.1}
@@ -216,7 +216,7 @@ export function AboutSection() {
                                 animationNum={12}
                                 timelineRef={heroRef}
                                 customVariants={revealVariants}
-                                className="text-primary text-3xl font-black tracking-tighter mb-2"
+                                className="text-primary text-3xl font-semibold tracking-tight mb-2"
                             >
                                 CHAPABIZ
                             </TimelineContent>
@@ -225,7 +225,7 @@ export function AboutSection() {
                                 animationNum={13}
                                 timelineRef={heroRef}
                                 customVariants={revealVariants}
-                                className="text-muted-foreground text-sm font-bold uppercase tracking-widest mb-10"
+                                className="text-muted-foreground text-sm font-medium uppercase tracking-widest mb-10"
                             >
                                 Agency Operating System
                             </TimelineContent>
@@ -237,7 +237,7 @@ export function AboutSection() {
                                 customVariants={revealVariants}
                                 className="mb-8"
                             >
-                                <p className="text-foreground text-lg font-bold leading-snug">
+                                <p className="text-foreground text-lg font-medium leading-snug">
                                     Scale your operations and unify your team under one roof.
                                 </p>
                             </TimelineContent>
@@ -247,7 +247,7 @@ export function AboutSection() {
                                 animationNum={15}
                                 timelineRef={heroRef}
                                 customVariants={revealVariants}
-                                className="bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 flex w-full justify-center items-center gap-3 hover:gap-5 transition-all duration-500 ease-in-out text-primary-foreground px-8 py-5 rounded-2xl cursor-pointer font-bold text-lg"
+                                className="bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 flex w-full justify-center items-center gap-3 hover:gap-5 transition-all duration-500 ease-in-out text-primary-foreground px-8 py-5 rounded-2xl cursor-pointer font-medium text-lg"
                             >
                                 LET'S COLLABORATE <ArrowRight className="w-6 h-6" />
                             </TimelineContent>
