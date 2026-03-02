@@ -38,7 +38,7 @@ const BentoItem = ({ className, children, title, description, icon: Icon, glowCo
     return (
         <div
             ref={itemRef}
-            className={`group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 ${className}`}
+            className={`group relative overflow-hidden rounded-3xl border border-border/50 bg-card/50 dark:bg-zinc-900/50 p-8 transition-all hover:bg-card/80 dark:hover:bg-zinc-900/80 ${className}`}
             style={{
                 background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), ${glowColor}, transparent 40%)`
             } as any}
@@ -49,14 +49,14 @@ const BentoItem = ({ className, children, title, description, icon: Icon, glowCo
             <div className="relative z-10 flex h-full flex-col">
                 <div className="flex items-center gap-3">
                     {Icon && (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20 transition-transform group-hover:scale-110">
-                            <Icon className="h-5 w-5 text-white" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 transition-transform group-hover:scale-110">
+                            <Icon className="h-5 w-5 text-primary" />
                         </div>
                     )}
-                    <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
+                    <h2 className="text-xl font-bold text-foreground tracking-tight">{title}</h2>
                 </div>
 
-                <p className="mt-4 text-zinc-400 text-sm leading-relaxed">{description}</p>
+                <p className="mt-4 text-muted-foreground text-sm leading-relaxed">{description}</p>
 
                 <div className="mt-auto flex-grow">
                     {children}
@@ -72,7 +72,7 @@ const BentoItem = ({ className, children, title, description, icon: Icon, glowCo
 // Main Component
 export const CyberneticBentoGrid = () => {
     return (
-        <section className="relative w-full overflow-hidden bg-black py-32 px-4 sm:px-6 lg:px-8">
+        <section className="relative w-full overflow-hidden bg-background py-32 px-4 sm:px-6 lg:px-8">
             {/* Background Atmosphere */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-[80%] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
             <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
@@ -85,14 +85,14 @@ export const CyberneticBentoGrid = () => {
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
                     >
-                        <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-primary/80 mb-4 px-4">Technical Infrastructure</h2>
-                        <h1 className="text-4xl sm:text-6xl font-bold text-white tracking-tighter leading-none mb-6">
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-primary mb-4 px-4">Technical Infrastructure</h2>
+                        <h1 className="text-4xl sm:text-6xl font-bold text-foreground tracking-tighter leading-none mb-6">
                             Core Features for<br />
-                            <span className="bg-gradient-to-br from-white to-zinc-500 bg-clip-text text-transparent">
+                            <span className="bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
                                 Hyper-Scale
                             </span>
                         </h1>
-                        <p className="text-zinc-500 max-w-2xl mx-auto text-lg">
+                        <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
                             Our architecture is designed for performance, resilience, and speed.
                             Deliver world-class experiences with our enterprise backbone.
                         </p>
@@ -163,7 +163,7 @@ export const CyberneticBentoGrid = () => {
                     >
                         <div className="mt-4 flex gap-4 overflow-hidden mask-fade-right">
                             {["Index.ts", "Auth.ts", "Compute.ts"].map(file => (
-                                <div key={file} className="flex-shrink-0 bg-white/5 border border-white/10 rounded-lg py-2 px-4 font-mono text-xs text-zinc-400">
+                                <div key={file} className="flex-shrink-0 bg-accent border border-border/50 rounded-lg py-2 px-4 font-mono text-xs text-muted-foreground">
                                     {file}
                                 </div>
                             ))}
