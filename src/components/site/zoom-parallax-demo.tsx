@@ -3,16 +3,16 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 import { ZoomParallax } from "@/components/ui/zoom-parallax";
+import { LuminaInteractiveList } from "@/components/ui/lumina-interactive-list";
 
 export function ZoomParallaxDemo() {
 
 
 
 
-    const images = [
+    const items = [
         {
-            src: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-            alt: 'Modern architecture building',
+            component: <LuminaInteractiveList />,
         },
         {
             src: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
@@ -56,7 +56,7 @@ export function ZoomParallaxDemo() {
                     Visualizing <br /> <span className="text-primary">The Future</span>
                 </h1>
             </div>
-            <ZoomParallax images={images} />
+            <ZoomParallax items={items} />
 
             <div className="py-20 flex flex-col items-center justify-center bg-background relative z-10 -mt-[10vh]">
                 <div className="max-w-4xl mx-auto px-6 text-center">

@@ -3,17 +3,18 @@
 import { useScroll, useTransform, motion } from 'framer-motion';
 import { useRef } from 'react';
 
-interface Image {
-    src: string;
+interface ParallaxItem {
+    src?: string;
     alt?: string;
+    component?: React.ReactNode;
 }
 
 interface ZoomParallaxProps {
-    /** Array of images to be displayed in the parallax effect max 7 images */
-    images: Image[];
+    /** Array of items to be displayed in the parallax effect max 7 items */
+    items: ParallaxItem[];
 }
 
-export function ZoomParallax({ images }: ZoomParallaxProps) {
+export function ZoomParallax({ items }: ZoomParallaxProps) {
     const container = useRef(null);
     const { scrollYProgress } = useScroll({
         target: container,
@@ -31,7 +32,7 @@ export function ZoomParallax({ images }: ZoomParallaxProps) {
     return (
         <div ref={container} className="relative h-[300vh]">
             <div className="sticky top-0 h-screen overflow-hidden">
-                {images.map(({ src, alt }, index) => {
+                {items.map(({ src, alt, component }, index) => {
                     const scale = scales[index % scales.length];
 
                     return (
@@ -40,12 +41,20 @@ export function ZoomParallax({ images }: ZoomParallaxProps) {
                             style={{ scale }}
                             className={`absolute top-0 flex h-full w-full items-center justify-center ${index === 1 ? '[&>div]:!-top-[30vh] [&>div]:!left-[2vw] [&>div]:!h-[35vh] [&>div]:!w-[35vw]' : ''} ${index === 2 ? '[&>div]:!-top-[5vh] [&>div]:!-left-[32vw] [&>div]:!h-[45vh] [&>div]:!w-[30vw]' : ''} ${index === 3 ? '[&>div]:!top-[5vh] [&>div]:!left-[32vw] [&>div]:!h-[45vh] [&>div]:!w-[30vw]' : ''} ${index === 4 ? '[&>div]:!top-[35vh] [&>div]:!-left-[2vw] [&>div]:!h-[30vh] [&>div]:!w-[30vw]' : ''} ${index === 5 ? '[&>div]:!top-[30vh] [&>div]:!-left-[32vw] [&>div]:!h-[30vh] [&>div]:!w-[30vw]' : ''} ${index === 6 ? '[&>div]:!top-[30vh] [&>div]:!left-[32vw] [&>div]:!h-[30vh] [&>div]:!w-[30vw]' : ''} `}
                         >
-                            <div className="relative h-[25vh] w-[25vw]">
-                                <img
-                                    src={src || '/placeholder.svg'}
-                                    alt={alt || `Parallax image ${index + 1}`}
-                                    className="h-full w-full object-cover rounded-2xl border border-white/10 shadow-[0_0_60px_-15px_rgba(0,0,0,0.8)]"
-                                />
+                            <div className={`relative ${index === 0 && component ? 'h-[50vh] w-[70vw] z-50 rounded-[40px] overflow-hidden shadow-[0_0_100px_-15px_rgba(0,0,0,0.8)]' : 'h-[25vh] w-[25vw]'}`}>
+                                {component ? (
+                                    <div className="w-full h-full"> {/* Scale down the wrapper slightly to fit within parallax container visually */}
+                                        <div className="w-[1920px] h-[1080px] transform origin-top-left" style={{ transform: 'scale(' + (typeof window !== 'undefined' ? window.innerWidth * 0.70 / 1920 : 0.5) + ')' }}>
+                                            {component}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <img
+                                        src={src || '/placeholder.svg'}
+                                        alt={alt || `Parallax image ${index + 1}`}
+                                        className="h-full w-full object-cover rounded-2xl border border-white/10 shadow-[0_0_60px_-15px_rgba(0,0,0,0.8)]"
+                                    />
+                                )}
                             </div>
                         </motion.div>
                     );

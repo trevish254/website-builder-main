@@ -1,7 +1,15 @@
 'use client';
 
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+const TypingIndicator = () => (
+    <div className="flex items-center gap-1.5 px-4 py-3 bg-muted/40 rounded-2xl border border-border/50 w-fit backdrop-blur-md">
+        <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+        <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+        <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+    </div>
+);
 
 interface SectionWithMockupProps {
     title: string | React.ReactNode;
@@ -20,6 +28,46 @@ const SectionWithMockup: React.FC<SectionWithMockupProps> = ({
     reverseLayout = false,
     type = "direct",
 }) => {
+
+    const [chatStep, setChatStep] = useState(0);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTo({
+                top: chatContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [chatStep]);
+
+    useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+
+        const scheduleNext = (currentStep: number) => {
+            const next = (currentStep + 1) % 9;
+            let delay = 2000; // default delay
+
+            if (currentStep === 0) delay = 2500;      // Reading msg 1
+            else if (currentStep === 1) delay = 2000; // Typing...
+            else if (currentStep === 2) delay = 3500; // Reading msg 2
+            else if (currentStep === 3) delay = 1500; // Typing...
+            else if (currentStep === 4) delay = 3500; // Reading msg 3
+            else if (currentStep === 5) delay = 1500; // Typing...
+            else if (currentStep === 6) delay = 3000; // Reading msg 4
+            else if (currentStep === 7) delay = 1500; // Typing...
+            else if (currentStep === 8) delay = 5000; // Reading final msg
+
+            timeoutId = setTimeout(() => {
+                setChatStep(next);
+                scheduleNext(next);
+            }, delay);
+        };
+
+        scheduleNext(0);
+
+        return () => clearTimeout(timeoutId);
+    }, []);
 
     const containerVariants = {
         hidden: {},
@@ -203,98 +251,252 @@ const SectionWithMockup: React.FC<SectionWithMockupProps> = ({
                                     </div>
                                 </div>
 
-                                {/* Converesation Feed */}
-                                <div className="flex-1 space-y-8 overflow-visible">
-                                    {type === "direct" ? (
-                                        <>
-                                            {/* Client Message with Avatar Peak */}
-                                            <div className="flex items-start gap-3 max-w-[90%]">
-                                                <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1">
-                                                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
-                                                </div>
-                                                <div className="flex flex-col items-start gap-2">
-                                                    <div className="p-5 rounded-3xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md">
-                                                        <p className="text-sm text-foreground/90 leading-relaxed">
-                                                            Hi, can we get a quick update on the Q3 design prototypes? Our stakeholders are meeting tomorrow.
-                                                        </p>
-                                                    </div>
-                                                    <span className="text-[10px] text-muted-foreground ml-1">10:42 AM</span>
-                                                </div>
-                                            </div>
+                                {/* Conversation Feed */}
+                                <div
+                                    ref={chatContainerRef}
+                                    className="flex-1 space-y-6 overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+                                >
+                                    <AnimatePresence mode="popLayout">
+                                        {type === "direct" ? (
+                                            <>
+                                                {/* Client Message 1 */}
+                                                {(chatStep >= 0) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[90%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1">
+                                                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="flex flex-col items-start gap-2 hidden-scroll">
+                                                            <div className="p-4 rounded-3xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md">
+                                                                <p className="text-sm text-foreground/90 leading-relaxed">
+                                                                    Hi, can we get a quick update on the Q3 design prototypes? Our stakeholders are meeting tomorrow.
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-[10px] text-muted-foreground ml-1">10:42 AM</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
 
-                                            {/* User (Agency) Response */}
-                                            <div className="flex flex-col items-end gap-2 ml-auto max-w-[85%]">
-                                                <div className="p-5 rounded-3xl rounded-tr-none bg-primary border border-primary/20 shadow-[0_0_30px_-5px_rgba(var(--primary),0.3)]">
-                                                    <p className="text-sm text-primary-foreground leading-relaxed font-medium">
-                                                        Absolutely! I've just uploaded the final prototypes to the project portal. They're looking fantastic.
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center gap-2 mr-1">
-                                                    <span className="text-[10px] text-muted-foreground">10:45 AM</span>
-                                                    <div className="flex h-3 w-3 items-center justify-center">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_100px_rgba(var(--primary),0.8)]" />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                {/* User Typing Indicator 1 */}
+                                                {(chatStep === 1) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex flex-col items-end gap-2 ml-auto max-w-[85%]">
+                                                        <TypingIndicator />
+                                                    </motion.div>
+                                                )}
 
-                                            {/* Client Response with Avatar Peak */}
-                                            <div className="flex items-start gap-3 max-w-[90%]">
-                                                <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1">
-                                                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
-                                                </div>
-                                                <div className="flex flex-col items-start gap-2">
-                                                    <div className="p-5 rounded-3xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md">
-                                                        <p className="text-sm text-foreground/90 leading-relaxed">
-                                                            Wow, that was fast. The dashboard looks incredible. Let's move this to development immediately!
-                                                        </p>
-                                                    </div>
-                                                    <span className="text-[10px] text-muted-foreground ml-1">Just now</span>
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {/* Sarah's Message */}
-                                            <div className="flex items-start gap-3 max-w-[90%]">
-                                                <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1">
-                                                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
-                                                </div>
-                                                <div className="flex flex-col items-start gap-2">
-                                                    <div className="p-4 rounded-2xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md">
-                                                        <p className="text-xs text-foreground/90 leading-relaxed">
-                                                            Team, the Q4 roadmap is live in the repo. @everyone check your modules!
-                                                        </p>
-                                                    </div>
-                                                    <span className="text-[10px] text-muted-foreground ml-1">Sarah Wells · 11:20 AM</span>
-                                                </div>
-                                            </div>
+                                                {/* User Response 1 */}
+                                                {(chatStep >= 2) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex flex-col items-end gap-2 ml-auto max-w-[85%]">
+                                                        <div className="p-4 rounded-3xl rounded-tr-none bg-primary border border-primary/20 shadow-[0_0_30px_-5px_rgba(var(--primary),0.3)]">
+                                                            <p className="text-sm text-primary-foreground leading-relaxed font-medium">
+                                                                Absolutely! I've just uploaded the final prototypes to the project portal. They're looking fantastic.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 mr-1">
+                                                            <span className="text-[10px] text-muted-foreground">10:45 AM</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
 
-                                            {/* Alex's Response */}
-                                            <div className="flex items-start gap-3 max-w-[90%]">
-                                                <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1">
-                                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop" alt="Alex" className="w-full h-full object-cover" />
-                                                </div>
-                                                <div className="flex flex-col items-start gap-2">
-                                                    <div className="p-4 rounded-2xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md">
-                                                        <p className="text-xs text-foreground/90 leading-relaxed">
-                                                            Copy that. I'm finishing up the auth-logic refactor now.
-                                                        </p>
-                                                    </div>
-                                                    <span className="text-[10px] text-muted-foreground ml-1">Alex Thompson · 11:25 AM</span>
-                                                </div>
-                                            </div>
+                                                {/* Client Typing Indicator 2 */}
+                                                {(chatStep === 3) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[90%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1">
+                                                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <TypingIndicator />
+                                                    </motion.div>
+                                                )}
 
-                                            {/* User Response */}
-                                            <div className="flex flex-col items-end gap-2 ml-auto max-w-[85%]">
-                                                <div className="p-4 rounded-2xl rounded-tr-none bg-primary border border-primary/20 shadow-lg">
-                                                    <p className="text-xs text-primary-foreground leading-relaxed font-medium">
-                                                        Merged Alex's PR. We are officially ready for the staging deploy! 🚀
-                                                    </p>
-                                                </div>
-                                                <span className="text-[10px] text-muted-foreground mr-1">You · Just now</span>
-                                            </div>
-                                        </>
-                                    )}
+                                                {/* Client Response 2 */}
+                                                {(chatStep >= 4) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[90%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1">
+                                                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="flex flex-col items-start gap-2">
+                                                            <div className="p-4 rounded-3xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md">
+                                                                <p className="text-sm text-foreground/90 leading-relaxed">
+                                                                    Wow, that was fast. The dashboard looks incredible. Let's move this to development immediately!
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-[10px] text-muted-foreground ml-1">10:46 AM</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+
+                                                {/* User Typing Indicator 2 */}
+                                                {(chatStep === 5) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex flex-col items-end gap-2 ml-auto max-w-[85%]">
+                                                        <TypingIndicator />
+                                                    </motion.div>
+                                                )}
+
+                                                {/* User Response 2 */}
+                                                {(chatStep >= 6) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex flex-col items-end gap-2 ml-auto max-w-[85%] mt-2">
+                                                        <div className="p-3.5 rounded-3xl rounded-tr-none bg-primary border border-primary/20 shadow-lg">
+                                                            <p className="text-sm text-primary-foreground leading-relaxed font-medium">
+                                                                You got it! Handing it off to the engineering pipeline right now.
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-[10px] text-muted-foreground mr-1">10:46 AM</span>
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Client Typing Indicator 3 */}
+                                                {(chatStep === 7) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[90%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1">
+                                                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <TypingIndicator />
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Client Response 3 */}
+                                                {(chatStep >= 8) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[90%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1">
+                                                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="flex flex-col items-start gap-2">
+                                                            <div className="p-4 rounded-3xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md">
+                                                                <p className="text-sm text-foreground/90 leading-relaxed">
+                                                                    Perfect. Setting up the final sync for 3PM. See you then! 👋
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-[10px] text-muted-foreground ml-1">Just now</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* Sarah's Message */}
+                                                {(chatStep >= 0) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[95%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1 flex items-center justify-center bg-zinc-800">
+                                                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="flex flex-col items-start gap-2">
+                                                            <div className="p-3.5 rounded-2xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md">
+                                                                <p className="text-xs text-foreground/90 leading-relaxed">
+                                                                    Team, the Q4 roadmap is live in the repo. <span className="text-primary font-medium">@everyone</span> check your modules!
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-[10px] text-muted-foreground ml-1">Sarah Wells · 11:20 AM</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Alex Typing Indicator */}
+                                                {(chatStep === 1) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[90%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1 flex items-center justify-center bg-zinc-800">
+                                                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop" alt="Alex" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <TypingIndicator />
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Alex's Response */}
+                                                {(chatStep >= 2) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[95%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1 flex items-center justify-center bg-zinc-800">
+                                                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop" alt="Alex" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="flex flex-col items-start gap-2 w-full">
+                                                            <div className="p-3.5 rounded-2xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md w-full">
+                                                                <p className="text-xs text-foreground/90 leading-relaxed mb-3">
+                                                                    Copy that. I'm finishing up the auth-logic refactor now. Here's a preview of the new auth component.
+                                                                </p>
+                                                                <div className="w-full h-[120px] rounded-lg overflow-hidden border border-white/10 relative group cursor-pointer">
+                                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                                        <span className="text-white text-xs font-bold drop-shadow-md">View</span>
+                                                                    </div>
+                                                                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=400&auto=format&fit=crop" alt="Attachment" className="w-full h-full object-cover" />
+                                                                </div>
+                                                            </div>
+                                                            <span className="text-[10px] text-muted-foreground ml-1">Alex Thompson · 11:25 AM</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+
+                                                {/* User Typing Indicator */}
+                                                {(chatStep === 3) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex flex-col items-end gap-2 ml-auto max-w-[85%]">
+                                                        <TypingIndicator />
+                                                    </motion.div>
+                                                )}
+
+                                                {/* User Response */}
+                                                {(chatStep >= 4) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex flex-col items-end gap-2 ml-auto max-w-[85%] mt-2">
+                                                        <div className="p-3.5 rounded-2xl rounded-tr-none bg-primary border border-primary/20 shadow-lg">
+                                                            <p className="text-xs text-primary-foreground leading-relaxed font-medium">
+                                                                Merged Alex's PR. We are officially ready for the staging deploy! 🚀
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-[10px] text-muted-foreground mr-1">You · 11:28 AM</span>
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Emily Typing Indicator */}
+                                                {(chatStep === 5) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[90%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1 flex items-center justify-center bg-zinc-800">
+                                                            <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=150&auto=format&fit=crop" alt="Emily" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <TypingIndicator />
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Emily Response */}
+                                                {(chatStep >= 6) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[95%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1 flex items-center justify-center bg-zinc-800">
+                                                            <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=150&auto=format&fit=crop" alt="Emily" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="flex flex-col items-start gap-2 w-full">
+                                                            <div className="p-3.5 rounded-2xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md w-full">
+                                                                <p className="text-xs text-foreground/90 leading-relaxed">
+                                                                    Awesome work everyone! QA is spinning up the test environments now. 🧪 Updates in #QA-Ops soon.
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-[10px] text-muted-foreground ml-1">Emily Chen · 11:30 AM</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Sarah Typing Indicator 2 */}
+                                                {(chatStep === 7) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[90%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1 flex items-center justify-center bg-zinc-800">
+                                                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <TypingIndicator />
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Sarah Response 2 */}
+                                                {(chatStep >= 8) && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-start gap-3 max-w-[95%]">
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0 mt-1 flex items-center justify-center bg-zinc-800">
+                                                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" alt="Sarah Wells" className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="flex flex-col items-start gap-2 w-full">
+                                                            <div className="p-3.5 rounded-2xl rounded-tl-none bg-muted/40 border border-white/5 backdrop-blur-md w-full">
+                                                                <p className="text-xs text-foreground/90 leading-relaxed">
+                                                                    Love the momentum! Let's celebrate after the release is verified! 🎉
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-[10px] text-muted-foreground ml-1">Sarah Wells · Just now</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
 
                                 {/* Message Input Simulation */}
