@@ -106,6 +106,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
   const [typingStates, setTypingStates] = useState<Record<string, Set<string>>>({})
   const [isUploading, setIsUploading] = useState(false)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const presenceChannelRef = useRef<any>(null)
 
   // Inter-agency messaging state
   const [searchAgencyEmail, setSearchAgencyEmail] = useState('')
@@ -274,7 +275,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
         iconUrl: c.iconUrl,
         description: c.description,
         participants: participants.map((p: any) => ({
-          id: p.User?.id,
+          id: p.User?.id || p.userId,
           name: p.User?.name,
           email: p.User?.email,
           avatarUrl: p.User?.avatarUrl
@@ -378,36 +379,34 @@ const AgencyMessagesPage = ({ params }: Props) => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'Message',
-          filter: `conversationId=in.(${allMyConvIds.join(',')})`
+          table: 'Message'
         },
         (payload) => {
           const m = payload.new as any
-          if (m.senderId === user.id) return
+          if (!m || m.senderId === user.id) return
+
+          console.log('[REALTIME] Global message received:', m)
 
           // Update the specific inbox item
           setInboxItems(prev => {
-            const updated = prev.map(item => {
-              if (item.id === m.conversationId) {
-                const isCurrentlyViewing = selectedConversationId === item.id
+            const index = prev.findIndex(item => item.id === m.conversationId)
+            if (index === -1) return prev
 
-                return {
-                  ...item,
-                  preview: m.content,
-                  timestamp: new Date().toLocaleDateString(),
-                  unread: !isCurrentlyViewing,
-                  unreadCount: isCurrentlyViewing ? 0 : (item.unreadCount || 0) + 1
-                }
-              }
-              return item
-            })
+            const updated = [...prev]
+            const item = { ...updated[index] }
+            const isCurrentlyViewing = selectedConversationId === item.id
 
-            // Sort so the updated conversation moves to top
-            return [...updated].sort((a, b) => {
-              if (a.id === m.conversationId) return -1
-              if (b.id === m.conversationId) return 1
-              return 0
-            })
+            item.preview = m.content
+            item.timestamp = new Date().toLocaleDateString()
+            if (!isCurrentlyViewing) {
+              item.unread = true
+              item.unreadCount = (item.unreadCount || 0) + 1
+            }
+
+            // Move to top
+            updated.splice(index, 1)
+            updated.unshift(item)
+            return updated
           })
         }
       )
@@ -618,11 +617,10 @@ const AgencyMessagesPage = ({ params }: Props) => {
             event: '*',
             schema: 'public',
             table: 'Message',
-            // Listen to any message whose conversationId is in our list
-            filter: `conversationId=in.(${relevantIds.join(',')})`
+            filter: `conversationId=eq.${selectedConversationId}`
           },
           (payload) => {
-            console.log('[REALTIME] message change received for merged list:', payload)
+            console.log('[REALTIME] Chat message received:', payload)
             if (payload.eventType === 'INSERT') {
               const m = payload.new as any
 
@@ -777,6 +775,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
 
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
+        presenceChannelRef.current = channel
         await channel.track({
           online_at: new Date().toISOString(),
           user_id: user.id,
@@ -785,6 +784,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
     })
 
     return () => {
+      presenceChannelRef.current = null
       channel.unsubscribe()
     }
   }, [user?.id, selectedConversationId])
@@ -884,7 +884,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   const handleTyping = () => {
-    if (!selectedConversationId || !user?.id) return
+    if (!selectedConversationId || !user?.id || !presenceChannelRef.current) return
 
     // Limit broadcast frequency
     const now = Date.now()
@@ -893,8 +893,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
     }
     (window as any).lastTypingBroadcast = now
 
-    const channel = supabase.channel('online-users')
-    channel.send({
+    presenceChannelRef.current.send({
       type: 'broadcast',
       event: 'typing',
       payload: { conversationId: selectedConversationId, userId: user.id }
@@ -1314,7 +1313,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
   }
 
   return (
-    <div className="flex w-full h-[calc(100dvh-96px)] md:h-[calc(100vh-96px)] bg-white dark:bg-background md:rounded-2xl overflow-hidden border-none md:border shadow-none md:shadow-sm overscroll-none">
+    <div className="flex w-full h-[calc(100dvh-64px)] md:h-[calc(100vh-64px)] bg-[#fafafa] dark:bg-[#020202] overflow-hidden p-4 md:p-6 gap-6 overscroll-none">
       <style jsx global>{`
         @media (max-width: 768px) {
           body, html {
@@ -1340,7 +1339,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
       <div className="flex flex-row w-full h-full overflow-hidden">
 
         {/* Inbox List - Left Section (Rigid Width) */}
-        <div className="h-full border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shrink-0 w-[450px] lg:w-[500px] flex flex-col">
+        <div className="h-full shrink-0 w-[450px] lg:w-[500px] flex flex-col z-10">
           <ChatSidebar
             inboxItems={inboxItems}
             selectedConversationId={selectedConversationId || ''}
@@ -1370,7 +1369,7 @@ const AgencyMessagesPage = ({ params }: Props) => {
         </div>
 
         {/* Chat Area - Right Section (Flexible Fill) */}
-        <div className="h-full flex-1 min-w-0 bg-white dark:bg-background/20 flex flex-col relative">
+        <div className="h-full flex-1 min-w-0 flex flex-col relative z-20">
           {selectedConversationId ? (
             <ChatWindow
               selectedMsg={selectedMsg}
@@ -1420,9 +1419,20 @@ const AgencyMessagesPage = ({ params }: Props) => {
               onVideoCall={() => {
                 if (selectedMsg && user) {
                   const videoRoomId = selectedMsg.id
-                  const targetIds = (selectedMsg.participants || [])
+                  let targetIds = (selectedMsg.participants || [])
                     .map((p: any) => p.id)
                     .filter((id: string) => id && id !== user.id)
+
+                  // Robust fallback for 1:1 chats
+                  if (targetIds.length === 0 && selectedMsg.participantInfo?.id) {
+                    targetIds = [selectedMsg.participantInfo.id]
+                  }
+
+                  // TEST ALLOWANCE: If still no targets, but we are testing cross-device (same user), allow self-targeting
+                  if (targetIds.length === 0) {
+                    console.log('[VIDEO] No third-party targets, targeting self for cross-device notification')
+                    targetIds = [user.id]
+                  }
 
                   const win = window.open(`/video/${videoRoomId}`, '_blank')
                   if (!win) {
@@ -1442,11 +1452,13 @@ const AgencyMessagesPage = ({ params }: Props) => {
                   }
 
                   // Broadcast invites
-                  if (selectedMsg.type !== 'video' && targetIds.length > 0) {
+                  if (targetIds.length > 0) {
+                    console.log(`[VIDEO] Broadcasting invites to ${targetIds.length} users:`, targetIds)
                     targetIds.forEach(targetId => {
                       const channel = supabase.channel(`user-notifications:${targetId}`)
                       channel.subscribe((status) => {
                         if (status === 'SUBSCRIBED') {
+                          console.log(`[VIDEO] Sent invite to user:${targetId}`)
                           channel.send({
                             type: 'broadcast',
                             event: 'video-call-invite',
@@ -1461,6 +1473,8 @@ const AgencyMessagesPage = ({ params }: Props) => {
                         }
                       })
                     })
+                  } else {
+                    console.warn('[VIDEO] No target participants found for invitation')
                   }
                 }
               }}

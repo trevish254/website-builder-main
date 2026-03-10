@@ -670,10 +670,10 @@ const ChatWindow = ({
     }
 
     return (
-        <Card className="flex-1 w-full flex flex-col overflow-hidden h-full border-none shadow-none md:border md:shadow-sm">
+        <Card className="flex-1 w-full flex flex-col h-full bg-card/60 dark:bg-[#09090b]/90 rounded-[40px] backdrop-blur-3xl border border-white/10 overflow-hidden shadow-[0_0_100px_-12px_rgba(0,0,0,0.5)]">
 
             {/* Chat Header */}
-            <CardHeader className="py-2.5 px-4 border-b">
+            <CardHeader className="py-4 px-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {onBack && (
@@ -788,13 +788,11 @@ const ChatWindow = ({
                                 />
                             ))}
                             {typingUsers.size > 0 && (
-                                <div className="flex justify-start mb-4 h-10 items-center opacity-0.7">
-                                    <div className="bg-gray-100/50 dark:bg-gray-800/50 rounded-2xl rounded-bl-none px-4 py-2 border border-gray-200/50 dark:border-gray-800/50">
-                                        <div className="flex gap-1.5 items-center">
-                                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></span>
-                                        </div>
+                                <div className="flex justify-start mb-4 h-10 items-center">
+                                    <div className="flex items-center gap-1.5 px-4 py-3 bg-muted/40 rounded-2xl border border-border/50 w-fit backdrop-blur-md">
+                                        <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce"></span>
                                     </div>
                                 </div>
                             )}
@@ -831,7 +829,7 @@ const ChatWindow = ({
                     <div className="max-w-4xl mx-auto pointer-events-auto relative bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 shadow-2xl rounded-2xl overflow-hidden transition-all focus-within:ring-1 focus-within:ring-blue-500/50">
                         {/* Reply Preview */}
                         {replyingTo && (
-                            <div className="px-4 py-2 bg-blue-50/50 dark:bg-blue-900/20 border-b border-blue-100/50 dark:border-blue-900/30 flex items-center justify-between group/reply animate-in slide-in-from-bottom-2">
+                            <div className="px-4 py-2 bg-blue-50/50 dark:bg-blue-900/20 flex items-center justify-between group/reply animate-in slide-in-from-bottom-2">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <div className="w-1 h-8 bg-blue-500 rounded-full shrink-0" />
                                     <div className="flex flex-col min-w-0">
@@ -856,7 +854,7 @@ const ChatWindow = ({
 
                         {/* Editing Message Preview */}
                         {editingMessage && (
-                            <div className="px-4 py-2 bg-amber-50/50 dark:bg-amber-900/20 border-b border-amber-100/50 dark:border-amber-900/30 flex items-center justify-between group/edit animate-in slide-in-from-bottom-2">
+                            <div className="px-4 py-2 bg-amber-50/50 dark:bg-amber-900/20 flex items-center justify-between group/edit animate-in slide-in-from-bottom-2">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <div className="w-1 h-8 bg-amber-500 rounded-full shrink-0" />
                                     <div className="flex flex-col min-w-0">
@@ -1116,7 +1114,6 @@ const ChatWindow = ({
                                                                     {/* Mock Admin Badge logic: assume first participant or specific ID is admin for now, or pass creatorId */}
                                                                     {/* {participant.id === selectedMsg.creatorId && ( */}
                                                                     {/* For MVP demo without creatorId flowing yet, let's just make the first one admin/creator or leave badge for specific user if known logic exists */}
-                                                                    {/* Going to just show a badge if it's the current user for demo purposes or if we can identify the admin */}
                                                                 </div>
                                                                 <div className="text-left min-w-0">
                                                                     <div className="flex items-center gap-1.5">
@@ -1171,7 +1168,7 @@ const ChatWindow = ({
                                         </div>
 
                                         {/* Scheduling & Booking Section */}
-                                        <div className="pt-6 border-t w-full">
+                                        <div className="pt-6 w-full">
                                             <div className="flex items-center justify-between mb-3 text-left">
                                                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                                                     <CalendarClock className="h-3 w-3" />

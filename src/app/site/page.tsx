@@ -26,10 +26,10 @@ import { TextCarouselDemo } from '@/components/site/text-carousel'
 import { MorphingText } from '@/components/ui/morphing-text'
 import { BigStackDemo } from '@/components/site/big-stack-demo'
 import { DisplayCardsDemo } from '@/components/site/display-cards-demo'
-import { Process } from '@/components/site/cards-stack-demo'
+import { IntroductionVideoDemo } from '@/components/site/introduction-video'
+import { TimelineDemo } from '@/components/site/timeline-demo'
 import { CyberneticBentoGrid } from '@/components/ui/cybernetic-bento-grid'
 import { OrderPerformance } from '@/components/blocks/features-9'
-import { IntroductionVideoDemo } from '@/components/site/introduction-video'
 import { TrustHero } from '@/components/ui/glassmorphism-trust-hero'
 import ReleaseTimeLineDemo from '@/components/site/release-time-line-demo'
 import ContactCardDemo from '@/components/site/contact-card-demo'
@@ -162,8 +162,8 @@ export default async function Home() {
 
       <FeaturesGrid />
 
-      <div className="w-full space-y-20">
-        <Process />
+      <div className="w-full">
+        <TimelineDemo />
       </div>
 
       <div id="features">

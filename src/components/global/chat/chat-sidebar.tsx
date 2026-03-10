@@ -151,13 +151,13 @@ const ChatSidebar = ({
     }, [agencyUsers, inboxItems, onlineUsers])
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-background overflow-hidden">
+        <div className="flex flex-col h-full bg-muted/20 dark:bg-zinc-900/40 backdrop-blur-xl rounded-[32px] border border-border/50 overflow-hidden shadow-xl">
 
             {/* Header */}
-            <div className="px-4 py-4 flex flex-col gap-3 border-b border-zinc-50 dark:border-zinc-900">
+            <div className="px-5 py-3.5 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                        Message
+                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                        Messages
                     </h2>
                     <div className="flex items-center gap-1.5 text-zinc-500">
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
@@ -184,7 +184,7 @@ const ChatSidebar = ({
             </div>
 
             {/* Online Now Section */}
-            <div className="px-5 py-3 border-b border-zinc-50 dark:border-zinc-900">
+            <div className="px-5 py-2">
                 <div className="flex items-center justify-between mb-3">
                     <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Online Now</span>
                     <button className="text-[11px] text-blue-500 font-semibold hover:underline">See all</button>
@@ -209,17 +209,17 @@ const ChatSidebar = ({
 
 
             {/* Tabs */}
-            <div className="px-3 mb-1">
-                <div className="flex bg-gray-100 dark:bg-gray-900 rounded-lg p-0.5">
+            <div className="px-5 mb-2">
+                <div className="flex bg-zinc-100/50 dark:bg-white/5 rounded-2xl p-1 backdrop-blur-sm">
                     {(['all', 'team', 'groups', 'video'] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => onTabChange(tab as any)}
                             className={`
-                                flex-1 text-xs font-medium py-1.5 rounded-md transition-all capitalize
+                                flex-1 text-[11px] font-bold py-2 rounded-xl transition-all capitalize tracking-tight
                                 ${activeTab === tab
-                                    ? 'bg-white dark:bg-background text-gray-900 dark:text-gray-100 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                    ? 'bg-white dark:bg-white/10 text-primary shadow-sm ring-1 ring-black/5'
+                                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                                 }
                             `}
                         >
@@ -259,10 +259,10 @@ const ChatSidebar = ({
                                 key={message.id}
                                 onClick={() => onSelectConversation(message.id)}
                                 className={`
-                                    group relative p-3.5 px-4 rounded-xl cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/40
+                                    group relative p-2.5 px-4 rounded-2xl cursor-pointer transition-all duration-300
                                     ${selectedConversationId === message.id
-                                        ? 'bg-zinc-50 dark:bg-zinc-900/50 ring-1 ring-zinc-200 dark:ring-zinc-800'
-                                        : ''
+                                        ? 'bg-white/10 dark:bg-white/5 ring-1 ring-white/10 shadow-2xl scale-[1.02] z-10'
+                                        : 'opacity-60 hover:opacity-100 hover:bg-white/5'
                                     }
                                 `}
                             >

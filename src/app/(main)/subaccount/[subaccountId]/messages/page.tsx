@@ -174,7 +174,13 @@ const SubaccountMessagesPage = ({ params }: Props) => {
                     name: otherParticipant.User.name,
                     email: otherParticipant.User.email,
                     avatarUrl: otherParticipant.User.avatarUrl
-                } : null
+                } : null,
+                participants: participants.map((p: any) => ({
+                    id: p.User?.id || p.userId,
+                    name: p.User?.name,
+                    email: p.User?.email,
+                    avatarUrl: p.User?.avatarUrl
+                }))
             }
         })
 
@@ -838,10 +844,14 @@ const SubaccountMessagesPage = ({ params }: Props) => {
                         onVideoCall={() => {
                             if (selectedMsg && user) {
                                 const videoRoomId = selectedMsg.id
-                                const participants = (selectedMsg as any).participants || []
-                                const targetIds = participants
+                                let targetIds = (selectedMsg.participants || [])
                                     .map((p: any) => p.id)
                                     .filter((id: string) => id && id !== user.id)
+
+                                // Fallback for 1:1 if participants array failed to map
+                                if (targetIds.length === 0 && selectedMsg.participantInfo?.id) {
+                                    targetIds = [selectedMsg.participantInfo.id]
+                                }
 
                                 toast({
                                     title: 'Launching Video Call',
@@ -852,10 +862,12 @@ const SubaccountMessagesPage = ({ params }: Props) => {
 
                                 // Broadcast invite to each participant's private channel
                                 if (targetIds.length > 0) {
+                                    console.log(`[VIDEO] Broadcasting invites to ${targetIds.length} users:`, targetIds)
                                     targetIds.forEach((targetId: string) => {
                                         const channel = supabase.channel(`user-notifications:${targetId}`)
                                         channel.subscribe((status) => {
                                             if (status === 'SUBSCRIBED') {
+                                                console.log(`[VIDEO] Sent invite to user:${targetId}`)
                                                 channel.send({
                                                     type: 'broadcast',
                                                     event: 'video-call-invite',
@@ -870,6 +882,8 @@ const SubaccountMessagesPage = ({ params }: Props) => {
                                             }
                                         })
                                     })
+                                } else {
+                                    console.warn('[VIDEO] No participants found to invite')
                                 }
                             }
                         }}

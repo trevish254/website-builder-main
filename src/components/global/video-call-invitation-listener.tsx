@@ -23,8 +23,11 @@ const VideoCallInvitationListener = () => {
 
         const channel = supabase.channel(`user-notifications:${user.id}`)
 
-        channel.on('broadcast', { event: 'video-call-invite' }, (payload: any) => {
-            console.log('Incoming video call invite:', payload)
+        channel.on('broadcast', { event: 'video-call-invite' }, (message: any) => {
+            console.log('Incoming video call invite received:', message)
+
+            // Handle both { payload: data } and direct data structures
+            const data = message.payload || message
 
             // Play a subtle ringtone sound
             try {
@@ -42,7 +45,6 @@ const VideoCallInvitationListener = () => {
                     osc.stop(startTime + 0.5)
                 }
 
-                // Play 3 beeps
                 playBeep(660, audioContext.currentTime)
                 playBeep(660, audioContext.currentTime + 0.6)
                 playBeep(880, audioContext.currentTime + 1.2)
@@ -50,11 +52,11 @@ const VideoCallInvitationListener = () => {
                 console.error('Error playing ringtone:', err)
             }
 
-            setIncomingCall(payload.payload)
+            setIncomingCall(data)
 
-            // Auto-dismiss after 30 seconds if not answered
+            // Auto-dismiss after 30 seconds
             setTimeout(() => {
-                setIncomingCall(prev => (prev?.roomId === payload.payload.roomId ? null : prev))
+                setIncomingCall(prev => (prev?.roomId === data.roomId ? null : prev))
             }, 30000)
         })
             .subscribe()

@@ -34,6 +34,7 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
     const timeoutRef = useRef<NodeJS.Timeout | null>(null)
     const ringtoneRef = useRef<HTMLAudioElement | null>(null)
     const ringbackRef = useRef<HTMLAudioElement | null>(null)
+    const audioIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
     // Configuration for PeerConnection (Free STUN servers)
     const iceConfig = {
@@ -44,16 +45,59 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
         ]
     }
 
-    const playRingtone = useCallback(() => {
-        if (!ringtoneRef.current) {
-            // Melodic incoming ringtone
-            ringtoneRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3')
-            ringtoneRef.current.loop = true
-        }
-        ringtoneRef.current.play().catch(e => console.log('Inbound ringtone failed:', e))
+    const fadeVolume = useCallback((audio: HTMLAudioElement, target: number, duration: number) => {
+        const start = audio.volume
+        const steps = 10
+        const stepTime = duration / steps
+        const stepAmount = (target - start) / steps
+
+        let currentStep = 0
+        const interval = setInterval(() => {
+            currentStep++
+            const nextVol = audio.volume + stepAmount
+            audio.volume = Math.max(0, Math.min(1, nextVol))
+            if (currentStep >= steps) {
+                clearInterval(interval)
+                audio.volume = target
+            }
+        }, stepTime)
     }, [])
 
+    const playRingtone = useCallback(() => {
+        if (!ringtoneRef.current) {
+            ringtoneRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3')
+        }
+
+        const startLoop = () => {
+            if (!ringtoneRef.current) return
+            const audio = ringtoneRef.current
+            audio.volume = 0
+            audio.play().catch(e => console.log('Inbound ringtone failed:', e))
+            fadeVolume(audio, 0.5, 500)
+
+            // Fade out after 2.5s (total 3s duration including fade out)
+            setTimeout(() => {
+                if (ringtoneRef.current) {
+                    fadeVolume(ringtoneRef.current, 0, 500)
+                    setTimeout(() => {
+                        if (ringtoneRef.current) {
+                            ringtoneRef.current.pause()
+                            ringtoneRef.current.currentTime = 0
+                        }
+                    }, 500)
+                }
+            }, 2500)
+        }
+
+        startLoop()
+        audioIntervalRef.current = setInterval(startLoop, 4000)
+    }, [fadeVolume])
+
     const stopRingtone = useCallback(() => {
+        if (audioIntervalRef.current) {
+            clearInterval(audioIntervalRef.current)
+            audioIntervalRef.current = null
+        }
         if (ringtoneRef.current) {
             ringtoneRef.current.pause()
             ringtoneRef.current.currentTime = 0
@@ -62,15 +106,39 @@ export const useVoiceCall = (currentUserId: string, currentUserName?: string, cu
 
     const playRingback = useCallback(() => {
         if (!ringbackRef.current) {
-            // Standard "tut-tut" outgoing calling sound
             ringbackRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1353/1353-preview.mp3')
-            ringbackRef.current.loop = true
-            ringbackRef.current.volume = 0.5
         }
-        ringbackRef.current.play().catch(e => console.log('Outbound ringback failed:', e))
-    }, [])
+
+        const startLoop = () => {
+            if (!ringbackRef.current) return
+            const audio = ringbackRef.current
+            audio.volume = 0
+            audio.play().catch(e => console.log('Outbound ringback failed:', e))
+            fadeVolume(audio, 0.4, 500)
+
+            // Fade out after 2.5s
+            setTimeout(() => {
+                if (ringbackRef.current) {
+                    fadeVolume(ringbackRef.current, 0, 500)
+                    setTimeout(() => {
+                        if (ringbackRef.current) {
+                            ringbackRef.current.pause()
+                            ringbackRef.current.currentTime = 0
+                        }
+                    }, 500)
+                }
+            }, 2500)
+        }
+
+        startLoop()
+        audioIntervalRef.current = setInterval(startLoop, 4500)
+    }, [fadeVolume])
 
     const stopRingback = useCallback(() => {
+        if (audioIntervalRef.current) {
+            clearInterval(audioIntervalRef.current)
+            audioIntervalRef.current = null
+        }
         if (ringbackRef.current) {
             ringbackRef.current.pause()
             ringbackRef.current.currentTime = 0

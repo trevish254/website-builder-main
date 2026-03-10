@@ -184,10 +184,10 @@ const MessageBubble = ({
                         <div
                             className={`
                                 relative transition-all duration-200
-                                ${attachments && attachments.length > 0 && attachments[0].type.startsWith('image') ? 'p-1' : 'px-4 py-2.5'}
+                                ${attachments && attachments.length > 0 && attachments[0].type.startsWith('image') ? 'p-1' : 'p-4'}
                                 ${isSender
-                                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl rounded-tr-sm shadow-md'
-                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-tl-sm border border-gray-100 dark:border-gray-700/50 shadow-sm'
+                                    ? 'bg-primary border border-primary/20 shadow-[0_0_30px_-5px_rgba(var(--primary),0.3)] text-primary-foreground rounded-3xl rounded-tr-none'
+                                    : 'bg-muted/40 border border-white/5 backdrop-blur-md text-foreground/90 rounded-3xl rounded-tl-none'
                                 }
                             `}
                         >
@@ -314,7 +314,7 @@ const MessageBubble = ({
                             )}
 
                             {content && !isVoiceNoteOnly && !isAttachmentOnly && (
-                                <p className="text-[13.5px] font-normal leading-relaxed whitespace-pre-wrap break-words px-0.5">
+                                <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap break-words px-0.5">
                                     {content}
                                 </p>
                             )}
