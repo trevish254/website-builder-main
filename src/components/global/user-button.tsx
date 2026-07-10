@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -25,30 +25,15 @@ import {
     Shield
 } from 'lucide-react'
 import { useRouter, useParams } from 'next/navigation'
-import { User } from '@supabase/supabase-js'
-
 type Props = {
-    user?: User | any
+    user: Record<string, any>
 }
 
-const UserButton = ({ user: initialUser }: Props) => {
-    const [user, setUser] = useState<User | any>(initialUser)
+const UserButton = ({ user }: Props) => {
     const [isMuted, setIsMuted] = useState(false)
     const router = useRouter()
     const params = useParams()
     const supabase = createClient()
-
-    useEffect(() => {
-        if (!initialUser) {
-            const getUser = async () => {
-                const { data: { user } } = await supabase.auth.getUser()
-                setUser(user)
-            }
-            getUser()
-        } else {
-            setUser(initialUser)
-        }
-    }, [initialUser])
 
     const handleSignOut = async () => {
         await supabase.auth.signOut()
@@ -63,8 +48,6 @@ const UserButton = ({ user: initialUser }: Props) => {
             router.push(`/agency/${params.agencyId}/settings`)
         }
     }
-
-    if (!user) return null
 
     return (
         <Sheet>

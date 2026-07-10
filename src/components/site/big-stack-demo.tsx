@@ -1,4 +1,3 @@
-"use client"
 import { ContainerScroll, CardSticky } from "@/components/ui/cards-stack"
 import { Zap, Cpu, Fingerprint, Pencil, Settings2, Sparkles } from 'lucide-react';
 import { FeatureCard } from '@/components/ui/grid-feature-cards';

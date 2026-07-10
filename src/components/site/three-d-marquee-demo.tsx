@@ -1,4 +1,3 @@
-"use client";
 import { ThreeDMarquee } from "@/components/ui/3d-marquee";
 
 export function ThreeDMarqueeDemo() {

@@ -1,5 +1,3 @@
-"use client";
-
 import { ContactCard } from "@/components/ui/contact-card";
 import { MailIcon, PhoneIcon, MapPinIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';

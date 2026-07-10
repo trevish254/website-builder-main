@@ -1,12 +1,12 @@
 'use server'
 
 import { sms, voice } from '@/lib/africas-talking'
-import { currentUser } from '@clerk/nextjs/server'
+import { getUser } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
 
 export const sendBulkSMS = async (subaccountId: string, recipients: string[], message: string) => {
     try {
-        const user = await currentUser()
+        const user = await getUser()
         if (!user) return { error: 'Unauthorized' }
 
         if (!recipients.length || !message) {
@@ -45,7 +45,7 @@ export const sendBulkSMS = async (subaccountId: string, recipients: string[], me
 
 export const sendBulkVoice = async (subaccountId: string, recipients: string[], audioUrl: string) => {
     try {
-        const user = await currentUser()
+        const user = await getUser()
         if (!user) return { error: 'Unauthorized' }
 
         const result = await voice.call({

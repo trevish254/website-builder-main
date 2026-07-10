@@ -20,7 +20,6 @@ import { AboutSection } from '@/components/ui/about-section'
 import { HeroParallaxDemo } from '@/components/site/hero-parallax-demo'
 import { Footer } from '@/components/ui/footer-section'
 import { HeroScrollDemo } from '@/components/site/hero-scroll-demo'
-import { ZoomParallaxDemo } from '@/components/site/zoom-parallax-demo'
 import { ThreeDPhotoCarouselDemo } from '@/components/site/3d-carousel-demo'
 import { TextCarouselDemo } from '@/components/site/text-carousel'
 import { MorphingText } from '@/components/ui/morphing-text'
@@ -28,7 +27,6 @@ import { BigStackDemo } from '@/components/site/big-stack-demo'
 import { DisplayCardsDemo } from '@/components/site/display-cards-demo'
 import { IntroductionVideoDemo } from '@/components/site/introduction-video'
 import { TimelineDemo } from '@/components/site/timeline-demo'
-import { CyberneticBentoGrid } from '@/components/ui/cybernetic-bento-grid'
 import { OrderPerformance } from '@/components/blocks/features-9'
 import { TrustHero } from '@/components/ui/glassmorphism-trust-hero'
 import ReleaseTimeLineDemo from '@/components/site/release-time-line-demo'
@@ -166,15 +164,7 @@ export default async function Home() {
         <TimelineDemo />
       </div>
 
-      <div id="features">
-        <CyberneticBentoGrid />
-      </div>
-
       <OrderPerformance />
-
-      <section className="mt-[-60px] w-full">
-        <ZoomParallaxDemo />
-      </section>
 
       <section className="w-full">
         <BigStackDemo />

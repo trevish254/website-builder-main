@@ -845,7 +845,7 @@ const InfoBar = ({ notifications, subAccountId, agencyId, className, role, agenc
 
           {/* Theme Toggle */}
           <ModeToggle />
-          <UserButton />
+          <UserButton user={userData || currentUserData} />
         </div>
       </div>
     </>
