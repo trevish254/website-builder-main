@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Inter, Orbitron } from 'next/font/google'
 import "@uploadthing/react/styles.css"
 import { SmoothScrollProvider } from "@/providers/smooth-scroll-provider"
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 
 const font = Inter({ subsets: ['latin'] })
@@ -35,6 +36,7 @@ export default function RootLayout({
         <SmoothScrollProvider>
           {children}
         </SmoothScrollProvider>
+        <SpeedInsights />
       </body>
     </html>
   )
